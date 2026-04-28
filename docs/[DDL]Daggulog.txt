@@ -1,0 +1,66 @@
+-- 1. 사용자 테이블 (변경 없음)
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    kakao_id VARCHAR(50) UNIQUE NOT NULL,
+    nickname VARCHAR(100),
+    email VARCHAR(100),
+    profile_image_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. JWT Refresh Token (변경 없음)
+CREATE TABLE refresh_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_value TEXT NOT NULL UNIQUE,
+    expiry_date TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. 공용 제품 마스터 (보강: 공식 가격 및 링크)
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    creator_name VARCHAR(100),
+    official_price INTEGER,             -- 공식 정가
+    purchase_url TEXT,                 -- 공식 판매처 또는 브랜드 링크
+    representative_image_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. 사용자별 보유 아이템 (보강: 실구매 정보)
+CREATE TABLE user_items (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+    actual_price INTEGER,              -- 내가 실제로 지불한 가격
+    bought_at VARCHAR(100),            -- 구매처 (예: 텐바이텐, 오프라인 팝업스토어)
+    purchase_date DATE,                -- 구매 일자
+    storage_location VARCHAR(100),
+    memo TEXT,
+    is_public BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. 이미지 파일 관리 (변경 없음)
+CREATE TABLE item_images (
+    id SERIAL PRIMARY KEY,
+    user_item_id INTEGER NOT NULL REFERENCES user_items(id) ON DELETE CASCADE,
+    original_url TEXT NOT NULL,
+    mapped_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6. 태그 마스터 (변경 없음)
+CREATE TABLE tags (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+-- 7. 아이템-태그 매핑 (변경 없음)
+CREATE TABLE item_tags (
+    user_item_id INTEGER NOT NULL REFERENCES user_items(id) ON DELETE CASCADE,
+    tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    tag_type VARCHAR(20) CHECK (tag_type IN ('AI_GENERATED', 'USER_DEFINED')),
+    PRIMARY KEY (user_item_id, tag_id)
+);

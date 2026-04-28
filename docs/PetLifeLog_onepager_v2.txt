@@ -1,0 +1,194 @@
+# 🐾 Project: PetLifeArchive (펫라이프아카이브) `v2.0`
+
+> **"사진 한 장으로 시작되는 봉봉이의 일기, 캘린더, 지도, 그리고 타임라인"**
+> Vision AI와 메타데이터 추출 기술을 결합하여, 반려견의 일상을 별도의 입력 없이 **사진 업로드만으로** 자동 아카이빙하는 백엔드 중심 플랫폼입니다.
+
+---
+
+## 1. 프로젝트 비전 (Project Vision)
+
+사용자의 수기 입력 부담을 **제로(Zero)**화합니다.  
+사진 속 EXIF 데이터와 AI 비전 분석을 결합하여 **[캘린더 - 일기 - 지도 - 타임라인 - 도감]** 이 서로 유기적으로 연결되는 반려견 전용 데이터 생태계를 구축합니다.
+
+---
+
+## 2. 핵심 기능 (Core Features)
+
+### 🗓️ 비주얼 포토 캘린더 (Calendar-First)
+
+- **일기 중심 표출:** 특정 날짜에 '일기'가 생성되어야 캘린더에 사진이 노출되는 구조로 데이터 무결성 확보.
+- **대표 사진(Representative Photo):** 한 날짜에 여러 장의 사진이 있어도 사용자가 선택한(혹은 AI가 추천한) 단 한 장의 사진이 캘린더 썸네일로 고정.
+- **자동 동기화:** 사진 업로드 시 촬영 날짜를 파싱하여 해당 날짜의 캘린더 칸을 즉시 채움.
+- **활동 Heatmap:** GitHub 잔디처럼 사진이 많이 찍힌 날일수록 진한 색으로 표시. 월별 활동 밀도를 한눈에 파악.
+
+### ✍️ AI 멍멍 일기 (Automated Diary)
+
+- **1인칭 시점 생성:** 사진의 시간, 장소, 상황을 AI가 유추하여 강아지 시점의 감성적인 일기 자동 작성.
+- **데이터 기반 유추:** EXIF 정보와 비전 태깅을 조합해 "어디서 무엇을 했는지"를 정확도 높게 서술.
+- **비동기 생성:** 업로드 직후 즉시 응답 반환 후 AI 파이프라인이 백그라운드에서 처리. 완료 시 SSE로 프론트에 알림.
+
+### 📸 성장 타임라인 (Growth Timeline) `NEW`
+
+- **전용 탭 분리:** 캘린더/지도와 독립된 별도의 타임라인 탭으로 제공.
+- **월별 대표 사진 자동 편집:** 날짜별로 지정된 `representative_photo`를 월 단위로 자동 집계하여 세로 스크롤 슬라이드쇼로 구성.
+- **입양일 기준 경과 표시:** "입양 후 D+365" 같은 마일스톤 라벨을 타임라인 구간마다 자동 삽입.
+- **추가 데이터 Zero 원칙:** 기존 일기/사진 데이터만 활용하며 별도의 사용자 입력 불필요.
+
+### 📍 공간 데이터 산책 포토맵 (Apple-Style Map)
+
+- **위치 기반 시각화:** 지도 위에 해당 좌표에서 찍은 반려견 사진을 직접 표시.
+- **PostGIS 활용:** 사용자의 현재 지도 뷰포트 내에 존재하는 사진들만 효율적으로 필터링하여 노출.
+- **GPS 없는 사진 폴백(Fallback):** GPS 미포함 사진의 경우 ① AI 배경 유추 → ② 사용자 확인 팝업 → ③ 수동 핀 찍기 순서로 처리.
+- **단골 장소 자동 추천:** GPS 클러스터링으로 자주 방문한 좌표를 감지하여 "자주 가는 장소" 라벨 자동 부여.
+
+### 🍱 스마트 도감 & 선호도 아카이브 (Smart Inventory)
+
+- **간식 도감:** 사진 스캔으로 제품명, 유통기한, kg당 권장 급여량 자동 추출.
+- **장난감/옷장:** 아이템별 사진 등록 및 AI 카테고리 분류.
+- **사용자 피드백:** 각 아이템에 대해 반려견의 선호도(별점/기호성)를 직접 체크하여 개인화된 데이터 구축.
+
+---
+
+## 3. 핵심 데이터 구조 (Data Structure)
+
+```
+Users (1) ─────── Pets (N)
+                    │
+                    ├── Diaries (N, 날짜별 유니크)
+                    │       │
+                    │       ├── Photos (N)
+                    │       │       └── Tags (N, AI 비전 태깅)
+                    │       │
+                    │       └── representative_photo_id (FK → Photo)
+                    │
+                    ├── PetEvents (N)          ← 기념일, 예방접종, D-Day
+                    │
+                    └── Items (N)              ← 도감
+                            └── Photos (N, M:N 연결)
+```
+
+**관계 상세**
+
+| 관계 | 설명 |
+|---|---|
+| `Users (1) : Pets (N)` | 한 명의 사용자가 여러 마리의 반려견 관리 가능 |
+| `Pets (1) : Diaries (N)` | 날짜별 유니크한 일기 엔티티 생성 |
+| `Diaries (1) : Photos (N)` | 일기 하나에 묶인 여러 장의 사진 |
+| `Diaries (1) : Photos (1, Representative)` | 캘린더 및 타임라인 썸네일 대표 사진 (순환 참조 방지 전략 적용) |
+| `Photos (N) : Tags (N)` | Vision AI 분석 결과 태그 저장 (장소/행동/감정 등) |
+| `Photos (N) : Items (N)` | 특정 사진과 도감 아이템 연결 ('착장샷' 및 '사용샷' 구현) |
+
+---
+
+## 4. 기술 스택 (Technical Stack)
+
+| 레이어 | 기술 | 비고 |
+|---|---|---|
+| **Cloud** | Oracle Cloud A1 (ARM Ampere) | Free Tier, 4 OCPU / 24GB RAM |
+| **Container** | Docker Compose | 4개 서비스 구성 |
+| **Proxy** | Nginx + Let's Encrypt | SSL 자동갱신, 리버스 프록시 |
+| **Backend** | Spring Boot 3.x / Java 17 | ARM 빌드(`--platform linux/arm64`) 필수 |
+| **Database** | PostGIS 15-3.4 (ARM 공식 이미지) | 공간 쿼리 최적화 |
+| **Cache / Queue** | Redis | 비동기 AI 파이프라인 큐 + 뷰포트 쿼리 캐시 겸용 |
+| **AI Engine** | Google Gemini 1.5 Flash | Vision 분석 + 일기 생성, 비동기 처리 |
+| **Image Processing** | metadata-extractor | EXIF 파싱 (GPS, 촬영시간) |
+| **Storage** | Cloudflare R2 | 원본 / 300px / 100px 썸네일 3종 경로 분리 |
+| **Frontend** | Next.js + Tailwind CSS | **Vercel 별도 배포 권장** (Oracle 인스턴스 리소스 분리) |
+| **Map SDK** | Kakao / Naver Map SDK | 포토맵 및 타임라인 장소 표시 |
+
+---
+
+## 5. 인프라 구성 (Infrastructure)
+
+### Docker Compose 서비스 구성
+
+```yaml
+services:
+  postgres:     # postgis/postgis:15-3.4 (ARM 공식)
+  redis:        # 비동기 큐 + 캐시 겸용
+  spring-app:   # 메인 백엔드 (ARM 빌드)
+  nginx:        # 리버스 프록시 + SSL termination
+```
+
+### 무중단 배포 전략
+
+```bash
+# spring-app만 재빌드 후 교체
+docker compose up -d --no-deps --build spring-app
+
+# Nginx reload로 트래픽 전환 (다운타임 0)
+docker exec nginx nginx -s reload
+```
+
+### 환경변수 관리
+
+- Gemini API Key, R2 Secret 등 민감 정보는 `.env` 파일로 분리
+- `.env`는 `.gitignore` 처리 필수
+- 장기적으로 Oracle Cloud Vault 연동 권장
+
+---
+
+## 6. 백엔드 개발 전략 (Backend Strategy)
+
+### 1. EXIF 파이프라인
+이미지 업로드 시 바이너리 데이터에서 위치(GPS)와 촬영 시간을 즉시 추출하는 Service 구현. GPS 미포함 사진은 3단계 폴백 플로우로 처리.
+
+### 2. 비동기 AI 오케스트레이션
+
+```
+[Upload API] ──→ 즉시 200 반환 + Redis 이벤트 발행
+                        │
+                [AI Worker]
+                        │
+                ┌───────┴────────┐
+           EXIF 추출        Vision 분석
+                └───────┬────────┘
+                   일기 생성 (Gemini)
+                        │
+                   DB 저장 완료
+                        │
+              [SSE / WebSocket] ──→ 프론트 완료 알림
+```
+
+Gemini API 평균 응답시간(2~5초)을 감안하여 동기 처리 절대 금지.
+
+### 3. 공간 쿼리 최적화
+`ST_DWithin` 또는 `ST_MakeEnvelope`를 활용하여 지도 뷰포트 내 사진만 필터링. 뷰포트 쿼리 결과는 Redis에 캐싱하여 중복 DB 조회 방지.
+
+### 4. 이미지 저장 전략
+R2에 원본 업로드 후 `Thumbnailator`로 즉시 리사이징하여 3종 경로에 분리 저장.
+
+| 용도 | 해상도 | 사용처 |
+|---|---|---|
+| 원본 | 무손실 | 다운로드, 고화질 뷰 |
+| 중간 썸네일 | 300×300 | 캘린더, 타임라인 |
+| 소형 썸네일 | 100×100 | 지도 핀 |
+
+### 5. 대표 사진 & 타임라인 데이터 일관성
+날짜별 대표 사진 변경 시 캘린더 썸네일과 타임라인 슬라이드쇼에 즉시 반영되도록 단일 FK 기준으로 일관성 유지. 순환 참조 방지를 위해 JPA 영속성 순서 제어 전략 명시 적용.
+
+---
+
+## 7. 탭 구조 (Navigation)
+
+```
+┌─────────────────────────────────────────┐
+│  🗓️ 캘린더  │  📸 타임라인  │  📍 지도  │  🍱 도감  │
+└─────────────────────────────────────────┘
+```
+
+| 탭 | 핵심 뷰 | 데이터 소스 |
+|---|---|---|
+| 캘린더 | 월별 포토 캘린더 + Heatmap | Diary.representative_photo |
+| 타임라인 | 월별 슬라이드쇼 + 마일스톤 라벨 | Diary.representative_photo (월 집계) |
+| 지도 | 포토 핀맵 (뷰포트 필터링) | Photo.gps_lat / gps_lng |
+| 도감 | 간식 / 장난감 / 옷장 아카이브 | Item + Photo M:N |
+
+---
+
+## 8. 변경 이력 (Changelog)
+
+| 버전 | 변경 내용 |
+|---|---|
+| `v1.0` | 최초 기획 (캘린더, 일기, 지도, 도감) |
+| `v2.0` | 성장 타임라인 탭 추가 / Oracle Cloud + Docker 인프라 명세 추가 / 비동기 AI 파이프라인 명시 / GPS 폴백 플로우 추가 / 이미지 3종 경로 분리 전략 추가 / Tags 엔티티 추가 |

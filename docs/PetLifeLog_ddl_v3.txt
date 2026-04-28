@@ -1,0 +1,506 @@
+-- ============================================================
+-- PetLifeArchive DDL v3.0
+-- Target: PostgreSQL 15 + PostGIS 3.4
+-- Auth  : 카카오 OAuth 2.0 + 자체 JWT (Supabase auth 미사용)
+-- Storage: Docker Volume 로컬 스토리지 (Cloudflare R2 미사용)
+--          이미지 파일은 Spring Boot가 Docker Volume에 직접 저장
+--          URL은 자체 서버 경로로 관리 (예: /images/origin/xxx.jpg)
+-- ============================================================
+
+
+-- ============================================================
+-- EXTENSION
+-- ============================================================
+
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+
+-- ============================================================
+-- 1. USERS
+-- 카카오 OAuth 기반 사용자 테이블
+-- ============================================================
+
+CREATE TABLE users (
+    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- 카카오 OAuth 식별자
+    kakao_id            BIGINT      NOT NULL UNIQUE,
+    kakao_email         TEXT,
+    kakao_nickname      TEXT,
+
+    -- 앱 내 프로필
+    nickname            TEXT        NOT NULL,
+    profile_image_path  TEXT,                       -- Docker Volume 내 경로 (예: /images/profiles/xxx.jpg)
+
+    -- JWT
+    refresh_token_hash  TEXT,                       -- bcrypt 해시된 리프레시 토큰
+    token_issued_at     TIMESTAMPTZ,                -- 강제 로그아웃용 (이전 발급 토큰 일괄 무효화)
+
+    is_active           BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_kakao_id ON users(kakao_id);
+
+COMMENT ON TABLE  users                     IS '카카오 OAuth 기반 사용자 (Supabase auth 미사용)';
+COMMENT ON COLUMN users.kakao_id            IS '카카오 고유 회원번호, UPSERT 기준 키';
+COMMENT ON COLUMN users.profile_image_path  IS 'Docker Volume 내 파일 경로';
+COMMENT ON COLUMN users.refresh_token_hash  IS 'bcrypt 해시 저장, 원문은 클라이언트에만 존재';
+COMMENT ON COLUMN users.token_issued_at     IS '이 시각 이전 발급 토큰 전부 무효 처리';
+
+
+-- ============================================================
+-- 2. PETS
+-- 반려견 프로필 (1 User : N Pets)
+-- ============================================================
+
+CREATE TABLE pets (
+    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id             UUID        NOT NULL,
+    name                TEXT        NOT NULL,
+    breed               TEXT,
+    birth_date          DATE,
+    adoption_date       DATE,                       -- 타임라인 D+N 마일스톤 기준
+    gender              TEXT        CHECK (gender IN ('MALE', 'FEMALE', 'UNKNOWN')),
+    weight_kg           NUMERIC(5,2),
+    profile_image_path  TEXT,                       -- Docker Volume 내 경로
+    is_active           BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_pets_user
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_pets_user_id ON pets(user_id);
+
+COMMENT ON TABLE  pets                   IS '반려견 프로필';
+COMMENT ON COLUMN pets.adoption_date     IS '타임라인 D+N 마일스톤 계산 기준일';
+COMMENT ON COLUMN pets.profile_image_path IS 'Docker Volume 내 파일 경로';
+
+
+-- ============================================================
+-- 3. DIARIES
+-- 날짜별 유니크 일기 (1 Pet : N Diaries)
+-- representative_photo_id 순환 참조 → DEFERRABLE로 해소
+-- ============================================================
+
+CREATE TABLE diaries (
+    id                      UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pet_id                  UUID        NOT NULL,
+    diary_date              DATE        NOT NULL,
+    content                 TEXT,
+    ai_status               TEXT        NOT NULL DEFAULT 'PENDING'
+                                        CHECK (ai_status IN ('PENDING', 'PROCESSING', 'DONE', 'FAILED')),
+    representative_photo_id UUID,                   -- FK는 photos 생성 후 하단에서 추가
+    weather                 TEXT,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uq_diaries_pet_date UNIQUE (pet_id, diary_date),
+
+    CONSTRAINT fk_diaries_pet
+        FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_diaries_pet_id    ON diaries(pet_id);
+CREATE INDEX idx_diaries_date      ON diaries(diary_date);
+CREATE INDEX idx_diaries_ai_status ON diaries(ai_status);   -- AI Worker 폴링용
+
+COMMENT ON TABLE  diaries           IS '날짜별 유니크 일기';
+COMMENT ON COLUMN diaries.ai_status IS 'PENDING→PROCESSING→DONE/FAILED 비동기 상태';
+
+
+-- ============================================================
+-- 4. PHOTOS
+-- 사진 파일 경로(Docker Volume), EXIF, PostGIS 공간 데이터
+-- ============================================================
+
+CREATE TABLE photos (
+    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    diary_id            UUID        NOT NULL,
+    pet_id              UUID        NOT NULL,           -- 포토맵 직접 조회용 역정규화
+
+    -- Docker Volume 파일 경로 3종
+    path_origin         TEXT        NOT NULL,           -- 원본 (예: /images/origin/uuid.jpg)
+    path_thumb_300      TEXT,                           -- 300×300 캘린더·타임라인용
+    path_thumb_100      TEXT,                           -- 100×100 지도 핀용
+
+    -- EXIF 메타데이터
+    taken_at            TIMESTAMPTZ,
+    gps_lat             NUMERIC(10,7),
+    gps_lng             NUMERIC(10,7),
+    location            GEOGRAPHY(POINT, 4326),         -- PostGIS 공간 인덱스용
+    gps_source          TEXT        NOT NULL DEFAULT 'EXIF'
+                                    CHECK (gps_source IN ('EXIF', 'AI_INFERRED', 'MANUAL', 'NONE')),
+
+    -- AI 분석 결과
+    ai_caption          TEXT,
+    ai_emotion          TEXT,
+    ai_energy_level     SMALLINT    CHECK (ai_energy_level BETWEEN 1 AND 5),
+
+    sort_order          INTEGER     NOT NULL DEFAULT 0,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_photos_diary
+        FOREIGN KEY (diary_id) REFERENCES diaries(id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_photos_pet
+        FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_photos_diary_id ON photos(diary_id);
+CREATE INDEX idx_photos_pet_id   ON photos(pet_id);
+CREATE INDEX idx_photos_taken_at ON photos(taken_at);
+CREATE INDEX idx_photos_location ON photos USING GIST(location);  -- 포토맵 뷰포트 쿼리 핵심
+
+COMMENT ON TABLE  photos              IS '사진 파일 경로 및 EXIF·공간 데이터';
+COMMENT ON COLUMN photos.path_origin  IS 'Docker Volume 내 원본 파일 경로';
+COMMENT ON COLUMN photos.path_thumb_300 IS '캘린더·타임라인 썸네일 경로';
+COMMENT ON COLUMN photos.path_thumb_100 IS '지도 핀 썸네일 경로';
+COMMENT ON COLUMN photos.pet_id       IS '포토맵 직접 조회를 위한 역정규화';
+COMMENT ON COLUMN photos.gps_source   IS 'EXIF=원본GPS / AI_INFERRED=AI유추 / MANUAL=수동핀 / NONE=미확정';
+
+
+-- ============================================================
+-- 4-1. 순환 참조 해소
+-- diaries.representative_photo_id → photos.id
+-- DEFERRABLE INITIALLY DEFERRED: 트랜잭션 커밋 시점에 FK 검사
+-- ============================================================
+
+ALTER TABLE diaries
+    ADD CONSTRAINT fk_diaries_representative_photo
+        FOREIGN KEY (representative_photo_id)
+        REFERENCES photos(id)
+        ON DELETE SET NULL
+        DEFERRABLE INITIALLY DEFERRED;
+
+CREATE INDEX idx_diaries_rep_photo ON diaries(representative_photo_id);
+
+
+-- ============================================================
+-- 5. TAGS
+-- Vision AI 추출 태그 마스터 + 사진 연결
+-- ============================================================
+
+CREATE TABLE tags (
+    id          UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name        TEXT    NOT NULL UNIQUE,
+    category    TEXT    NOT NULL DEFAULT 'GENERAL'
+                        CHECK (category IN ('PLACE', 'ACTIVITY', 'OBJECT', 'EMOTION', 'GENERAL'))
+);
+
+CREATE TABLE photo_tags (
+    photo_id    UUID            NOT NULL,
+    tag_id      UUID            NOT NULL,
+    confidence  NUMERIC(4,3)    CHECK (confidence BETWEEN 0 AND 1),
+
+    PRIMARY KEY (photo_id, tag_id),
+
+    CONSTRAINT fk_photo_tags_photo
+        FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_photo_tags_tag
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_photo_tags_tag_id ON photo_tags(tag_id);
+
+COMMENT ON TABLE  tags                  IS 'Vision AI 추출 태그 마스터';
+COMMENT ON COLUMN photo_tags.confidence IS 'Gemini Vision 분류 신뢰도 (0.0~1.0)';
+
+
+-- ============================================================
+-- 6. PET_EVENTS
+-- 기념일, 예방접종, D-Day 트래커
+-- ============================================================
+
+CREATE TABLE pet_events (
+    id              UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pet_id          UUID        NOT NULL,
+    title           TEXT        NOT NULL,
+    event_date      DATE        NOT NULL,
+    event_type      TEXT        NOT NULL DEFAULT 'GENERAL'
+                                CHECK (event_type IN ('BIRTHDAY', 'ADOPTION', 'VACCINE', 'HOSPITAL', 'ANNIVERSARY', 'GENERAL')),
+    is_recurring    BOOLEAN     NOT NULL DEFAULT FALSE,
+    memo            TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_pet_events_pet
+        FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_pet_events_pet_id ON pet_events(pet_id);
+CREATE INDEX idx_pet_events_date   ON pet_events(event_date);
+
+COMMENT ON COLUMN pet_events.is_recurring IS '매년 반복 알림 여부 (생일, 입양일 등)';
+
+
+-- ============================================================
+-- 7. ITEMS
+-- 도감 아이템 (간식, 장난감, 옷장)
+-- ============================================================
+
+CREATE TABLE items (
+    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pet_id              UUID        NOT NULL,
+    name                TEXT        NOT NULL,
+    category            TEXT        NOT NULL
+                                    CHECK (category IN ('SNACK', 'TOY', 'CLOTHES', 'MEDICINE', 'ETC')),
+    brand               TEXT,
+    barcode             TEXT,
+    thumbnail_path      TEXT,                       -- Docker Volume 내 경로
+    expire_date         DATE,
+    feeding_guide       TEXT,
+    preference_score    SMALLINT    CHECK (preference_score BETWEEN 1 AND 5),
+    memo                TEXT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_items_pet
+        FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_items_pet_id   ON items(pet_id);
+CREATE INDEX idx_items_category ON items(category);
+
+COMMENT ON COLUMN items.thumbnail_path   IS 'Docker Volume 내 파일 경로';
+COMMENT ON COLUMN items.preference_score IS '반려견 선호도 별점 1~5';
+
+
+-- ============================================================
+-- 8. PHOTO_ITEMS
+-- 사진 ↔ 도감 아이템 N:M ('착장샷', '사용샷')
+-- ============================================================
+
+CREATE TABLE photo_items (
+    photo_id    UUID    NOT NULL,
+    item_id     UUID    NOT NULL,
+
+    PRIMARY KEY (photo_id, item_id),
+
+    CONSTRAINT fk_photo_items_photo
+        FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_photo_items_item
+        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_photo_items_item_id ON photo_items(item_id);
+
+COMMENT ON TABLE photo_items IS '사진-도감아이템 N:M (착장샷·사용샷)';
+
+
+-- ============================================================
+-- 9. FAVORITE_PLACES
+-- GPS 클러스터링으로 감지된 단골 장소
+-- ============================================================
+
+CREATE TABLE favorite_places (
+    id              UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pet_id          UUID        NOT NULL,
+    name            TEXT,
+    location        GEOGRAPHY(POINT, 4326) NOT NULL,
+    visit_count     INTEGER     NOT NULL DEFAULT 1,
+    last_visited_at TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_favorite_places_pet
+        FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_favorite_places_pet_id   ON favorite_places(pet_id);
+CREATE INDEX idx_favorite_places_location ON favorite_places USING GIST(location);
+
+COMMENT ON COLUMN favorite_places.name IS '사용자가 직접 붙인 이름 (예: "한강공원")';
+
+
+-- ============================================================
+-- 10. SHARE_TOKENS
+-- 비회원 공개 링크 공유
+-- ============================================================
+
+CREATE TABLE share_tokens (
+    id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    token       TEXT        NOT NULL UNIQUE
+                            DEFAULT encode(gen_random_bytes(24), 'base64'),
+    diary_id    UUID,
+    pet_id      UUID,
+    expires_at  TIMESTAMPTZ,
+    is_active   BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_share_tokens_diary
+        FOREIGN KEY (diary_id) REFERENCES diaries(id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_share_tokens_pet
+        FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+
+    CONSTRAINT chk_share_tokens_target
+        CHECK (diary_id IS NOT NULL OR pet_id IS NOT NULL)
+);
+
+CREATE INDEX idx_share_tokens_token    ON share_tokens(token);
+CREATE INDEX idx_share_tokens_diary_id ON share_tokens(diary_id);
+
+COMMENT ON TABLE  share_tokens            IS '비회원 공개 링크 공유용 토큰';
+COMMENT ON COLUMN share_tokens.expires_at IS 'NULL이면 만료 없음';
+
+
+-- ============================================================
+-- TRIGGER: updated_at 자동 갱신
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_pets_updated_at
+    BEFORE UPDATE ON pets
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_diaries_updated_at
+    BEFORE UPDATE ON diaries
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_photos_updated_at
+    BEFORE UPDATE ON photos
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_items_updated_at
+    BEFORE UPDATE ON items
+    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+
+-- ============================================================
+-- VIEW: 타임라인용 월별 대표 사진
+-- ============================================================
+
+CREATE VIEW v_timeline_monthly AS
+SELECT
+    d.pet_id,
+    TO_CHAR(d.diary_date, 'YYYY-MM')    AS month,
+    MIN(d.diary_date)                   AS first_diary_date,
+    COUNT(*)                            AS diary_count,
+    (
+        SELECT d2.representative_photo_id
+        FROM   diaries d2
+        WHERE  d2.pet_id = d.pet_id
+          AND  TO_CHAR(d2.diary_date, 'YYYY-MM') = TO_CHAR(d.diary_date, 'YYYY-MM')
+          AND  d2.representative_photo_id IS NOT NULL
+        ORDER  BY d2.diary_date ASC
+        LIMIT  1
+    ) AS representative_photo_id
+FROM  diaries d
+WHERE d.ai_status = 'DONE'
+GROUP BY d.pet_id, TO_CHAR(d.diary_date, 'YYYY-MM')
+ORDER BY month DESC;
+
+COMMENT ON VIEW v_timeline_monthly IS '타임라인 탭용 월별 대표 사진 집계 뷰';
+
+
+-- ============================================================
+-- VIEW: 포토맵용 GPS 포함 사진
+-- ============================================================
+
+CREATE VIEW v_photos_with_location AS
+SELECT
+    p.id,
+    p.pet_id,
+    p.diary_id,
+    p.path_thumb_100,
+    p.path_thumb_300,
+    p.taken_at,
+    p.gps_lat,
+    p.gps_lng,
+    p.location,
+    p.gps_source,
+    p.ai_caption,
+    d.diary_date
+FROM  photos p
+JOIN  diaries d ON d.id = p.diary_id
+WHERE p.gps_source != 'NONE'
+  AND p.location IS NOT NULL;
+
+COMMENT ON VIEW v_photos_with_location IS '포토맵 뷰포트 쿼리용 GPS 포함 사진 뷰';
+
+
+-- ============================================================
+-- SAMPLE QUERY: 포토맵 뷰포트 필터링
+-- ============================================================
+/*
+SELECT *
+FROM   v_photos_with_location
+WHERE  pet_id = :petId
+  AND  ST_Within(
+           location::geometry,
+           ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)
+       );
+*/
+
+
+-- ============================================================
+-- [Docker Volume 이미지 저장 구조]
+--
+-- docker-compose.yml 볼륨 마운트 예시:
+--   volumes:
+--     - pet_images:/app/images
+--
+-- 컨테이너 내부 디렉토리 구조:
+--   /app/images/
+--     ├── origin/       ← 원본 (photos.path_origin)
+--     ├── thumb_300/    ← 300×300 (photos.path_thumb_300)
+--     ├── thumb_100/    ← 100×100 (photos.path_thumb_100)
+--     ├── profiles/     ← 사용자·펫 프로필 (users/pets.profile_image_path)
+--     └── items/        ← 도감 아이템 (items.thumbnail_path)
+--
+-- Spring Boot application.yml 예시:
+--   storage:
+--     base-path: /app/images
+--     serve-path: /images   ← API 서빙 경로 (예: GET /images/origin/xxx.jpg)
+--
+-- [주의] Docker Volume 백업 필수
+--   docker run --rm -v pet_images:/data -v $(pwd):/backup \
+--     alpine tar czf /backup/images_backup.tar.gz /data
+-- ============================================================
+
+
+-- ============================================================
+-- [카카오 OAuth + JWT 플로우 메모]
+--
+-- 1. 카카오 로그인
+--    클라이언트 → 카카오 인가 코드 발급
+--    → Spring 백엔드 /auth/kakao/callback 수신
+--    → 카카오 토큰 API로 access_token 교환
+--    → 카카오 사용자 정보 API로 kakao_id, 닉네임, 이메일 수신
+--    → users 테이블 UPSERT (kakao_id 기준)
+--
+-- 2. JWT 발급
+--    Access Token  : 만료 짧게 (예: 30분), payload에 user_id 포함
+--    Refresh Token : 만료 길게 (예: 30일), bcrypt 해시 후 users.refresh_token_hash에 저장
+--
+-- 3. 토큰 갱신
+--    Refresh Token 수신 → DB의 refresh_token_hash와 bcrypt 비교
+--    → token_issued_at 갱신 + 새 토큰 쌍 발급 (Rotation)
+--
+-- 4. 강제 로그아웃
+--    users.token_issued_at을 현재 시각으로 갱신
+--    → 이전 발급 토큰은 iat 비교로 전부 무효화 (블랙리스트 테이블 불필요)
+--
+-- 5. 회원 탈퇴
+--    users.is_active = FALSE + refresh_token_hash = NULL
+--    → CASCADE로 하위 데이터 전부 삭제
+--    → Docker Volume 이미지 파일은 별도 배치로 정리 필요
+-- ============================================================
