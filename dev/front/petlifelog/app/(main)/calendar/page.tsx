@@ -6,6 +6,14 @@ import CalendarGrid from '@/app/calendar/components/CalendarGrid';
 import DiaryPreview from '@/app/calendar/components/DiaryPreview';
 import { useCalendar } from '@/app/calendar/hooks/useCalendar';
 
+// Helper to format date to YYYY-MM-DD in local time
+const formatDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Mock data based on DDL v3 and Onepager v2
 const mockEntries: Record<string, any> = {
   '2026-05-17': {
@@ -72,11 +80,11 @@ export default function CalendarPage() {
     onNextMonth,
     onToday,
     onSelectDate,
+    goToDate,
   } = useCalendar();
 
   const [isDiaryOpen, setIsDiaryOpen] = useState(false);
 
-  // Sync mobile drawer with today button if needed
   const handleToday = () => {
     onToday();
     if (window.innerWidth < 1024) {
@@ -86,13 +94,12 @@ export default function CalendarPage() {
 
   const handleSelectDate = (date: Date) => {
     onSelectDate(date);
-    // On mobile, open the diary preview automatically when a date is selected
     if (window.innerWidth < 1024) {
       setIsDiaryOpen(true);
     }
   };
 
-  const selectedDateKey = selectedDate.toISOString().split('T')[0];
+  const selectedDateKey = formatDateKey(selectedDate);
   const selectedEntry = mockEntries[selectedDateKey];
   const selectedEvents = mockEvents[selectedDateKey] || [];
 
@@ -104,6 +111,7 @@ export default function CalendarPage() {
           onPrevMonth={onPrevMonth} 
           onNextMonth={onNextMonth} 
           onToday={handleToday} 
+          onGoToDate={goToDate}
         />
         <div className="flex-1 flex flex-col min-h-0">
           <CalendarGrid 

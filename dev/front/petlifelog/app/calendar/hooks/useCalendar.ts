@@ -16,7 +16,6 @@ export function useCalendar() {
 
   const onToday = () => {
     const now = new Date();
-    // Reset time components to ensure date-only comparison is clean
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     setCurrentDate(today);
     setSelectedDate(today);
@@ -26,6 +25,11 @@ export function useCalendar() {
     setSelectedDate(date);
   };
 
+  const goToDate = (year: number, month: number) => {
+    // month is 0-indexed (0 = Jan, 11 = Dec)
+    setCurrentDate(new Date(year, month, 1));
+  };
+
   return {
     currentDate,
     selectedDate,
@@ -33,5 +37,6 @@ export function useCalendar() {
     onNextMonth,
     onToday,
     onSelectDate,
+    goToDate,
   };
 }
