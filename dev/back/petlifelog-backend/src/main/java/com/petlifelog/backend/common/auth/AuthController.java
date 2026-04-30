@@ -5,6 +5,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * [인증 관련 API 컨트롤러]
@@ -27,6 +29,12 @@ import java.util.Arrays;
 public class AuthController {
 
     private final AuthService authService;
+
+    @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
+    private String kakaoClientId;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     /**
      * [토큰 재발급 API]
@@ -55,15 +63,17 @@ public class AuthController {
      * 서버에서는 유저의 리프레시 토큰 정보를 지우고, 브라우저의 쿠키도 삭제합니다.
      */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@AuthenticationPrincipal User user, HttpServletResponse response) {
-        // 1. DB에서 해당 유저의 리프레시 토큰 해시값을 지웁니다.
+    public ResponseEntity<Map<String, String>> logout(@AuthenticationPrincipal User user, HttpServletResponse response) {
         authService.logout(user.getUsername());
-        
-        // 2. 브라우저에 저장된 쿠키를 삭제하라고 명령합니다.
+
         clearCookie(response, "accessToken");
         clearCookie(response, "refreshToken");
-        
-        return ResponseEntity.ok().build();
+
+        String logoutRedirectUri = frontendUrl + "/login";
+        String kakaoLogoutUrl = "https://kauth.kakao.com/oauth/logout?client_id=" + kakaoClientId
+                + "&logout_redirect_uri=" + logoutRedirectUri;
+
+        return ResponseEntity.ok(Map.of("kakaoLogoutUrl", kakaoLogoutUrl));
     }
 
     /**
