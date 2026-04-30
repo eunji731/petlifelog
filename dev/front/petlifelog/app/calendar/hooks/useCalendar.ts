@@ -16,8 +16,10 @@ export function useCalendar() {
 
   const onToday = () => {
     const now = new Date();
-    setCurrentDate(now);
-    setSelectedDate(now);
+    // Reset time components to ensure date-only comparison is clean
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    setCurrentDate(today);
+    setSelectedDate(today);
   };
 
   const onSelectDate = (date: Date) => {

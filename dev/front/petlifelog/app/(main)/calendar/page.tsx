@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CalendarHeader from '@/app/calendar/components/CalendarHeader';
 import CalendarGrid from '@/app/calendar/components/CalendarGrid';
 import DiaryPreview from '@/app/calendar/components/DiaryPreview';
@@ -76,6 +76,14 @@ export default function CalendarPage() {
 
   const [isDiaryOpen, setIsDiaryOpen] = useState(false);
 
+  // Sync mobile drawer with today button if needed
+  const handleToday = () => {
+    onToday();
+    if (window.innerWidth < 1024) {
+      setIsDiaryOpen(true);
+    }
+  };
+
   const handleSelectDate = (date: Date) => {
     onSelectDate(date);
     // On mobile, open the diary preview automatically when a date is selected
@@ -89,18 +97,18 @@ export default function CalendarPage() {
   const selectedEvents = mockEvents[selectedDateKey] || [];
 
   return (
-    <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
+    <div className="flex flex-1 h-screen overflow-hidden flex-col md:flex-row">
       <div className="flex-1 flex flex-col min-h-0 bg-white">
         <CalendarHeader 
           currentDate={currentDate} 
           onPrevMonth={onPrevMonth} 
           onNextMonth={onNextMonth} 
-          onToday={onToday} 
+          onToday={handleToday} 
         />
         <div className="flex-1 flex flex-col min-h-0">
-          <CalendarGrid
-            currentDate={currentDate}
-            selectedDate={selectedDate}
+          <CalendarGrid 
+            currentDate={currentDate} 
+            selectedDate={selectedDate} 
             onSelectDate={handleSelectDate}
             entries={mockEntries}
             events={mockEvents}
