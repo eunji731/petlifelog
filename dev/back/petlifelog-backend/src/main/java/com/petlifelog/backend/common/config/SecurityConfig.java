@@ -20,77 +20,118 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-@RequiredArgsConstructor // final이 붙은 필드들을 자동으로 생성자로 만들어줍니다. (의존성 주입)
-@Configuration // 이 클래스가 스프링의 설정 파일임을 나타냅니다.
-@EnableWebSecurity // 스프링 시큐리티 기능을 활성화합니다.
+/**
+ * [스프링 시큐리티 설정 클래스]
+ * 이 클래스는 우리 앱의 '보안관' 역할을 합니다.
+ * 누가 들어올 수 있는지, 어떤 문(URL)을 열어둘지, 신분증(JWT)은 어떻게 확인할지를 결정합니다.
+ */
+@RequiredArgsConstructor // final이 붙은 필드(객체)들을 스프링이 알아서 넣어줍니다 (의존성 주입)
+@Configuration // "이 클래스는 설정 파일이에요!"라고 스프링에게 알려줍니다.
+@EnableWebSecurity // 스프링 시큐리티의 핵심 기능들을 활성화합니다.
 public class SecurityConfig {
 
-    // 우리가 만든 커스텀 클래스들을 불러옵니다.
-    private final CustomOAuth2UserService customOAuth2UserService; // 카카오 사용자 정보를 처리하는 서비스
-    private final OAuth2SuccessHandler oAuth2SuccessHandler; // 로그인 성공 시 실행될 로직
-    private final OAuth2FailureHandler oAuth2FailureHandler; // 로그인 실패 시 실행될 로직
-    private final JwtTokenProvider jwtTokenProvider; // JWT 토큰을 만들고 검증하는 도구
+    // 우리가 직접 만든 보안 관련 부품들입니다.
+    private final CustomOAuth2UserService customOAuth2UserService; // 카카오에서 받아온 사용자 정보를 처리하는 서비스
+    private final OAuth2SuccessHandler oAuth2SuccessHandler; // 카카오 로그인 성공 시 실행될 로직 (쿠키 굽기 등)
+    private final OAuth2FailureHandler oAuth2FailureHandler; // 카카오 로그인 실패 시 실행될 로직
+    private final JwtTokenProvider jwtTokenProvider; // JWT 토큰을 만들고 검증하는 '신분증 발급기'
 
-    // CORS(Cross-Origin Resource Sharing) 설정: 다른 도메인(예: React의 localhost:3000)에서 백엔드로 접속을 허용합니다.
+    /**
+     * [CORS 설정]
+     * 원래 브라우저는 자기 도메인(예: localhost:3000)이 아닌 곳에 요청을 보내는 걸 막습니다.
+     * 프론트엔드(React)에서 백엔드로 데이터를 보낼 수 있게 허락해주는 설정입니다.
+     */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() { // 프론트에서 백엔드로 요청해도 되는지 설정하는 메서드입니다.
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000")); // 프론트엔드 주소 허용
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")); // 허용할 HTTP 메서드
-        config.setAllowedHeaders(List.of("*")); // 모든 헤더 허용
-        config.setAllowCredentials(true); // 쿠키나 인증 정보를 포함한 요청 허용(HttpOnly JWT 쿠키를 쓸 거면 이게 필요)
+        
+        // 1. 어떤 주소에서 오는 요청을 허락할 것인가? (프론트엔드 주소)
+        config.setAllowedOrigins(List.of("http://localhost:3000")); 
+        
+        // 2. 어떤 방식의 요청을 허락할 것인가? (GET, POST 등)
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        
+        // 3. 어떤 헤더 정보를 허락할 것인가? (보통 모든걸 다 허용함)
+        config.setAllowedHeaders(List.of("*"));
+        
+        // 4. [중요] 쿠키를 주고받을 수 있게 허용할 것인가?
+        // 우리는 HttpOnly 쿠키 방식을 쓰기 때문에 반드시 true로 설정해야 합니다.
+        config.setAllowCredentials(true); 
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config); // 모든 경로에 대해 위 설정을 적용
+        source.registerCorsConfiguration("/**", config); // 모든 주소(/**)에 대해 위 규칙 적용
         return source;
     }
 
-    // 스프링 시큐리티의 핵심 설정: 어떤 요청을 허용하고, 로그인은 어떻게 할지 정의합니다.(요청이 들어왔을 때 어떤 보안 검사를 어떤 순서로 할지 정하는 곳)
+    /**
+     * [시큐리티 필터 체인]
+     * 요청이 들어올 때 거쳐야 하는 '검문소 목록'입니다.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1. 위에서 만든 CORS 설정을 적용합니다.
+                // 1. 위에서 만든 CORS(다른 도메인 허용) 설정을 적용합니다.
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // 2. CSRF 보안을 비활성화합니다. (REST API는 Stateless하므로 보통 끕니다)
+                
+                // 2. CSRF 보안 비활성화
+                // HttpOnly 쿠키를 사용하므로 원칙적으로는 CSRF 공격에 노출될 수 있습니다.
+                // 단, 쿠키에 SameSite=Lax 옵션을 설정했기 때문에 브라우저가 타 도메인에서 오는
+                // POST/PUT/DELETE 요청에 쿠키를 자동으로 차단해 줍니다.
+                // 이로 인해 Spring의 CSRF 토큰 방식과 동일한 수준의 보호가 브라우저 레벨에서 제공되므로
+                // Spring CSRF를 별도로 활성화하지 않아도 됩니다.
                 .csrf(AbstractHttpConfigurer::disable)
-                // 3. 기본 로그인 폼을 비활성화합니다. (우리는 카카오 로그인을 쓸 거니까요) Spring Security 기본 로그인 화면을 끕니다.
+                
+                // 3. 기본 로그인 폼 비활성화
+                // 스프링 시큐리티가 기본으로 제공하는 아이디/비번 로그인 화면을 안 쓰겠다는 뜻입니다. (카카오 로그인을 쓰니까요)
                 .formLogin(AbstractHttpConfigurer::disable)
-                // 4. HTTP Basic 인증(아이디/비번 직접 전송)을 비활성화합니다. 브라우저 기본 팝업 로그인 같은 방식을 끕니다.
+                
+                // 4. HTTP Basic 인증 비활성화
+                // 브라우저 팝업창으로 아이디/비번 묻는 아주 옛날 방식을 안 쓰겠다는 뜻입니다.
                 .httpBasic(AbstractHttpConfigurer::disable)
-                // 5. 세션 정책 설정: JWT를 사용하므로 세션을 만들지 않지만, OAuth2 내부 로직상 필요할 때만 생성하도록 합니다.
+                
+                // 5. 세션 정책 설정
+                // 우리는 JWT(신분증)를 쓰기 때문에 서버에 세션을 저장하지 않습니다(STATELESS).
+                // 다만, OAuth2 로그인 과정에서 내부적으로 잠깐 필요할 때만 만들도록 IF_REQUIRED로 설정합니다.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-                // 6. URL별 권한 설정
-                .authorizeHttpRequests(auth -> auth // 어떤 주소는 로그인 없이 허용하고, 어떤 주소는 로그인 필요하게 할지
-                        // 아래 경로들은 로그인 안 해도 들어올 수 있게 'permitAll()' 처리합니다.
-                        .requestMatchers("/", "/kakao/auth-code", "/oauth2/**", "/error", "/favicon.ico").permitAll() // 이 주소들은 로그인 없이 접근 가능
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/auth/reissue").permitAll() // 토큰 재발급 API는 로그인 없이 접근 허용
-                        // 그 외 모든 요청은 로그인을 해야만(authenticated) 들어올 수 있습니다.
+                
+                // 6. [URL별 권한 설정] - 어떤 문을 열어줄지 정합니다.
+                .authorizeHttpRequests(auth -> auth
+                        // 아래 적힌 주소들은 로그인 없이 누구나 들어올 수 있습니다.
+                        .requestMatchers("/", "/kakao/auth-code", "/oauth2/**", "/error", "/favicon.ico").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // API 문서 주소
+                        .requestMatchers("/api/auth/reissue").permitAll() // 토큰 재발급은 로그인 안 된 상태에서도 가능해야 함
+                        
+                        // 그 외 나머지 모든(/api/** 등) 주소는 반드시 로그인을 해야만 들어올 수 있습니다.
                         .anyRequest().authenticated()
                 )
-                // 7. OAuth2 로그인(카카오 로그인) 관련 설정
+                
+                // 7. [OAuth2 로그인(카카오) 설정]
                 .oauth2Login(oauth2 -> oauth2
-                        // 카카오에서 인증 후 돌아올 주소 (application.yml 설정과 맞춤)(카카오 로그인 성공 후 돌아오는 주소를 /kakao/auth-code로 지정)
+                        // 카카오 로그인 창에서 로그인을 마친 후, 우리 서버로 돌아올 주소입니다. (Redirection)
                         .redirectionEndpoint(redirection -> redirection.baseUri("/kakao/auth-code"))
-                        // 사용자 정보를 가져올 때 사용할 서비스 (우리가 만든 CustomOAuth2UserService)(카카오에서 사용자 정보를 받아온 뒤, customOAuth2UserService로 처리)
+                        
+                        // 카카오에서 준 사용자 데이터를 가져온 뒤, 어떻게 처리할지 정한 서비스입니다.
+                        // 카카오 code 받음 ->  Spring Security가 code를 카카오 accessToken으로 바꿈 -> 그 accessToken을 userRequest 안에 넣어둠
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-                        // 로그인 성공/실패 시 동작할 핸들러 지정
-                        .successHandler(oAuth2SuccessHandler)
+                        
+                        // 로그인이 성공했을 때와 실패했을 때 어떤 동작을 할지 정합니다.
+                        .successHandler(oAuth2SuccessHandler) // 성공하면 여기서 쿠키를 구워줍니다.
                         .failureHandler(oAuth2FailureHandler)
                 )
-                // 8. JWT 필터 추가(로그인 이후 API 요청에서 가장 중요): 모든 요청 전에 JwtAuthenticationFilter를 먼저 실행해서 토큰이 있는지 검사합니다.
-                // 요청 쿠키에서 accessToken 찾기 -> JWT 검증 -> 정상 토큰이면 로그인한 사용자 정보를 SecurityContext에 저장 -> 그러면 .authenticated() 통과
-                // 쿠키에 JWT 있음 -> JwtAuthenticationFilter가 확인 -> 로그인 인정 -> controller 실행
-                // UsernamePasswordAuthenticationFilter라는 기본 필터 앞에서 가로채서 검사한다는 뜻입니다.
+                
+                // 8. [JWT 검문소(Filter) 추가] - 가장 중요!
+                // 모든 요청이 컨트롤러(비즈니스 로직)에 도착하기 전에, 이 필터가 먼저 신분증(JWT)을 검사합니다.
+                // HttpOnly 쿠키에서 토큰을 꺼내서 "이 사람 로그인한 거 맞네!"라고 인정해주면 다음 단계로 넘어갑니다.
+                // UsernamePasswordAuthenticationFilter라는 기본 검문소 앞에 우리 검문소를 세웁니다.
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), 
                                  UsernamePasswordAuthenticationFilter.class);
 
-        return http.build(); // 설정을 완료하고 시큐리티 필터 체인을 생성합니다.
+        return http.build(); // 설정 끝! '보안관' 임무 시작!
     }
 }
 // 프론트 localhost:3000 허용
 //쿠키 포함 요청 허용
-//CSRF는 꺼져 있음
+//CSRF는 꺼져 있음 (쿠키의 SameSite=Lax로 브라우저 레벨에서 대체)
 //기본 로그인폼/Basic 인증 꺼져 있음
 //세션은 필요하면 사용
 //카카오 OAuth2 로그인 사용

@@ -19,100 +19,125 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.stream.Collectors;
 
-// JWT 토큰의 생성, 복호화(해독), 유효성 검증을 담당하는 클래스입니다.
+/**
+ * [JWT 토큰 관리자]
+ * JWT(JSON Web Token)는 디지털 신분증이라고 생각하면 됩니다.
+ * 이 클래스는 신분증을 발급하고(생성), 위조됐는지 확인하고(검증), 신분증 내용을 읽는 역할을 합니다.
+ */
 @Component
 public class JwtTokenProvider {
 
-    // application.yml에 정의된 비밀키와 만료시간을 가져옵니다.
+    // application.yml 파일에 설정한 비밀키와 만료시간을 가져옵니다.
     @Value("${jwt.secret}")
-    private String secretKeyPlain; // 외부에 노출되면 안 되는 아주 중요한 키입니다.
+    private String secretKeyPlain; // 이 키는 절대 외부에 노출되면 안 됩니다! (금고 열쇠 같은 것)
 
     @Value("${jwt.expiration}")
-    private long accessTokenValidityInMilliseconds; // Access Token 유효시간 (보통 짧음, 예: 1시간)
+    private long accessTokenValidityInMilliseconds; // Access Token 유효시간 (보통 짧게 설정, 예: 1시간)
 
-    // Refresh Token 유효시간 (길게 설정, 예: 14일)
+    // Refresh Token 유효시간 (보통 길게 설정, 예: 14일)
+    // Access Token이 만료됐을 때 다시 발급받기 위한 용도입니다.
     private final long refreshTokenValidityInMilliseconds = 14 * 24 * 60 * 60 * 1000L;
 
-    private SecretKey secretKey; // 실제 암호화에 사용할 키 객체
+    private SecretKey secretKey; // 실제 암호화 로직에 사용할 키 객체
 
-    // 객체 생성 후 딱 한 번 실행되어 암호 키를 초기화합니다.
+    /**
+     * [키 초기화]
+     * 객체가 생성된 후, 평문으로 된 비밀키를 암호화 알고리즘에 쓸 수 있는 객체로 변환합니다.
+     */
     @PostConstruct
     protected void init() {
-        // 평문 비밀키를 HMAC SHA 알고리즘에 적합한 SecretKey 객체로 변환합니다.
         this.secretKey = Keys.hmacShaKeyFor(secretKeyPlain.getBytes(StandardCharsets.UTF_8));
     }
 
-    // Access Token을 생성합니다. (API 호출 시 사용)
+    /**
+     * [Access Token 생성]
+     * 실제 API를 호출할 때 들고 다녀야 하는 짧은 유효시간의 신분증을 만듭니다.
+     */
     public String createAccessToken(String userId, String role) {
         return createToken(userId, role, accessTokenValidityInMilliseconds);
     }
 
-    // Refresh Token을 생성합니다. (Access Token 만료 시 재발급용)
+    /**
+     * [Refresh Token 생성]
+     * Access Token이 만료됐을 때 새 토큰을 받기 위한 긴 유효시간의 신분증을 만듭니다.
+     */
     public String createRefreshToken(String userId, String role) {
         return createToken(userId, role, refreshTokenValidityInMilliseconds);
     }
 
-    // 실제 토큰을 조립하는 핵심 로직입니다.
+    /**
+     * [토큰 조립 로직]
+     * 실제 JWT 문자열을 만드는 핵심 부분입니다.
+     */
     private String createToken(String userId, String role, long validity) {
-        // 1. Claims: 토큰 안에 담을 정보 조각들입니다.
+        // Claims: 토큰 안에 담을 정보 조각들 (누구인지, 권한이 무엇인지 등)
         Claims claims = Jwts.claims()
-                .subject(userId) // 사용자의 고유 ID (PK)를 제목(Subject)으로 넣습니다.
-                .add("role", role) // 사용자의 권한(USER, ADMIN 등)을 추가 정보로 넣습니다.
+                .subject(userId) // 사용자의 고유 ID (예: UUID)를 '제목'으로 넣습니다.
+                .add("role", role) // 사용자의 권한(USER 등)을 추가 정보로 넣습니다.
                 .build();
 
         Date now = new Date();
-        Date validityDate = new Date(now.getTime() + validity); // 현재 시각 + 유효시간 = 만료시각
+        Date validityDate = new Date(now.getTime() + validity); // 현재 시각 + 유효시간 = 만료 시각
 
-        // 2. JWT 빌더를 이용해 최종적인 토큰 문자열을 만듭니다.
+        // JWT 빌더를 이용해 토큰을 최종적으로 완성합니다.
         return Jwts.builder()
-                .claims(claims) // 위에서 만든 정보 조각들
-                .issuedAt(now) // 발행 시각
-                .expiration(validityDate) // 만료 시각
-                .signWith(secretKey) // 비밀키로 서명 (나중에 위조 방지용)
-                .compact(); // 압축해서 문자열로 리턴
+                .claims(claims) // 데이터 담기
+                .issuedAt(now) // 언제 발급했는지
+                .expiration(validityDate) // 언제까지 유효한지
+                .signWith(secretKey) // 위조를 막기 위해 비밀키로 서명(Signature)을 합니다.
+                .compact(); // 모든 정보를 압축해서 하나의 문자열로 만듭니다.
     }
 
-    // 토큰에서 정보를 꺼내어 스프링 시큐리티의 'Authentication(인증 객체)'으로 변환합니다.
+    /**
+     * [신분증 확인 및 인증 객체 생성]
+     * 토큰(신분증)을 받아서 그 안에 적힌 정보로 스프링 시큐리티가 이해할 수 있는 '인증 객체'를 만듭니다.
+     */
     public Authentication getAuthentication(String token) {
-        // 1. 토큰을 해독(Parse)하여 내용을 꺼냅니다.
+        // 1. 토큰을 해독(Parse)하여 내용을 꺼냅니다. (서명이 다르면 여기서 에러 남)
         Claims claims = Jwts.parser()
-                .verifyWith(secretKey) // 비밀키로 검증 시도
+                .verifyWith(secretKey) // 우리가 가진 비밀키로 검증
                 .build()
-                .parseSignedClaims(token) // 서명이 맞는지 확인하며 내용 읽기
-                .getPayload(); // 실제 데이터 뭉치(Payload) 가져오기
+                .parseSignedClaims(token)
+                .getPayload();
 
-        // 2. 토큰에 담긴 "role" 정보를 꺼내서 스프링 시큐리티 권한 객체로 만듭니다.
+        // 2. 토큰에 적힌 권한 정보를 꺼냅니다. (ROLE_USER 등)
         Collection<? extends GrantedAuthority> authorities =
                 Arrays.stream(claims.get("role").toString().split(","))
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
 
-        // 3. User 객체 생성 (사용자 ID, 비번은 빈값, 권한)
+        // 3. 스프링 시큐리티 내부에서 사용할 유저 객체를 만듭니다.
         User principal = new User(claims.getSubject(), "", authorities);
 
-        // 4. 인증 토큰 객체를 만들어 리턴합니다. (시큐리티가 이해할 수 있는 형태)
+        // 4. "이 유저는 인증된 유저다"라는 정보를 담은 객체를 리턴합니다.
         return new UsernamePasswordAuthenticationToken(principal, token, authorities);
     }
 
-    // 토큰이 유효한지 검사합니다. (위조 여부, 만료 여부 등)
+    /**
+     * [토큰 유효성 검사]
+     * 이 토큰이 진짜인지, 만료되지는 않았는지를 확인합니다.
+     */
     public boolean validateToken(String token) {
         try {
-            // 토큰을 해독해봅니다. 문제가 있다면 예외(Exception)가 발생합니다.
+            // 토큰을 해독해봅니다. 문제가 있다면(위조, 만료 등) catch 블록으로 넘어갑니다.
             Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
-            return true; // 아무 문제 없으면 true
+            return true; // 아무 문제 없으면 진짜!
         } catch (Exception e) {
-            // 서명이 틀렸거나, 만료됐거나, 형식이 잘못됐으면 false
+            // 문제가 있으면 가짜!
             return false;
         }
     }
 
-    // 토큰에서 사용자 ID만 쏙 빼내는 기능입니다.
+    /**
+     * [사용자 ID 추출]
+     * 토큰 안에 적힌 사용자 고유 ID(Subject)를 꺼내옵니다.
+     */
     public String getUserId(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
-                .getSubject(); // 아까 넣었던 userId(Subject)를 가져옴
+                .getSubject();
     }
 }

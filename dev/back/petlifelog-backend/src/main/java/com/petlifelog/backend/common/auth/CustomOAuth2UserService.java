@@ -17,51 +17,65 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 
-@Slf4j // 로그를 찍을 수 있게 해줍니다.
+/**
+ * [카카오 사용자 정보 처리 서비스]
+ * 사용자가 카카오 로그인창에서 로그인을 마친 직후,
+ * 카카오가 우리에게 던져준 사용자 정보(이름, 이메일, 프로필 등)를 처리하는 곳입니다.
+ */
+@Slf4j
 @RequiredArgsConstructor
-@Service // 스프링의 서비스 빈으로 등록합니다.
+@Service
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
-    private final MemberRepository memberRepository; // DB에 접근할 도구
+    private final MemberRepository memberRepository;
 
-    // 카카오 로그인 인증이 성공한 뒤, 카카오가 보내준 정보를 바탕으로 우리 서버의 후속 작업을 수행합니다.
     @Override
     @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        // 1. 기본 서비스를 통해 카카오 사용자 정보를 가져옵니다. (통신 발생)
-        OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
-        OAuth2User oAuth2User = delegate.loadUser(userRequest);
+        // 1. 기본 서비스를 생성하여 카카오로부터 사용자 정보를 실제로 가져옵니다.
+        OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService(); // 기본 OAuth2 사용자 정보 조회기를 하나 만든다.
+        OAuth2User oAuth2User = delegate.loadUser(userRequest); // 카카오 access token을 사용해서 카카오 사용자 정보를 가져온다.
 
-        // 2. 어떤 서비스(kakao)를 통해 로그인했는지 ID를 가져옵니다.
+        log.info("카카오 refresh token 만료까지 남은 시간: {}", userRequest.getAdditionalParameters());
+        log.info("카카오에서 가져오는 정보: {}", oAuth2User.getAttributes());
+
+        // 2. 현재 어떤 서비스(kakao 등)를 통해 로그인 중인지 구분 ID를 가져옵니다.
+        // /oauth2/authorization/{registrationId} 요청의 마지막 값(kakao)이 OAuth 제공자 구분값이 된다.
+        // Spring Security는 이 registrationId로 application.yml의 registration.kakao 설정을 찾아 로그인 흐름을 진행한다.
+        // 그래서 loadUser() 안에서도 userRequest.getClientRegistration().getRegistrationId()로 kakao인지 google인지 알 수 있다.
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
-        // 3. 카카오 로그인 시 고유 식별자가 되는 키(PK)의 이름을 가져옵니다.
+        
+        // 3. 카카오 로그인 시 사용자를 식별할 수 있는 고유 키(PK)의 이름을 가져옵니다. (카카오는 보통 'id')
         String userNameAttributeName = userRequest.getClientRegistration()
                 .getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
 
         log.info("카카오 로그인 시도 - registrationId: {}, attributes: {}", registrationId, oAuth2User.getAttributes());
 
-        // 4. 카카오에서 준 복잡한 데이터를 우리가 쓰기 편한 'OAuthAttributes' 객체로 변환합니다.
+        // 4. 카카오가 준 복잡한 JSON 데이터를 우리가 쓰기 편한 'OAuthAttributes' 객체로 깔끔하게 정리합니다.
         OAuthAttributes attributes = OAuthAttributes.ofKakao(userNameAttributeName, oAuth2User.getAttributes());
 
-        // 5. 사용자가 DB에 있으면 업데이트하고, 없으면 새로 저장(회원가입)합니다.
+        // 5. 정리된 사용자 정보를 DB에 저장하거나, 이미 있다면 정보를 업데이트(이름 변경 등)합니다.
         Member member = saveOrUpdate(attributes);
 
-        // 6. 스프링 시큐리티에서 쓸 수 있는 OAuth2User 객체를 만들어 리턴합니다.
+        // 6. 마지막으로 스프링 시큐리티 시스템이 이해할 수 있는 유저 객체(DefaultOAuth2User)로 변환해서 리턴합니다.
         return new DefaultOAuth2User(
-                Collections.singleton(new SimpleGrantedAuthority(member.getRole().getKey())), // 권한(ROLE_USER 등)
-                attributes.getAttributes(), // 카카오 원본 데이터
-                attributes.getNameAttributeKey()); // 식별자 키값
+                Collections.singleton(new SimpleGrantedAuthority(member.getRole().getKey())), // 사용자의 권한 (예: ROLE_USER)
+                attributes.getAttributes(), // 카카오에서 준 원본 데이터 전체
+                attributes.getNameAttributeKey()); // 사용자를 식별할 고유 키값
     }
 
-    // 이미 가입된 회원이면 이름이나 프로필 사진이 바뀌었을 때 업데이트하고, 아니면 신규 가입시킵니다.
+    /**
+     * [사용자 저장 및 업데이트 로직]
+     * 이미 가입된 회원이면 이름이나 프로필 사진을 최신화하고, 처음 온 사람이면 새로 회원가입시킵니다.
+     */
     private Member saveOrUpdate(OAuthAttributes attributes) {
         Member member = memberRepository.findByKakaoId(attributes.getKakaoId())
-                // DB에 있으면 꺼내서 이름과 프로필 사진을 최신화(update)합니다.
+                // 1. 이미 DB에 있으면: 카카오에서 준 최신 이름/사진으로 업데이트합니다.
                 .map(entity -> entity.update(attributes.getNickname(), attributes.getProfileImagePath()))
-                // DB에 없으면(처음 로그인) 새로운 회원 엔티티를 만듭니다(toEntity).
+                // 2. DB에 없으면: 새로 회원 엔티티를 만듭니다 (회원가입).
                 .orElse(attributes.toEntity());
 
-        // 최종적으로 DB에 저장합니다.
+        // 3. 최종 결과를 DB에 저장합니다.
         return memberRepository.save(member);
     }
 }
