@@ -1,7 +1,6 @@
 package com.petlifelog.backend.common.auth.dto;
 
 import com.petlifelog.backend.domain.member.Member;
-import com.petlifelog.backend.domain.member.Role;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -74,7 +73,7 @@ public class OAuthAttributes {
                 .kakaoNickname(nickname)
                 .nickname(nickname) // 우리 서비스에서 쓸 별명도 처음엔 카카오 별명으로 설정!
                 .profileImagePath(profileImagePath)
-                .role(Role.USER) // 처음 오면 기본적으로 '일반 유저(USER)' 권한을 줍니다.
+                .role("ROLE_USER") // 처음 오면 기본적으로 '일반 유저' 권한을 줍니다. (tb_code의 code 값)
                 .build();
     }
 }

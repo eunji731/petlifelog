@@ -59,7 +59,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         // 6. 마지막으로 스프링 시큐리티 시스템이 이해할 수 있는 유저 객체(DefaultOAuth2User)로 변환해서 리턴합니다.
         return new DefaultOAuth2User(
-                Collections.singleton(new SimpleGrantedAuthority(member.getRole().getKey())), // 사용자의 권한 (예: ROLE_USER)
+                Collections.singleton(new SimpleGrantedAuthority(member.getRole())), // 사용자의 권한 (예: ROLE_USER)
                 attributes.getAttributes(), // 카카오에서 준 원본 데이터 전체
                 attributes.getNameAttributeKey()); // 사용자를 식별할 고유 키값
     }

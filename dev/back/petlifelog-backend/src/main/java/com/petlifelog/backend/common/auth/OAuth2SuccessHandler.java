@@ -52,8 +52,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         // 3. 우리 서버용 Access Token과 Refresh Token 만들기
-        String accessToken = jwtTokenProvider.createAccessToken(member.getId().toString(), member.getRole().getKey());
-        String refreshToken = jwtTokenProvider.createRefreshToken(member.getId().toString(), member.getRole().getKey());
+        String accessToken = jwtTokenProvider.createAccessToken(member.getId().toString(), member.getRole());
+        String refreshToken = jwtTokenProvider.createRefreshToken(member.getId().toString(), member.getRole());
 
         // 4. [보안] Refresh Token은 보안을 위해 SHA-256으로 암호화(해싱)해서 DB에 저장합니다.
         // 나중에 사용자가 토큰을 가져오면 다시 해싱해서 DB값과 비교합니다.

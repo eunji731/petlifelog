@@ -51,8 +51,8 @@ public class AuthService {
 
         // 5. [Token Rotation] 기존 토큰은 버리고, 새 Access Token과 새 Refresh Token을 만듭니다.
         // 이렇게 매번 새로 발급하면 보안성이 훨씬 높아집니다.
-        String newAccessToken = jwtTokenProvider.createAccessToken(member.getId().toString(), member.getRole().getKey());
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(member.getId().toString(), member.getRole().getKey());
+        String newAccessToken = jwtTokenProvider.createAccessToken(member.getId().toString(), member.getRole());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(member.getId().toString(), member.getRole());
 
         // 6. DB에 새로 발급한 Refresh Token의 해시값을 업데이트합니다.
         member.updateRefreshToken(sha256(newRefreshToken));

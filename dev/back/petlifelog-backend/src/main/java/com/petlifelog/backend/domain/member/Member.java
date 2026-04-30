@@ -11,6 +11,7 @@ import org.hibernate.annotations.UuidGenerator;
 import java.time.Instant;
 import java.util.UUID;
 
+
 // DB의 'users' 테이블과 연결되는 자바 클래스(엔티티)입니다.
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 직접 new Member() 하는 것을 막고 상속 등을 통한 사용만 허용합니다.
@@ -47,13 +48,12 @@ public class Member extends BaseTimeEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true; // 계정 활성화 여부 (탈퇴 등 처리용)
 
-    @Enumerated(EnumType.STRING) // Enum(USER, ADMIN)을 문자열 그대로 DB에 저장합니다.
-    @Column(nullable = false)
-    private Role role; // 사용자의 권한 등급
+    @Column(nullable = false, length = 50)
+    private String role; // 사용자 권한 코드 (tb_code 참조, 예: ROLE_USER)
 
     @Builder // 빌더 패턴을 사용하여 객체 생성을 안전하고 편리하게 만듭니다.
-    public Member(Long kakaoId, String kakaoEmail, String kakaoNickname, 
-                  String nickname, String profileImagePath, Role role) {
+    public Member(Long kakaoId, String kakaoEmail, String kakaoNickname,
+                  String nickname, String profileImagePath, String role) {
         this.kakaoId = kakaoId;
         this.kakaoEmail = kakaoEmail;
         this.kakaoNickname = kakaoNickname;
