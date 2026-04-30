@@ -3,13 +3,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-
-import {
-  Calendar,
-  Image as ImageIcon,
-  MapPin,
-  Book,
-  FileText,
+import { 
+  Calendar, 
+  Image as ImageIcon, 
+  MapPin, 
+  Book, 
+  FileText, 
   Settings,
   ChevronDown,
   Menu,
@@ -17,6 +16,8 @@ import {
   LogOut
 } from 'lucide-react';
 import Image from 'next/image';
+import { useToast } from '../hooks/useToast';
+import { useConfirm } from '../hooks/useConfirm';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 
@@ -32,9 +33,12 @@ const navItems = [
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { success } = useToast();
+  const { confirm } = useConfirm();
 
   const handleLogout = async () => {
-    if (!confirm('로그아웃 하시겠습니까?')) return;
+    const isConfirmed = await confirm('로그아웃 하시겠습니까?');
+    if (!isConfirmed) return;
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/logout`, {
@@ -51,6 +55,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
       // 네트워크 오류 시 fallback
     }
 
+    success('안전하게 로그아웃되었습니다.');
     router.push('/login');
   };
 
@@ -93,7 +98,6 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
       </nav>
 
       <div className="p-3 lg:p-4 border-t border-main-yellow/10 space-y-2">
-        {/* Logout Button */}
         <button 
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-sub hover:bg-red-50 hover:text-red-500 transition-all group"
@@ -102,7 +106,6 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
           <span className="text-[14px] font-bold tracking-tight">로그아웃</span>
         </button>
 
-        {/* Pet Profile Card */}
         <div className="flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-main-yellow/5">
           <div className="w-10 h-10 rounded-full bg-main-green/20 relative overflow-hidden ring-2 ring-white shadow-sm shrink-0">
             <Image src="/dog-profile.png" alt="Profile" fill className="object-cover" />
