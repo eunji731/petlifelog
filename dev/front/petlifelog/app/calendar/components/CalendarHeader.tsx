@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Bell, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Bell, Calendar as CalendarIcon, Plus } from 'lucide-react';
 import DateDropdown from './DateDropdown';
 
 interface CalendarHeaderProps {
@@ -10,6 +10,7 @@ interface CalendarHeaderProps {
   onNextMonth: () => void;
   onToday: () => void;
   onGoToDate: (year: number, month: number) => void;
+  onRecord: () => void;
 }
 
 export default function CalendarHeader({ 
@@ -17,7 +18,8 @@ export default function CalendarHeader({
   onPrevMonth, 
   onNextMonth, 
   onToday,
-  onGoToDate
+  onGoToDate,
+  onRecord
 }: CalendarHeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
@@ -82,8 +84,15 @@ export default function CalendarHeader({
         </button>
       </div>
 
-      {/* Notifications */}
+      {/* Notifications & Record */}
       <div className="flex items-center gap-2 lg:gap-3">
+        <button 
+          onClick={onRecord}
+          className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-main-yellow text-white font-black rounded-xl text-sm shadow-md shadow-main-yellow/20 hover:scale-105 active:scale-95 transition-all"
+        >
+          <Plus className="w-4 h-4" /> 기록하기
+        </button>
+
         <button className="relative p-2 lg:p-2.5 bg-white rounded-xl shadow-sm border border-border text-text-sub hover:text-text-main transition-all group active:scale-90">
           <Bell className="w-4 h-4 lg:w-5 lg:h-5" />
           <span className="absolute top-1.5 lg:top-2.5 right-1.5 lg:right-2.5 w-1.5 h-1.5 lg:w-2 lg:h-2 bg-red-500 rounded-full border-2 border-white"></span>

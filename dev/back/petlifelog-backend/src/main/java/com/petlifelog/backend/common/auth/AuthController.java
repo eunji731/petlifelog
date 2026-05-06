@@ -1,6 +1,7 @@
 package com.petlifelog.backend.common.auth;
 
 import com.petlifelog.backend.common.auth.dto.TokenResponse;
+import com.petlifelog.backend.common.dto.ApiResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,11 +42,11 @@ public class AuthController {
      * Access Token이 만료되었을 때, 쿠키에 담긴 Refresh Token을 확인하여 새 토큰들을 발급해줍니다.
      */
     @PostMapping("/reissue")
-    public ResponseEntity<Void> reissue(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<Void>> reissue(HttpServletRequest request, HttpServletResponse response) {
         // 1. 요청 쿠키에서 'refreshToken'을 꺼냅니다.
         String refreshToken = extractCookie(request, "refreshToken");
         if (refreshToken == null) {
-            return ResponseEntity.status(401).build(); // 리프레시 토큰이 없으면 탈락!
+            return ResponseEntity.status(401).body(ApiResponse.error("리프레시 토큰이 없습니다.", "AUTH_001"));
         }
 
         // 2. 서비스 로직을 통해 새 토큰들을 생성합니다. (검증 포함)
@@ -55,7 +56,7 @@ public class AuthController {
         addCookie(response, "accessToken", tokenResponse.getAccessToken(), (int) Duration.ofHours(24).toSeconds());
         addCookie(response, "refreshToken", tokenResponse.getRefreshToken(), (int) Duration.ofDays(14).toSeconds());
         
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     /**
@@ -63,7 +64,7 @@ public class AuthController {
      * 서버에서는 유저의 리프레시 토큰 정보를 지우고, 브라우저의 쿠키도 삭제합니다.
      */
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(@AuthenticationPrincipal User user, HttpServletResponse response) {
+    public ApiResponse<Map<String, String>> logout(@AuthenticationPrincipal User user, HttpServletResponse response) {
         authService.logout(user.getUsername());
 
         clearCookie(response, "accessToken");
@@ -73,7 +74,7 @@ public class AuthController {
         String kakaoLogoutUrl = "https://kauth.kakao.com/oauth/logout?client_id=" + kakaoClientId
                 + "&logout_redirect_uri=" + logoutRedirectUri;
 
-        return ResponseEntity.ok(Map.of("kakaoLogoutUrl", kakaoLogoutUrl));
+        return ApiResponse.success(Map.of("kakaoLogoutUrl", kakaoLogoutUrl));
     }
 
     /**

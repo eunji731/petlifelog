@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '@/app/common/components/Sidebar';
 import MobileHeader from '@/app/common/components/MobileHeader';
+import { usePet } from '@/app/common/hooks/usePet';
 
 export default function MainLayout({
   children,
@@ -10,6 +11,11 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { fetchPets } = usePet();
+
+  useEffect(() => {
+    fetchPets();
+  }, [fetchPets]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">

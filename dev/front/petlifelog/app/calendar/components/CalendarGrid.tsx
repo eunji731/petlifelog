@@ -3,13 +3,14 @@
 import React from 'react';
 import Image from 'next/image';
 import { Cake, Syringe, Star } from 'lucide-react';
+import { DiaryEntry } from '@/app/common/hooks/useDiary';
 
 interface CalendarGridProps {
   currentDate: Date;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
-  entries: Record<string, any>;
-  events: Record<string, any[]>;
+  entries: Record<string, DiaryEntry & { hasDiary?: boolean; photo?: string }>;
+  events: Record<string, { title: string; event_type: string; memo?: string }[]>;
 }
 
 // Helper to format date to YYYY-MM-DD in local time
@@ -30,7 +31,7 @@ export default function CalendarGrid({
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
   
-  const days = [];
+  const days: { day: number | null; month: 'prev' | 'current' | 'next'; date: Date | null }[] = [];
   for (let i = 0; i < firstDayOfMonth; i++) {
     days.push({ day: null, month: 'prev', date: null });
   }
@@ -81,36 +82,48 @@ export default function CalendarGrid({
           const dayEvents = events[dateKey] || [];
           const isSelected = selectedKey === dateKey;
           const isToday = todayKey === dateKey;
+
+          // Heatmap logic: intensity based on presence of entry
+          const heatmapClass = entry ? (isSelected ? 'bg-main-yellow/10' : 'bg-main-green/[0.08]') : '';
           
           return (
             <div key={index} className="relative w-full h-full min-h-0 overflow-hidden">
               <button
                 onClick={() => onSelectDate(item.date!)}
-                className={`absolute inset-0.5 rounded-2xl transition-all duration-200 overflow-hidden ${
-                  isSelected 
-                    ? 'bg-main-yellow/10' 
-                    : 'hover:bg-main-yellow/5'
-                }`}
+                className={`absolute inset-0.5 rounded-2xl transition-all duration-300 overflow-hidden ${
+                  isSelected ? 'bg-main-yellow/15' : 'hover:bg-main-yellow/5'
+                } ${heatmapClass}`}
               >
                 <div className={`absolute inset-0 rounded-2xl border-2 pointer-events-none transition-colors duration-200 ${
-                  isSelected ? 'border-main-yellow shadow-[inset_0_0_8px_rgba(255,212,90,0.1)]' : 'border-transparent'
+                  isSelected ? 'border-main-yellow shadow-[inset_0_0_12px_rgba(255,212,90,0.2)]' : 'border-transparent'
                 }`} />
 
                 <div className="absolute inset-0 flex flex-col items-center py-1.5 lg:py-2">
-                  <span className={`text-xs lg:text-sm font-black leading-none transition-colors duration-200 ${
-                    isToday ? 'text-main-green' : (isSelected ? 'text-main-yellow' : 'text-text-main/80')
+                  <span className={`text-[10px] lg:text-xs font-black leading-none transition-colors duration-200 ${
+                    isToday ? 'text-main-green' : (isSelected ? 'text-main-yellow' : 'text-text-main/40')
                   }`}>
                     {item.day}
                   </span>
 
-                  <div className="flex-1 flex items-center justify-center w-full min-h-0">
-                    <div className="w-9 h-9 lg:w-11 lg:h-11 shrink-0 flex items-center justify-center">
+                  <div className="flex-1 flex items-center justify-center w-full min-h-0 relative">
+                    <div className="w-10 h-10 lg:w-12 lg:h-12 shrink-0 flex items-center justify-center relative">
                       {entry?.photo ? (
-                        <div className="relative w-full h-full rounded-xl overflow-hidden shadow-sm">
+                        <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-md group-hover:scale-105 transition-transform">
                           <Image src={entry.photo} alt="Daily" fill className="object-cover" />
                           {entry.ai_status === 'PROCESSING' && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                              <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            </div>
+                          )}
+                          
+                          {/* Multi-dog Stacked Icons */}
+                          {entry.dogs_detected && entry.dogs_detected.length > 1 && (
+                            <div className="absolute bottom-1 right-1 flex -space-x-1.5 translate-y-0.5">
+                              {entry.dogs_detected.slice(0, 2).map((_, i) => (
+                                <div key={i} className="w-4 h-4 rounded-full bg-white/90 border border-white flex items-center justify-center shadow-sm">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-main-green/40" />
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -124,7 +137,7 @@ export default function CalendarGrid({
 
                   <div className="h-1 flex items-center justify-center shrink-0">
                     {isToday && (
-                      <div className="w-1 h-1 rounded-full bg-main-green" />
+                      <div className="w-1 h-1 rounded-full bg-main-green animate-bounce" />
                     )}
                   </div>
                 </div>
