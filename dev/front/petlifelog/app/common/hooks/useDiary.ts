@@ -3,104 +3,103 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export interface DiaryEntry {
-  title: string;
-  location: string;
-  category: string;
-  content: string;
-  photos: string[];
-  weather?: string;
-  ai_status?: 'PROCESSING' | 'DONE';
-  energy_level?: number;
-  tags?: string[];
-  dogs_detected?: string[]; // IDs or names of pets
+// 모멘트에 포함된 사진 정보
+export interface Photo {
+  id: string;
+  path: string;
+  takenAt?: string;
+}
+
+// 개별 사건 (Moment) 정보
+export interface Moment {
+  id: string;
+  category: 'ACTIVITY' | 'GENERAL' | 'OBJECT' | 'HEALTH';
+  eventTime?: string;
+  locationName?: string;
+  aiTitle: string;
+  aiContent: string;
+  energyLevel: number;
+  photos: Photo[];
+  tags: string[];
+  dogIds: string[];
+}
+
+// 하루 총괄 일기 (Daily Log) 정보
+export interface DailyLog {
+  id: string;
   dateKey: string; // YYYY-MM-DD
+  aiTitle: string;
+  aiSummary: string;
+  representativePhotoPath?: string;
+  moments: Moment[];
 }
 
 interface DiaryState {
-  entries: Record<string, DiaryEntry>;
-  addEntry: (dateKey: string, entry: Omit<DiaryEntry, 'dateKey'>) => void;
-  getEntry: (dateKey: string) => DiaryEntry | undefined;
+  dailyLogs: Record<string, DailyLog>;
+  addDailyLog: (log: DailyLog) => void;
+  getDailyLog: (dateKey: string) => DailyLog | undefined;
 }
 
 export const useDiaryStore = create<DiaryState>()(
   persist(
     (set, get) => ({
-      entries: {
+      dailyLogs: {
         '2026-05-17': {
+          id: 'log-1',
           dateKey: '2026-05-17',
-          title: '햇살 가득한 한강 산책!',
-          location: '뚝섬한강공원',
-          category: 'ACTIVITY',
-          content: '오늘은 주말이라 그런지 친구들이 정말 많았어! 바람도 시원하고 기분이 최고야.',
-          photos: ['/dog-walk.jpg', '/dog-walk-2.jpg', '/dog-walk-3.jpg', '/dog-walk-4.jpg', '/dog-walk-5.jpg'],
-          weather: 'SUNNY',
-          ai_status: 'DONE',
-          energy_level: 5,
-          tags: ['한강공원', '산책', '친구들', '신남'],
-          dogs_detected: ['봉봉이']
-        },
-        '2026-05-18': {
-          dateKey: '2026-05-18',
-          title: '졸린 오후...',
-          location: '우리집 거실',
-          category: 'GENERAL',
-          content: '산책 다녀와서 그런지 계속 잠이 와. 엄마 옆에서 낮잠 자는 게 제일 좋아.',
-          photos: ['/dog-sleep.jpg'],
-          weather: 'CLOUDY',
-          ai_status: 'PROCESSING',
-          energy_level: 1,
-          tags: ['낮잠', '집순이', '평온'],
-          dogs_detected: ['봉봉이']
-        },
-
-        '2026-05-15': {
-          dateKey: '2026-05-15',
-          title: '새로운 간식 맛보기',
-          location: '주방 앞',
-          category: 'OBJECT',
-          content: '오늘 엄마가 맛있는 오리 안심 간식을 줬어! 냄새부터가 다르더라고.',
-          photos: ['/dog-eat.jpg', '/dog-eat-2.jpg'],
-          weather: 'SUNNY',
-          ai_status: 'DONE',
-          energy_level: 3,
-          tags: ['간식', '오리안심', '먹방']
-        },
-        '2026-05-09': {
-          dateKey: '2026-05-09',
-          title: '공놀이는 멈출 수 없어',
-          location: '거실 카페트',
-          category: 'ACTIVITY',
-          content: '새로 산 노란 공이 너무 맘에 들어. 백 번도 넘게 가져다 줬는데 엄마가 지쳤나 봐.',
-          photos: ['/dog-play.jpg', '/dog-play-2.jpg'],
-          weather: 'RAINY',
-          ai_status: 'DONE',
-          energy_level: 4,
-          tags: ['장난감', '공놀이', '무한반복']
-        },
+          aiTitle: '한강에서 시작해 집에서 끝난 완벽한 하루',
+          aiSummary: '오늘은 봉봉이와 함께 한강공원 산책도 하고, 집에서 맛있는 간식을 먹으며 푹 쉬었어요. 전체적으로 에너지가 넘치면서도 평온한 하루였습니다.',
+          representativePhotoPath: '/dog-walk.jpg',
+          moments: [
+            {
+              id: 'moment-1',
+              category: 'ACTIVITY',
+              eventTime: '2026-05-17T10:00:00',
+              locationName: '뚝섬한강공원',
+              aiTitle: '햇살 가득한 한강 산책!',
+              aiContent: '오늘은 주말이라 그런지 친구들이 정말 많았어! 바람도 시원하고 기분이 최고야.',
+              energyLevel: 5,
+              photos: [{ id: 'p1', path: '/dog-walk.jpg' }],
+              tags: ['한강공원', '산책'],
+              dogIds: ['봉봉이-id']
+            },
+            {
+              id: 'moment-2',
+              category: 'OBJECT',
+              eventTime: '2026-05-17T15:00:00',
+              locationName: '우리집',
+              aiTitle: '산책 후 꿀맛 같은 간식 시간',
+              aiContent: '신나게 놀고 와서 먹는 소고기 간식은 정말 꿀맛이야! 엄마가 더 줬으면 좋겠다.',
+              energyLevel: 3,
+              photos: [{ id: 'p2', path: '/dog-eat.jpg' }],
+              tags: ['간식시간', '소고기'],
+              dogIds: ['봉봉이-id']
+            }
+          ]
+        }
       },
-      addEntry: (dateKey, entry) => {
+      addDailyLog: (log) => {
         set((state) => ({
-          entries: {
-            ...state.entries,
-            [dateKey]: { ...entry, dateKey }
+          dailyLogs: {
+            ...state.dailyLogs,
+            [log.dateKey]: log
           }
         }));
       },
-      getEntry: (dateKey) => get().entries[dateKey],
+      getDailyLog: (dateKey) => get().dailyLogs[dateKey],
     }),
     {
-      name: 'diary-storage',
+      name: 'diary-hierarchical-storage',
     }
   )
 );
 
 export const useDiary = () => {
-  const { entries, addEntry, getEntry } = useDiaryStore();
+  const { dailyLogs, addDailyLog, getDailyLog } = useDiaryStore();
   return {
-    entries,
-    addEntry,
-    getEntry,
-    allEntries: Object.values(entries).sort((a, b) => b.dateKey.localeCompare(a.dateKey)),
+    dailyLogs,
+    addDailyLog,
+    getDailyLog,
+    allLogs: Object.values(dailyLogs).sort((a, b) => b.dateKey.localeCompare(a.dateKey)),
   };
 };

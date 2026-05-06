@@ -1,153 +1,130 @@
 'use client';
 
 import React from 'react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, Sparkles, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
-import { Cake, Syringe, Star } from 'lucide-react';
-import { DiaryEntry } from '@/app/common/hooks/useDiary';
-
-interface CalendarGridProps {
-  currentDate: Date;
-  selectedDate: Date;
-  onSelectDate: (date: Date) => void;
-  entries: Record<string, DiaryEntry & { hasDiary?: boolean; photo?: string }>;
-  events: Record<string, { title: string; event_type: string; memo?: string }[]>;
-}
-
-// Helper to format date to YYYY-MM-DD in local time
-const formatDateKey = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+import { useCalendar } from '../hooks/useCalendar';
+import { useDiary } from '@/app/common/hooks/useDiary';
 
 export default function CalendarGrid({ 
-  currentDate, 
-  selectedDate, 
-  onSelectDate,
-  entries,
-  events
-}: CalendarGridProps) {
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
-  
-  const days: { day: number | null; month: 'prev' | 'current' | 'next'; date: Date | null }[] = [];
-  for (let i = 0; i < firstDayOfMonth; i++) {
-    days.push({ day: null, month: 'prev', date: null });
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push({
-      day: i,
-      month: 'current',
-      date: new Date(currentDate.getFullYear(), currentDate.getMonth(), i)
-    });
-  }
+  onDateSelect, 
+  selectedDate,
+  currentDate
+}: { 
+  onDateSelect: (date: Date) => void;
+  selectedDate: Date;
+  currentDate: Date;
+}) {
+  const { dailyLogs } = useDiary();
 
-  const remainingCells = 42 - days.length;
-  for (let i = 1; i <= remainingCells; i++) {
-    days.push({ day: null, month: 'next', date: null });
-  }
-
-  const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
-  const todayKey = formatDateKey(new Date());
-  const selectedKey = formatDateKey(selectedDate);
-
-  const getEventIcon = (type: string) => {
-    switch (type) {
-      case 'BIRTHDAY': return <Cake className="w-2.5 h-2.5 text-pink-400" />;
-      case 'VACCINE': return <Syringe className="w-2.5 h-2.5 text-blue-400" />;
-      default: return <Star className="w-2.5 h-2.5 text-amber-400" />;
+  // Helper to generate days for the current month view
+  const generateDays = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    const days = [];
+    
+    // Previous month days
+    const startDay = firstDay.getDay();
+    for (let i = startDay - 1; i >= 0; i--) {
+      days.push({
+        date: new Date(year, month, -i),
+        isCurrentMonth: false
+      });
     }
+    
+    // Current month days
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push({
+        date: new Date(year, month, i),
+        isCurrentMonth: true
+      });
+    }
+    
+    // Next month days
+    const remaining = 42 - days.length;
+    for (let i = 1; i <= remaining; i++) {
+      days.push({
+        date: new Date(year, month + 1, i),
+        isCurrentMonth: false
+      });
+    }
+    
+    return days;
+  };
+
+  const days = generateDays();
+
+  const getDayContent = (date: Date) => {
+    const dateKey = date.toISOString().split('T')[0];
+    return dailyLogs[dateKey];
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 px-6 lg:px-10 pb-2 overflow-hidden">
-      <div className="grid grid-cols-7 h-8 items-center shrink-0 border-b border-transparent">
-        {weekDays.map((day, i) => (
-          <div key={day} className={`text-center text-[10px] font-black tracking-widest ${i === 0 ? 'text-red-400/60' : 'text-text-sub/40'}`}>
+    <div className="flex flex-col h-full bg-white rounded-xl lg:rounded-2xl shadow-sm overflow-hidden border border-border">
+      <div className="flex-1 grid grid-cols-7 grid-rows-[auto_repeat(6,1fr)] min-h-0">
+        {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
+          <div key={day} className={`py-3 text-center text-[10px] font-black uppercase tracking-widest bg-white border-b border-border ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-text-sub/60'}`}>
             {day}
           </div>
         ))}
-      </div>
-      
-      <div 
-        className="flex-1 grid grid-cols-7 gap-0 min-h-0 overflow-hidden"
-        style={{ gridTemplateRows: 'repeat(6, minmax(0, 1fr))' }}
-      >
-        {days.map((item, index) => {
-          if (!item.date) return <div key={index} className="relative w-full h-full border border-transparent" />;
+        
+        {days.map((day, i) => {
+          const log = getDayContent(day.date);
+          const isSelected = selectedDate.toDateString() === day.date.toDateString();
+          const isToday = new Date().toDateString() === day.date.toDateString();
 
-          const dateKey = formatDateKey(item.date);
-          const entry = entries[dateKey];
-          const dayEvents = events[dateKey] || [];
-          const isSelected = selectedKey === dateKey;
-          const isToday = todayKey === dateKey;
-
-          // Heatmap logic: intensity based on presence of entry
-          const heatmapClass = entry ? (isSelected ? 'bg-main-yellow/10' : 'bg-main-green/[0.08]') : '';
-          
           return (
-            <div key={index} className="relative w-full h-full min-h-0 overflow-hidden">
-              <button
-                onClick={() => onSelectDate(item.date!)}
-                className={`absolute inset-0.5 rounded-2xl transition-all duration-300 overflow-hidden ${
-                  isSelected ? 'bg-main-yellow/15' : 'hover:bg-main-yellow/5'
-                } ${heatmapClass}`}
-              >
-                <div className={`absolute inset-0 rounded-2xl border-2 pointer-events-none transition-colors duration-200 ${
-                  isSelected ? 'border-main-yellow shadow-[inset_0_0_12px_rgba(255,212,90,0.2)]' : 'border-transparent'
-                }`} />
+            <div 
+              key={i}
+              className={`relative flex flex-col items-center justify-start p-1 lg:p-2 transition-all group cursor-pointer border-b border-r border-border last:border-r-0 ${
+                day.isCurrentMonth ? 'bg-white' : 'bg-surface-green/5'
+              } ${isSelected ? 'bg-main-green/5' : 'hover:bg-surface-green/20'}`}
+              onClick={() => onDateSelect(day.date)}
+            >
+              {/* Selection Border - Inset to never overflow */}
+              {isSelected && (
+                <div className="absolute inset-0 border-2 border-main-green/30 pointer-events-none" />
+              )}
 
-                <div className="absolute inset-0 flex flex-col items-center py-1.5 lg:py-2">
-                  <span className={`text-[10px] lg:text-xs font-black leading-none transition-colors duration-200 ${
-                    isToday ? 'text-main-green' : (isSelected ? 'text-main-yellow' : 'text-text-main/40')
-                  }`}>
-                    {item.day}
-                  </span>
+              {/* Date Number */}
+              <div className="relative z-10 flex flex-col items-center gap-0.5">
+                <span className={`text-[11px] lg:text-sm font-black transition-all ${
+                  isToday ? 'text-main-green' : 
+                  isSelected ? 'text-main-green' : 
+                  day.isCurrentMonth ? 'text-text-main' : 'text-text-sub/30'
+                }`}>
+                  {day.date.getDate()}
+                </span>
+                {isToday && <div className="w-1 h-1 rounded-full bg-main-green" />}
+              </div>
 
-                  <div className="flex-1 flex items-center justify-center w-full min-h-0 relative">
-                    <div className="w-10 h-10 lg:w-12 lg:h-12 shrink-0 flex items-center justify-center relative">
-                      {entry?.photo ? (
-                        <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-md group-hover:scale-105 transition-transform">
-                          <Image src={entry.photo} alt="Daily" fill className="object-cover" />
-                          {entry.ai_status === 'PROCESSING' && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            </div>
-                          )}
-                          
-                          {/* Multi-dog Stacked Icons */}
-                          {entry.dogs_detected && entry.dogs_detected.length > 1 && (
-                            <div className="absolute bottom-1 right-1 flex -space-x-1.5 translate-y-0.5">
-                              {entry.dogs_detected.slice(0, 2).map((_, i) => (
-                                <div key={i} className="w-4 h-4 rounded-full bg-white/90 border border-white flex items-center justify-center shadow-sm">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-main-green/40" />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        entry?.hasDiary && (
-                          <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-main-yellow' : 'bg-main-green/40'}`} />
-                        )
-                      )}
+              {/* Log Indicator - Minimalist Style (Small Dot or Tiny Image) */}
+              <div className="mt-auto mb-1 lg:mb-2 flex flex-col items-center gap-1">
+                {log ? (
+                  <div className="flex flex-col items-center gap-1">
+                    {/* Tiny Thumbnail - strictly sized */}
+                    <div className="relative w-6 h-6 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-main-green/20">
+                      <Image 
+                        src={log.representativePhotoPath || '/dog-profile.png'} 
+                        alt="Log" 
+                        fill 
+                        className="object-cover"
+                      />
+                    </div>
+                    {/* Count Dot */}
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: Math.min(log.moments.length, 3) }).map((_, idx) => (
+                        <div key={idx} className="w-1 h-1 rounded-full bg-main-green/60" />
+                      ))}
                     </div>
                   </div>
-
-                  <div className="h-1 flex items-center justify-center shrink-0">
-                    {isToday && (
-                      <div className="w-1 h-1 rounded-full bg-main-green animate-bounce" />
-                    )}
-                  </div>
-                </div>
-
-                {dayEvents.length > 0 && (
-                  <div className="absolute top-1.5 right-1.5">
-                    {getEventIcon(dayEvents[0].event_type)}
-                  </div>
+                ) : (
+                  <div className="w-1 h-1 rounded-full bg-transparent" /> /* Placeholder to maintain layout */
                 )}
-              </button>
+              </div>
             </div>
           );
         })}

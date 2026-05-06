@@ -27,7 +27,7 @@ export default function CalendarHeader({
   const month = currentDate.toLocaleString('ko-KR', { month: 'long' });
 
   return (
-    <div className="flex items-center justify-between px-4 lg:px-10 py-4 lg:py-6 shrink-0">
+    <div className="flex items-center justify-between px-2 lg:px-4 py-2 lg:py-4 shrink-0">
       {/* Navigation and Date Display */}
       <div className="flex items-center gap-2 lg:gap-6">
         <div className="flex items-center gap-0.5 lg:gap-2">
@@ -88,9 +88,9 @@ export default function CalendarHeader({
       <div className="flex items-center gap-2 lg:gap-3">
         <button 
           onClick={onRecord}
-          className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-main-yellow text-white font-black rounded-xl text-sm shadow-md shadow-main-yellow/20 hover:scale-105 active:scale-95 transition-all"
+          className="flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 bg-main-yellow text-white font-black rounded-xl text-xs lg:text-sm shadow-md shadow-main-yellow/20 hover:scale-105 active:scale-95 transition-all"
         >
-          <Plus className="w-4 h-4" /> 기록하기
+          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">기록하기</span>
         </button>
 
         <button className="relative p-2 lg:p-2.5 bg-white rounded-xl shadow-sm border border-border text-text-sub hover:text-text-main transition-all group active:scale-90">

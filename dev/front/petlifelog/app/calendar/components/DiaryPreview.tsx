@@ -1,219 +1,167 @@
 'use client';
 
 import React from 'react';
+import { X, Calendar, MapPin, Sparkles, TrendingUp, Zap, Clock, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-import { MapPin, Camera, Plus, Cloud, Sun, CloudRain, Zap, X, Sparkles, User } from 'lucide-react';
-
-interface DiaryEntry {
-  title: string;
-  location: string;
-  category: string;
-  content: string;
-  photos: string[];
-  weather?: string;
-  ai_status?: 'PROCESSING' | 'DONE';
-  energy_level?: number;
-  tags?: string[];
-  dogs_detected?: string[];
-}
+import { useDiary, DailyLog } from '@/app/common/hooks/useDiary';
 
 interface DiaryPreviewProps {
   date: Date;
-  entry?: DiaryEntry;
-  events?: { title: string; event_type: string; memo?: string }[];
-  isMobileDrawer?: boolean;
+  onEdit: (data: DailyLog) => void;
   onClose?: () => void;
-  onRecord?: () => void;
-  onEdit?: () => void;
 }
 
-const getWeatherIcon = (weather?: string) => {
-  switch (weather) {
-    case 'SUNNY': return <Sun className="w-5 h-5 text-amber-400" />;
-    case 'CLOUDY': return <Cloud className="w-5 h-5 text-slate-400" />;
-    case 'RAINY': return <CloudRain className="w-5 h-5 text-blue-400" />;
-    default: return <Sun className="w-5 h-5 text-amber-400" />;
-  }
-};
-
-export default function DiaryPreview({ 
-  date, 
-  entry, 
-  events = [], 
-  isMobileDrawer = false,
-  onClose,
-  onRecord,
-  onEdit
+export default function DiaryPreview({
+  date,
+  onEdit,
+  onClose
 }: DiaryPreviewProps) {
-  const formattedDate = date.toLocaleDateString('ko-KR', { 
-    month: 'long', 
-    day: 'numeric', 
-    weekday: 'short' 
+  const { getDailyLog } = useDiary();
+  const dateKey = date.toISOString().split('T')[0];
+  const log = getDailyLog(dateKey);
+
+  const formattedDate = date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short'
   });
 
-  const renderContent = () => (
-    <div className={`p-6 lg:p-10 ${isMobileDrawer ? 'pb-24' : ''}`}>
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-black text-main-yellow tracking-widest uppercase">Memory</span>
-            {entry?.ai_status === 'PROCESSING' && (
-              <span className="px-2 py-0.5 bg-blue-50 text-blue-500 text-[9px] font-black rounded-full animate-pulse flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> AI WRITING...
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <h3 className="text-2xl font-black text-text-main tracking-tight">{formattedDate}</h3>
-            {onClose && (
-              <button onClick={onClose} className="lg:hidden p-1 text-text-sub hover:text-text-main">
-                <X className="w-6 h-6" />
-              </button>
-            )}
-          </div>
-        </div>
-        {!entry && onClose && (
-          <button onClick={onClose} className="lg:hidden p-1 text-text-sub hover:text-text-main">
-            <X className="w-6 h-6" />
-          </button>
-        )}
-        {entry && (
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={onEdit}
-              className="px-3 py-1.5 bg-light-yellow text-main-yellow text-[11px] font-black rounded-lg hover:bg-main-yellow hover:text-white transition-all shadow-sm mr-2"
-            >
-              수정하기
-            </button>
-            {getWeatherIcon(entry.weather)}
-          </div>
-        )}
+  const renderEmptyState = () => (
+    <div className="flex-1 flex flex-col items-center justify-center p-10 text-center space-y-6 animate-in fade-in duration-500">
+      <div className="w-24 h-24 bg-surface-green rounded-full flex items-center justify-center">
+        <Calendar className="w-10 h-10 text-main-green opacity-40" />
       </div>
-
-      {!entry ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
-          <div className="w-24 h-24 bg-light-yellow rounded-full flex items-center justify-center mb-6 shadow-inner">
-            <Camera className="w-10 h-10 text-main-yellow" />
-          </div>
-          <h3 className="text-xl font-black text-text-main mb-3">{formattedDate}</h3>
-          <p className="text-text-sub text-sm leading-relaxed mb-8">
-            아직 기록된 추억이 없어요.<br/>아이와 어떤 하루를 보내셨나요?
-          </p>
-          <button 
-            onClick={onRecord}
-            className="flex items-center gap-2 px-8 py-4 bg-main-yellow text-white font-bold rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-main-yellow/30"
-          >
-            <Plus className="w-5 h-5" /> 기록하기
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {/* Main Photo Card */}
-          <div className="relative aspect-[4/5] w-full rounded-[32px] overflow-hidden shadow-2xl shadow-black/10 group">
-            <Image src={entry.photos[0]} alt="Main" fill className="object-cover transition-transform group-hover:scale-105 duration-700" />
-            
-            {/* AI Badges */}
-            <div className="absolute top-6 left-6 flex flex-wrap gap-2 pr-6">
-              <span className="px-3 py-1.5 bg-white/90 backdrop-blur-md text-main-green text-[11px] font-black rounded-full shadow-sm">
-                {entry.category}
-              </span>
-              {entry.energy_level && (
-                <span className="px-3 py-1.5 bg-white/90 backdrop-blur-md text-amber-500 text-[11px] font-black rounded-full shadow-sm flex items-center gap-1">
-                  <Zap className="w-3 h-3 fill-current" /> Lv.{entry.energy_level}
-                </span>
-              )}
-            </div>
-
-            {/* Detected Dogs Overlay */}
-            {entry.dogs_detected && entry.dogs_detected.length > 0 && (
-              <div className="absolute bottom-6 left-6 flex -space-x-2">
-                {entry.dogs_detected.map((dog, i) => (
-                  <div key={i} className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md border-2 border-white flex items-center justify-center shadow-lg group/dog relative overflow-hidden">
-                    <User className="w-5 h-5 text-main-green" />
-                    <div className="absolute inset-0 bg-main-green/80 opacity-0 group-hover/dog:opacity-100 transition-opacity flex items-center justify-center text-[8px] text-white font-black">
-                      {dog}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <h4 className="text-xl lg:text-2xl font-black text-text-main leading-tight">{entry.title}</h4>
-              <Sparkles className="w-4 h-4 text-main-yellow fill-main-yellow" />
-            </div>
-            
-            <div className="flex items-center gap-1.5 text-text-sub text-xs font-bold mb-6">
-              <MapPin className="w-3.5 h-3.5 text-main-yellow" />
-              {entry.location}
-            </div>
-            
-            <div className="relative p-6 bg-surface-green/50 rounded-[28px] border border-main-green/5">
-              <div className="absolute -left-1 top-6 bottom-6 w-1 bg-main-green/20 rounded-full" />
-              <p className="text-text-main/80 leading-relaxed text-[15px] lg:text-[16px] font-medium italic">
-                &quot;{entry.content}&quot;
-              </p>
-            </div>
-          </div>
-
-          {entry.tags && (
-            <div className="flex flex-wrap gap-2">
-              {entry.tags.map((tag, i) => (
-                <span key={i} className="text-[11px] font-bold text-text-sub bg-background px-3 py-1.5 rounded-lg border border-border">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <div className="grid grid-cols-4 gap-3">
-            {entry.photos.slice(0, 4).map((photo, i) => (
-              <div key={i} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm group">
-                <Image src={photo} alt={`Photo ${i}`} fill className="object-cover transition-transform group-hover:scale-110" />
-                {i === 3 && entry.photos.length > 4 && (
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center text-white text-xs font-black">
-                    +{entry.photos.length - 3}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {events.length > 0 && (
-        <div className="mt-12 border-t border-border pt-8">
-          <h4 className="text-xs font-black text-main-green tracking-widest uppercase mb-4">오늘의 일정</h4>
-          <div className="space-y-3">
-            {events.map((ev, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 bg-light-green/50 rounded-xl">
-                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm text-lg">
-                  {ev.event_type === 'BIRTHDAY' ? '🎂' : ev.event_type === 'VACCINE' ? '💉' : '📅'}
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-text-main">{ev.title}</div>
-                  <div className="text-[10px] text-text-sub">{ev.memo || '반려견을 위한 특별한 날'}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <div>
+        <h3 className="text-xl font-black text-text-main">아직 기록이 없어요</h3>
+        <p className="text-text-sub font-bold mt-2 leading-relaxed">오늘 아이와 어떤 추억을 만드셨나요?<br/>사진을 일괄 업로드하면 AI가 정리해 드려요!</p>
+      </div>
     </div>
   );
 
-  if (isMobileDrawer) {
+  const renderContent = () => {
+    if (!log) return renderEmptyState();
+
     return (
-      <div className="fixed inset-0 z-[110] bg-white overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        {renderContent()}
+      <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-500">
+        {/* Daily Summary Header */}
+        <div className="relative h-[320px] shrink-0">
+          <Image 
+            src={log.representativePhotoPath || '/dog-profile.png'} 
+            alt="Daily Summary" 
+            fill 
+            className="object-cover" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+          
+          <button 
+            onClick={onClose}
+            className="absolute top-6 right-6 p-3 bg-white/20 backdrop-blur-md hover:bg-white/40 text-white rounded-2xl transition-all lg:hidden"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div className="absolute bottom-8 left-8 right-8 text-white space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-main-green text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg">Daily Summary</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/10">
+                <Sparkles className="w-3 h-3 text-main-yellow fill-main-yellow" />
+                <span className="text-[10px] font-black">{log.moments.length} Moments</span>
+              </div>
+            </div>
+            <h1 className="text-3xl font-black tracking-tight leading-tight">{log.aiTitle}</h1>
+          </div>
+        </div>
+
+        {/* AI Summary Text */}
+        <div className="p-8 lg:p-10 bg-white border-b border-border">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 bg-surface-green rounded-2xl flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-main-green" />
+            </div>
+            <p className="text-lg font-medium text-text-main leading-relaxed italic">&quot;{log.aiSummary}&quot;</p>
+          </div>
+        </div>
+
+        {/* Moments Timeline */}
+        <div className="flex-1 overflow-y-auto p-8 lg:p-10 space-y-10 no-scrollbar bg-surface-green/20">
+          <h3 className="text-xl font-black text-text-main flex items-center gap-2.5 px-2">
+            <Clock className="w-5 h-5 text-main-green" /> 모멘트 타임라인
+          </h3>
+          
+          <div className="relative space-y-10 before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-main-green/10">
+            {log.moments.map((moment) => (
+              <div key={moment.id} className="relative pl-20 group">
+                {/* Timeline Node */}
+                <div className="absolute left-6 top-6 w-4 h-4 rounded-full bg-main-green border-4 border-white shadow-md group-hover:scale-125 transition-transform z-10" />
+                
+                <div className="bg-white rounded-[32px] p-6 border border-border shadow-sm hover:shadow-xl transition-all duration-500">
+                  <div className="flex flex-col gap-6">
+                    <div className="relative aspect-video rounded-2xl overflow-hidden shadow-sm">
+                      <Image 
+                        src={moment.photos[0]?.path || '/dog-profile.png'} 
+                        alt={moment.aiTitle} 
+                        fill 
+                        className="object-cover transition-transform group-hover:scale-105 duration-1000" 
+                      />
+                      <div className="absolute top-4 left-4 px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl text-[10px] font-black text-main-green shadow-sm">
+                        {moment.category}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-start">
+                        <h4 className="text-2xl font-black text-text-main leading-tight group-hover:text-main-green transition-colors">{moment.aiTitle}</h4>
+                        <div className="flex items-center gap-1 text-amber-500 font-black text-xs bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+                          <Zap className="w-3.5 h-3.5 fill-current" /> Lv.{moment.energyLevel}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-xs font-bold text-text-sub">
+                        <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-main-green" /> {moment.locationName || '어딘가'}</span>
+                      </div>
+                      
+                      <p className="text-base font-medium text-text-main/80 leading-relaxed italic line-clamp-4">
+                        &quot;{moment.aiContent}&quot;
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-border pt-4">
+                        {moment.tags.map(t => (
+                          <span key={t} className="px-3 py-1 bg-surface-green text-text-sub text-[10px] font-bold rounded-lg border border-border">#{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom Action */}
+          <div className="pt-6">
+            <button 
+              onClick={() => onEdit(log)}
+              className="w-full py-5 bg-white border-2 border-main-green text-main-green font-black rounded-[24px] hover:bg-main-green hover:text-white transition-all shadow-lg flex items-center justify-center gap-2 group"
+            >
+              기록 수정하기 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+        </div>
       </div>
     );
-  }
+  };
 
   return (
-    <div className="hidden lg:flex flex-col w-[420px] bg-white overflow-y-auto min-h-0 max-h-full shadow-[-8px_0_24px_rgba(0,0,0,0.02)] no-scrollbar">
+    <div className="flex flex-col w-full h-full bg-white overflow-y-auto min-h-0 max-h-full shadow-[-12px_0_32px_rgba(0,0,0,0.03)] no-scrollbar relative">
+      {/* Date Header Floating */}
+      <div className="sticky top-0 z-[20] bg-white/90 backdrop-blur-md border-b border-border p-4 lg:p-6 flex justify-between items-center shadow-sm shrink-0">
+        <h2 className="text-lg lg:text-xl font-black text-text-main tracking-tight">{formattedDate}</h2>
+        {onClose && (
+          <button onClick={onClose} className="p-2 hover:bg-surface-green rounded-xl transition-all">
+            <X className="w-6 h-6 text-text-sub" />
+          </button>
+        )}
+      </div>
       {renderContent()}
     </div>
   );
