@@ -466,14 +466,16 @@ export default function FamilyPage() {
               >
                 <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
                   <Image src={pet.photo || '/dog-profile.png'} alt={pet.name} fill className="object-cover" />
-                  <div className={`absolute bottom-0 right-0 w-7 h-7 rounded-full border-2 border-white flex items-center justify-center shadow-sm ${pet.gender === 'MALE' ? 'bg-blue-500' : 'bg-pink-500'}`}>
-                    <span className="text-[10px] font-black text-white">{pet.gender === 'MALE' ? '♂' : '♀'}</span>
-                  </div>
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-xl font-black text-text-main truncate">{pet.name}</h3>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h3 className="text-xl font-black text-text-main truncate">{pet.name}</h3>
+                      <span className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black text-white ${pet.gender === 'MALE' ? 'bg-blue-500' : 'bg-pink-500'}`}>
+                        {pet.gender === 'MALE' ? '남아' : '여아'}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={(e) => handleEditClick(e, pet)}
