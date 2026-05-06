@@ -1,0 +1,320 @@
+-- ============================================================
+-- PetLifeArchive DDL v3.0 (Multi-Dog Memory Update)
+-- Target: PostgreSQL 15 + PostGIS 3.4
+-- Auth  : 카카오 OAuth 2.0 + 자체 JWT
+-- Storage: Docker Volume 로컬 스토리지
+-- ============================================================
+
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+
+-- ============================================================
+-- 1. USERS
+-- ============================================================
+CREATE TABLE users (
+    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kakao_id            BIGINT      NOT NULL UNIQUE,
+    kakao_email         TEXT,
+    kakao_nickname      TEXT,
+    nickname            TEXT        NOT NULL,
+    profile_image_path  TEXT,
+    refresh_token_hash  TEXT,
+    token_issued_at     TIMESTAMPTZ,
+    is_active           BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_users_kakao_id ON users(kakao_id);
+
+
+-- ============================================================
+-- 2. PETS
+-- ============================================================
+CREATE TABLE pets (
+    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id             UUID        NOT NULL,
+    name                TEXT        NOT NULL,
+    breed               TEXT,
+    birth_date          DATE,
+    adoption_date       DATE,
+    gender              TEXT        CHECK (gender IN ('MALE', 'FEMALE', 'UNKNOWN')),
+    weight_kg           NUMERIC(5,2),
+    profile_image_path  TEXT,
+    
+    -- AI 일기용 세부 프로필 정보
+    personality         TEXT,       -- 성격 (예: 활발하고 호기심 많음)
+    appearance          TEXT,       -- 외형 (예: 뾰족한 이목구비, 크림색 털)
+    likes               TEXT,       -- 좋아하는 것
+    dislikes            TEXT,       -- 싫어하는 것
+    diary_tone          TEXT,       -- 일기 말투 (예: 장난스럽고 활기찬 말투)
+
+    is_active           BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_pets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_pets_user_id ON pets(user_id);
+
+
+-- ============================================================
+-- 3. MEMORIES (기존 Diaries 대체)
+-- ============================================================
+CREATE TABLE memories (
+    id                      UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id                 UUID        NOT NULL,
+    memory_date             DATE        NOT NULL,
+    
+    -- 사용자 직접 입력 정보
+    summary                 TEXT,
+    activity_type           TEXT,
+    weather                 TEXT,
+    energy_level            SMALLINT    CHECK (energy_level BETWEEN 1 AND 5),
+    location                TEXT,
+    user_memo               TEXT,
+    
+    -- AI 생성 결과
+    ai_title                TEXT,
+    ai_diary                TEXT,
+    ai_generate_count       SMALLINT    NOT NULL DEFAULT 0,
+    ai_status               TEXT        NOT NULL DEFAULT 'PENDING' CHECK (ai_status IN ('PENDING', 'PROCESSING', 'DONE', 'FAILED')),
+    
+    -- 캘린더/타임라인 대표 사진 (photos 테이블 순환 참조)
+    representative_photo_id UUID,
+
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_memories_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_memories_user_date ON memories(user_id, memory_date);
+CREATE INDEX idx_memories_ai_status ON memories(ai_status);
+
+
+-- ============================================================
+-- 4. MEMORY_DOGS (다견 매핑 N:M 브릿지)
+-- ============================================================
+CREATE TABLE memory_dogs (
+    id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    memory_id   UUID        NOT NULL,
+    dog_id      UUID        NOT NULL,
+    role        TEXT        DEFAULT 'WITH' CHECK (role IN ('MAIN', 'WITH')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uq_memory_dogs UNIQUE (memory_id, dog_id),
+    CONSTRAINT fk_memory_dogs_memory FOREIGN KEY (memory_id) REFERENCES memories(id) ON DELETE CASCADE,
+    CONSTRAINT fk_memory_dogs_pet FOREIGN KEY (dog_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_memory_dogs_dog_id ON memory_dogs(dog_id);
+
+
+-- ============================================================
+-- 5. PHOTOS (EXIF 및 공간 데이터)
+-- ============================================================
+CREATE TABLE photos (
+    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    memory_id           UUID        NOT NULL,
+    
+    -- 파일 경로 3종
+    path_origin         TEXT        NOT NULL,
+    path_thumb_300      TEXT,
+    path_thumb_100      TEXT,
+
+    -- EXIF 메타데이터
+    taken_at            TIMESTAMPTZ,
+    gps_lat             NUMERIC(10,7),
+    gps_lng             NUMERIC(10,7),
+    location            GEOGRAPHY(POINT, 4326),
+    gps_source          TEXT        NOT NULL DEFAULT 'EXIF' CHECK (gps_source IN ('EXIF', 'AI_INFERRED', 'MANUAL', 'NONE')),
+
+    -- AI 분석 결과
+    ai_caption          TEXT,
+    ai_emotion          TEXT,
+    ai_energy_level     SMALLINT    CHECK (ai_energy_level BETWEEN 1 AND 5),
+
+    sort_order          INTEGER     NOT NULL DEFAULT 0,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_photos_memory FOREIGN KEY (memory_id) REFERENCES memories(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_photos_memory_id ON photos(memory_id);
+CREATE INDEX idx_photos_taken_at ON photos(taken_at);
+CREATE INDEX idx_photos_location ON photos USING GIST(location);
+
+-- 대표 사진 순환 참조 해소 (커밋 시점에 FK 검사)
+ALTER TABLE memories
+    ADD CONSTRAINT fk_memories_rep_photo
+    FOREIGN KEY (representative_photo_id) REFERENCES photos(id) ON DELETE SET NULL
+    DEFERRABLE INITIALLY DEFERRED;
+
+
+-- ============================================================
+-- 6. TAGS & PHOTO_TAGS
+-- ============================================================
+CREATE TABLE tags (
+    id          UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name        TEXT    NOT NULL UNIQUE,
+    category    TEXT    NOT NULL DEFAULT 'GENERAL' CHECK (category IN ('PLACE', 'ACTIVITY', 'OBJECT', 'EMOTION', 'GENERAL'))
+);
+
+CREATE TABLE photo_tags (
+    photo_id    UUID            NOT NULL,
+    tag_id      UUID            NOT NULL,
+    confidence  NUMERIC(4,3)    CHECK (confidence BETWEEN 0 AND 1),
+
+    PRIMARY KEY (photo_id, tag_id),
+    CONSTRAINT fk_photo_tags_photo FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_photo_tags_tag FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+
+
+-- ============================================================
+-- 7. PET_EVENTS (기념일 등)
+-- ============================================================
+CREATE TABLE pet_events (
+    id              UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pet_id          UUID        NOT NULL,
+    title           TEXT        NOT NULL,
+    event_date      DATE        NOT NULL,
+    event_type      TEXT        NOT NULL DEFAULT 'GENERAL',
+    is_recurring    BOOLEAN     NOT NULL DEFAULT FALSE,
+    memo            TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_pet_events_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+
+
+-- ============================================================
+-- 8. ITEMS & PHOTO_ITEMS (도감)
+-- ============================================================
+CREATE TABLE items (
+    id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pet_id              UUID        NOT NULL,
+    name                TEXT        NOT NULL,
+    category            TEXT        NOT NULL CHECK (category IN ('SNACK', 'TOY', 'CLOTHES', 'MEDICINE', 'ETC')),
+    brand               TEXT,
+    barcode             TEXT,
+    thumbnail_path      TEXT,
+    expire_date         DATE,
+    feeding_guide       TEXT,
+    preference_score    SMALLINT    CHECK (preference_score BETWEEN 1 AND 5),
+    memo                TEXT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_items_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+
+CREATE TABLE photo_items (
+    photo_id    UUID    NOT NULL,
+    item_id     UUID    NOT NULL,
+
+    PRIMARY KEY (photo_id, item_id),
+    CONSTRAINT fk_photo_items_photo FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_photo_items_item FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+);
+
+
+-- ============================================================
+-- 9. FAVORITE_PLACES
+-- ============================================================
+CREATE TABLE favorite_places (
+    id              UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pet_id          UUID        NOT NULL,
+    name            TEXT,
+    location        GEOGRAPHY(POINT, 4326) NOT NULL,
+    visit_count     INTEGER     NOT NULL DEFAULT 1,
+    last_visited_at TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_favorite_places_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_favorite_places_location ON favorite_places USING GIST(location);
+
+
+-- ============================================================
+-- 10. SHARE_TOKENS
+-- ============================================================
+CREATE TABLE share_tokens (
+    id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+    token       TEXT        NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(24), 'base64'),
+    memory_id   UUID,       -- diaries에서 memories로 변경
+    pet_id      UUID,
+    expires_at  TIMESTAMPTZ,
+    is_active   BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_share_tokens_memory FOREIGN KEY (memory_id) REFERENCES memories(id) ON DELETE CASCADE,
+    CONSTRAINT fk_share_tokens_pet FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+    CONSTRAINT chk_share_tokens_target CHECK (memory_id IS NOT NULL OR pet_id IS NOT NULL)
+);
+
+
+-- ============================================================
+-- TRIGGERS (updated_at 자동 갱신)
+-- ============================================================
+CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_pets_updated_at BEFORE UPDATE ON pets FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_memories_updated_at BEFORE UPDATE ON memories FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_photos_updated_at BEFORE UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_items_updated_at BEFORE UPDATE ON items FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+
+-- ============================================================
+-- VIEWS 업데이트 (타임라인 및 포토맵)
+-- ============================================================
+
+-- 1. 타임라인용 월별 대표 사진 (특정 강아지 기준 필터링 지원)
+CREATE OR REPLACE VIEW v_timeline_monthly AS
+SELECT
+    md.dog_id AS pet_id,
+    TO_CHAR(m.memory_date, 'YYYY-MM') AS month,
+    MIN(m.memory_date) AS first_memory_date,
+    COUNT(*) AS memory_count,
+    (
+        SELECT m2.representative_photo_id
+        FROM memories m2
+        JOIN memory_dogs md2 ON m2.id = md2.memory_id
+        WHERE md2.dog_id = md.dog_id
+          AND TO_CHAR(m2.memory_date, 'YYYY-MM') = TO_CHAR(m.memory_date, 'YYYY-MM')
+          AND m2.representative_photo_id IS NOT NULL
+        ORDER BY m2.memory_date ASC
+        LIMIT 1
+    ) AS representative_photo_id
+FROM memories m
+JOIN memory_dogs md ON m.id = md.memory_id
+WHERE m.ai_status = 'DONE'
+GROUP BY md.dog_id, TO_CHAR(m.memory_date, 'YYYY-MM')
+ORDER BY month DESC;
+
+-- 2. 포토맵 뷰포트 필터링용 GPS 사진 뷰 (다견 매핑 포함)
+CREATE OR REPLACE VIEW v_photos_with_location AS
+SELECT
+    p.id,
+    p.memory_id,
+    md.dog_id AS pet_id,
+    p.path_thumb_100,
+    p.path_thumb_300,
+    p.taken_at,
+    p.gps_lat,
+    p.gps_lng,
+    p.location,
+    p.gps_source,
+    p.ai_caption,
+    m.memory_date
+FROM photos p
+JOIN memories m ON m.id = p.memory_id
+JOIN memory_dogs md ON m.id = md.memory_id
+WHERE p.gps_source != 'NONE'
+  AND p.location IS NOT NULL;
