@@ -1,8 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+import clientApi from '../lib/clientApi';
 
 export interface PetProfile {
   id: string;
@@ -46,34 +45,23 @@ export const usePetStore = create<PetState>((set, get) => ({
   fetchPets: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${BACKEND_URL}/api/pets`, {
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Failed to fetch pets');
-      const result: ApiResponse<PetProfile[]> = await res.json();
-      set({ pets: result.data, loading: false });
-    } catch (err) {
-      set({ error: (err as Error).message, loading: false });
+      const res = await clientApi.get<ApiResponse<PetProfile[]>>('/api/pets');
+      set({ pets: res.data.data, loading: false });
+    } catch (err: any) {
+      set({ error: err.response?.data?.message || err.message, loading: false });
     }
   },
 
   addPet: async (pet) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${BACKEND_URL}/api/pets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pet),
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Failed to add pet');
-      const result: ApiResponse<PetProfile> = await res.json();
+      const res = await clientApi.post<ApiResponse<PetProfile>>('/api/pets', pet);
       set((state) => ({ 
-        pets: [...state.pets, result.data],
+        pets: [...state.pets, res.data.data],
         loading: false 
       }));
-    } catch (err) {
-      set({ error: (err as Error).message, loading: false });
+    } catch (err: any) {
+      set({ error: err.response?.data?.message || err.message, loading: false });
       throw err;
     }
   },
@@ -81,20 +69,13 @@ export const usePetStore = create<PetState>((set, get) => ({
   updatePet: async (id, updates) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${BACKEND_URL}/api/pets/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Failed to update pet');
-      const result: ApiResponse<PetProfile> = await res.json();
+      const res = await clientApi.put<ApiResponse<PetProfile>>(`/api/pets/${id}`, updates);
       set((state) => ({
-        pets: state.pets.map((p) => (p.id === id ? result.data : p)),
+        pets: state.pets.map((p) => (p.id === id ? res.data.data : p)),
         loading: false,
       }));
-    } catch (err) {
-      set({ error: (err as Error).message, loading: false });
+    } catch (err: any) {
+      set({ error: err.response?.data?.message || err.message, loading: false });
       throw err;
     }
   },
@@ -102,17 +83,13 @@ export const usePetStore = create<PetState>((set, get) => ({
   removePet: async (id) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${BACKEND_URL}/api/pets/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Failed to delete pet');
+      await clientApi.delete(`/api/pets/${id}`);
       set((state) => ({
         pets: state.pets.filter((p) => p.id !== id),
         loading: false,
       }));
-    } catch (err) {
-      set({ error: (err as Error).message, loading: false });
+    } catch (err: any) {
+      set({ error: err.response?.data?.message || err.message, loading: false });
       throw err;
     }
   },

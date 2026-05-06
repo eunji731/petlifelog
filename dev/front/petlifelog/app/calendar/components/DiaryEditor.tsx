@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useToast } from '@/app/common/hooks/useToast';
 import { usePet } from '@/app/common/hooks/usePet';
 import { DailyLog, Moment } from '@/app/common/hooks/useDiary';
+import clientApi from '@/app/common/lib/clientApi';
 
 interface DiaryEditorProps {
   date: Date;
@@ -21,10 +22,11 @@ export default function DiaryEditor({
   onCancel
 }: DiaryEditorProps) {
   const { pets } = usePet();
-  const { info, warning, success } = useToast();
+  const { info, warning, success, error } = useToast();
   
   // State for batch upload
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]); // 실제 파일 객체 저장
+  const [photos, setPhotos] = useState<string[]>([]); // 미리보기 URL 저장
   const [userTags, setUserTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [selectedDogIds, setSelectedDogIds] = useState<string[]>([]);
@@ -46,9 +48,17 @@ export default function DiaryEditor({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newUrls = Array.from(files).map(file => URL.createObjectURL(file));
-      setPhotos(prev => [...prev, ...newUrls]);
+      const fileArray = Array.from(files);
+      setPhotoFiles(prev => [...prev, ...fileArray]); // 파일 객체 추가
+      
+      const newUrls = fileArray.map(file => URL.createObjectURL(file));
+      setPhotos(prev => [...prev, ...newUrls]); // 미리보기 추가
     }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotoFiles(prev => prev.filter((_, i) => i !== index));
+    setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleAddTag = () => {
@@ -58,8 +68,8 @@ export default function DiaryEditor({
     }
   };
 
-  const triggerBatchAIAnalysis = () => {
-    if (photos.length === 0) {
+  const triggerBatchAIAnalysis = async () => {
+    if (photoFiles.length === 0) {
       warning('분석할 사진을 최소 1장 이상 등록해 주세요.');
       return;
     }
@@ -71,49 +81,35 @@ export default function DiaryEditor({
     setIsAnalyzing(true);
     info('AI가 사진들을 분석하여 모멘트를 나누고 일기를 쓰고 있어요...');
 
-    // Simulate AI Multi-Step Generation
-    setTimeout(() => {
-      const dateKey = date.toISOString().split('T')[0];
-      const selectedPets = pets.filter(p => selectedDogIds.includes(p.id));
-      const petNames = selectedPets.map(p => p.name).join(', ');
+    try {
+      const formData = new FormData();
+      
+      // 원본 이미지 파일들 추가 (백엔드에서 저장용으로 사용)
+      photoFiles.forEach(file => {
+        formData.append('images', file);
+      });
 
-      const mockResult: DailyLog = {
-        id: Math.random().toString(36).substr(2, 9),
-        dateKey,
-        aiTitle: `${petNames}와(과) 함께한 다채로운 하루 ✨`,
-        aiSummary: `오늘은 ${petNames}와(과) 병원도 가고 공원 산책도 하면서 바쁜 시간을 보냈어요. 상황별로 아이들의 반응이 달랐지만 전체적으로 행복한 하루였습니다.`,
-        representativePhotoPath: photos[0],
-        moments: [
-          {
-            id: 'm1',
-            category: 'HEALTH',
-            locationName: '튼튼동물병원',
-            aiTitle: '무서웠던 병원 방문 ㅠㅠ',
-            aiContent: `아침 일찍 병원에 다녀왔어요. ${selectedPets[0]?.traits || ''} 평소처럼 씩씩하려고 했지만 주사기는 역시 무서웠나 봐요.`,
-            energyLevel: 2,
-            photos: [{ id: 'p1', path: photos[photos.length - 1] }],
-            tags: ['정기검진', '무서워'],
-            dogIds: selectedDogIds
-          },
-          {
-            id: 'm2',
-            category: 'ACTIVITY',
-            locationName: '햇살공원',
-            aiTitle: '기분 최고! 신나는 공원 산책',
-            aiContent: `병원 스트레스를 날려버릴 신나는 산책 시간! ${selectedPets[0]?.diaryTone || '발랄한'} 느낌으로 뛰어놀았답니다.`,
-            energyLevel: 5,
-            photos: [{ id: 'p2', path: photos[0] }],
-            tags: ['산책', '행복'],
-            dogIds: selectedDogIds
-          }
-        ]
+      // 선택된 반려동물 정보 (ID를 포함한 전체 정보를 보내어 백엔드에서 식별 및 프로필 조회를 돕습니다)
+      const selectedPets = pets.filter(p => selectedDogIds.includes(p.id));
+      formData.append('petInfo', JSON.stringify(selectedPets));
+      formData.append('userTags', JSON.stringify(userTags));
+      formData.append('date', date.toISOString());
+
+      const response = await clientApi.post('/api/ai/analyze', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const data: DailyLog = response.data;
+      setAiResult(data);
+      success('AI가 하루를 완벽하게 정리했습니다!');
+      } catch (err) {
+      console.error(err);
+      error('AI 분석 중 오류가 발생했습니다.');
+      } finally {
+      setIsAnalyzing(false);
+      }
       };
 
-      setAiResult(mockResult);
-      setIsAnalyzing(false);
-      success('AI가 하루를 완벽하게 정리했습니다!');
-    }, 2500);
-  };
 
   return (
     <div className="flex flex-col h-full bg-surface-green/30">
@@ -162,13 +158,14 @@ export default function DiaryEditor({
                       <div key={url} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm group">
                         <Image src={url} alt={`Upload ${i}`} fill className="object-cover" />
                         <button 
-                          onClick={() => setPhotos(photos.filter(p => p !== url))}
+                          onClick={() => removePhoto(i)}
                           className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     ))}
+
                   </div>
                   <input type="file" ref={fileInputRef} multiple className="hidden" accept="image/*" onChange={handleFileChange} />
                 </div>

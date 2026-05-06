@@ -21,7 +21,7 @@ import { useToast } from '../hooks/useToast';
 import { useConfirm } from '../hooks/useConfirm';
 import { usePet, PetProfile } from '../hooks/usePet';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+import clientApi from '../lib/clientApi';
 
 const navItems = [
   { name: '대시보드', href: '/dashboard', icon: Book },
@@ -136,13 +136,10 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
     if (!isConfirmed) return;
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      const res = await clientApi.post('/api/auth/logout');
 
-      if (res.ok) {
-        const { kakaoLogoutUrl } = await res.json();
+      if (res.status === 200) {
+        const { kakaoLogoutUrl } = res.data;
         window.location.href = kakaoLogoutUrl;
         return;
       }
