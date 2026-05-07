@@ -41,4 +41,30 @@ public interface PhotoRepository extends JpaRepository<Photo, UUID> {
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    Optional<Photo> findFirstByMemory_IdAndGpsLatIsNotNull(UUID memoryId);
+
+    /** bbox 안에 있는 GPS 사진만 경량 조회 (마커 전용) */
+    @Query("""
+            SELECT p FROM Photo p
+            JOIN FETCH p.memory m
+            WHERE p.gpsLat IS NOT NULL
+              AND p.gpsLng IS NOT NULL
+              AND m.user.id = :userId
+              AND p.gpsLat BETWEEN :swLat AND :neLat
+              AND p.gpsLng BETWEEN :swLng AND :neLng
+              AND (:petId IS NULL OR EXISTS (
+                    SELECT md FROM MemoryDog md
+                    WHERE md.memory = m AND md.dog.id = :petId
+              ))
+            ORDER BY m.memoryDate DESC, p.sortOrder ASC
+            """)
+    List<Photo> findMapMarkers(
+            @Param("userId") UUID userId,
+            @Param("swLat") double swLat,
+            @Param("neLat") double neLat,
+            @Param("swLng") double swLng,
+            @Param("neLng") double neLng,
+            @Param("petId") UUID petId
+    );
 }

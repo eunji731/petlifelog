@@ -1,37 +1,79 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Search, Navigation, Layers, ZoomIn, ZoomOut, Calendar, Sparkles, X, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import NaverMap from '@/app/map/components/NaverMap';
-import { useMapMemories, MapMemory } from '@/app/map/hooks/useMapMemories';
+import { useMapMarkers, MapMemoryDetail, BBox } from '@/app/map/hooks/useMapMarkers';
 import { getImagePath } from '@/app/common/lib/clientApi';
 
+const WORLD_BBOX: BBox = { swLat: -90, swLng: -180, neLat: 90, neLng: 180 };
+
+/** markers 배열에서 모두 보이는 center / zoom 계산 */
+function calcFit(markers: naver.maps.Marker[]): { center: naver.maps.LatLng; zoom: number } | null {
+  if (markers.length === 0) return null;
+  const firstPos = markers[0].getPosition() as naver.maps.LatLng;
+  const bounds = new naver.maps.LatLngBounds(firstPos, firstPos);
+  markers.forEach(m => bounds.extend(m.getPosition() as naver.maps.LatLng));
+  const sw = bounds.getSW() as naver.maps.LatLng;
+  const ne = bounds.getNE() as naver.maps.LatLng;
+  const latSpan = Math.max(ne.lat() - sw.lat(), 0.005);
+  const lngSpan = Math.max(ne.lng() - sw.lng(), 0.005);
+  // 코사인 보정으로 경도 스팬 축소 후 가장 큰 쪽 기준 줌 계산
+  const center = bounds.getCenter() as naver.maps.LatLng;
+  const cosLat = Math.cos((center.lat() * Math.PI) / 180);
+  const maxSpan = Math.max(latSpan, lngSpan * cosLat);
+  const zoom = Math.min(14, Math.max(7, Math.floor(Math.log2(90 / maxSpan))));
+  return { center, zoom };
+}
+
 export default function MapPage() {
-  const { memories, loading } = useMapMemories();
-  const [selectedMemory, setSelectedMemory] = useState<MapMemory | null>(null);
+  const { markers, loading, detailLoading, fetchMarkers, fetchDetail } = useMapMarkers();
+  const [selectedDetail, setSelectedDetail] = useState<MapMemoryDetail | null>(null);
+  const [mapVisible, setMapVisible] = useState(false);
   const mapInstanceRef = useRef<naver.maps.Map | null>(null);
   const markersRef = useRef<naver.maps.Marker[]>([]);
+  const lastBboxRef = useRef<BBox>(WORLD_BBOX);
+  const isFirstLoad = useRef(true);
 
-  const handleMapLoad = (map: naver.maps.Map) => {
+  // 지도 초기화 → 전체 범위 조회 (지도는 아직 안 보임)
+  const handleMapLoad = useCallback((map: naver.maps.Map) => {
     mapInstanceRef.current = map;
-    updateMarkers(map, memories);
-  };
+    fetchMarkers(WORLD_BBOX);
+  }, [fetchMarkers]);
 
-  const updateMarkers = (map: naver.maps.Map, data: MapMemory[]) => {
+  // pan / zoom 시 현재 뷰포트 범위 재조회
+  const handleBoundsChanged = useCallback((bounds: naver.maps.LatLngBounds) => {
+    const sw = bounds.getSW() as naver.maps.LatLng;
+    const ne = bounds.getNE() as naver.maps.LatLng;
+    const bbox: BBox = { swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng() };
+    lastBboxRef.current = bbox;
+    fetchMarkers(bbox, mapInstanceRef.current?.getZoom());
+  }, [fetchMarkers]);
+
+  // 펫 변경(fetchMarkers 재생성) 시 현재 뷰포트 기준 재조회
+  useEffect(() => {
+    if (isFirstLoad.current) return; // 최초 로드는 handleMapLoad 에서 담당
+    if (mapInstanceRef.current) {
+      fetchMarkers(lastBboxRef.current);
+    }
+  }, [fetchMarkers]);
+
+  // markers 변경 → 지도 핀 갱신
+  const updateMarkers = useCallback((map: naver.maps.Map) => {
     if (!window.naver) return;
 
-    markersRef.current.forEach(marker => marker.setMap(null));
+    const wasEmpty = markersRef.current.length === 0;
+    markersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
 
-    data.forEach((memory) => {
-      const photoUrl = getImagePath(memory.path);
-
-      const marker = new naver.maps.Marker({
-        position: new naver.maps.LatLng(memory.latitude, memory.longitude),
+    markers.forEach((marker) => {
+      const thumbUrl = getImagePath(marker.thumb);
+      const naverMarker = new naver.maps.Marker({
+        position: new naver.maps.LatLng(marker.lat, marker.lng),
         map,
-        title: memory.moment.locationName || '추억의 장소',
+        title: marker.dateKey,
         icon: {
           content: `
             <div class="relative group cursor-pointer">
@@ -42,7 +84,7 @@ export default function MapPage() {
                 </svg>
               </div>
               <div class="absolute top-1 left-1 w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-white shadow-sm ring-2 ring-main-yellow/20">
-                <img src="${photoUrl}" alt="Pet" class="w-full h-full object-cover" />
+                <img src="${thumbUrl}" alt="" class="w-full h-full object-cover" />
               </div>
             </div>
           `,
@@ -50,40 +92,38 @@ export default function MapPage() {
         },
       });
 
-      naver.maps.Event.addListener(marker, 'click', () => {
-        setSelectedMemory(memory);
+      naver.maps.Event.addListener(naverMarker, 'click', async () => {
+        const detail = await fetchDetail(marker.momentId);
+        if (detail) setSelectedDetail(detail);
       });
 
-      markersRef.current.push(marker);
+      markersRef.current.push(naverMarker);
     });
 
-    if (markersRef.current.length > 0) {
-      const firstPos = markersRef.current[0].getPosition() as naver.maps.LatLng;
-      const bounds = new naver.maps.LatLngBounds(firstPos, firstPos);
-      markersRef.current.forEach(marker => bounds.extend(marker.getPosition() as naver.maps.LatLng));
-      map.panToBounds(bounds);
+    // 최초 로드 시: 모든 마커가 보이도록 즉시(애니메이션 없이) 위치 설정
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      const fit = calcFit(markersRef.current);
+      if (fit) {
+        map.setCenter(fit.center);
+        map.setZoom(fit.zoom);
+      }
+      setMapVisible(true); // 위치 잡은 뒤 지도 표시
     }
-  };
+  }, [markers, fetchDetail]);
 
   useEffect(() => {
     if (mapInstanceRef.current) {
-      updateMarkers(mapInstanceRef.current, memories);
+      updateMarkers(mapInstanceRef.current);
     }
-  }, [memories]);
+  }, [markers, updateMarkers]);
 
-  const handleZoomIn = () => {
-    mapInstanceRef.current?.setZoom((mapInstanceRef.current.getZoom() ?? 15) + 1);
-  };
-
-  const handleZoomOut = () => {
-    mapInstanceRef.current?.setZoom((mapInstanceRef.current.getZoom() ?? 15) - 1);
-  };
-
+  const handleZoomIn = () => mapInstanceRef.current?.setZoom((mapInstanceRef.current.getZoom() ?? 13) + 1);
+  const handleZoomOut = () => mapInstanceRef.current?.setZoom((mapInstanceRef.current.getZoom() ?? 13) - 1);
   const handleCurrentLocation = () => {
     if (navigator.geolocation && mapInstanceRef.current) {
       navigator.geolocation.getCurrentPosition(({ coords }) => {
-        const latLng = new naver.maps.LatLng(coords.latitude, coords.longitude);
-        mapInstanceRef.current?.setCenter(latLng);
+        mapInstanceRef.current?.setCenter(new naver.maps.LatLng(coords.latitude, coords.longitude));
         mapInstanceRef.current?.setZoom(16);
       });
     }
@@ -91,21 +131,32 @@ export default function MapPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white relative overflow-hidden">
-      <div className="absolute inset-0">
-        <NaverMap onMapLoad={handleMapLoad} />
+      {/* 지도 - 첫 마커 위치 계산 전까지 숨김 */}
+      <div className={`absolute inset-0 transition-opacity duration-300 ${mapVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <NaverMap onMapLoad={handleMapLoad} onBoundsChanged={handleBoundsChanged} />
       </div>
 
-      {/* Loading overlay */}
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-sm z-10 pointer-events-none">
+      {/* 초기 로딩 */}
+      {!mapVisible && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
           <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-lg text-sm font-bold text-text-sub">
             <MapPin className="w-4 h-4 animate-bounce text-main-green" />
-            추억 불러오는 중...
+            추억 찾는 중...
           </div>
         </div>
       )}
 
-      {/* Floating Controls */}
+      {/* 뷰포트 재조회 중 인디케이터 */}
+      {mapVisible && loading && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full shadow text-xs font-bold text-text-sub">
+            <MapPin className="w-3 h-3 animate-bounce text-main-green" />
+            업데이트 중
+          </div>
+        </div>
+      )}
+
+      {/* 상단 검색/컨트롤 */}
       <div className="absolute top-6 left-6 right-6 flex flex-col md:flex-row gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-sub" />
@@ -115,12 +166,8 @@ export default function MapPage() {
             className="w-full pl-11 pr-4 py-4 bg-white/90 backdrop-blur-md border border-white rounded-[24px] shadow-2xl shadow-main-green/10 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-main-green/20 transition-all"
           />
         </div>
-
         <div className="flex gap-2">
-          <button
-            onClick={handleCurrentLocation}
-            className="p-4 bg-white/90 backdrop-blur-md border border-white rounded-2xl shadow-xl text-text-main hover:bg-main-green hover:text-white transition-all"
-          >
+          <button onClick={handleCurrentLocation} className="p-4 bg-white/90 backdrop-blur-md border border-white rounded-2xl shadow-xl text-text-main hover:bg-main-green hover:text-white transition-all">
             <Navigation className="w-5 h-5" />
           </button>
           <button className="p-4 bg-white/90 backdrop-blur-md border border-white rounded-2xl shadow-xl text-text-main hover:bg-main-green hover:text-white transition-all">
@@ -130,78 +177,56 @@ export default function MapPage() {
       </div>
 
       <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2">
-        <button
-          onClick={handleZoomIn}
-          className="p-3 bg-white border border-border rounded-xl shadow-lg text-text-main hover:bg-surface-green transition-all"
-        >
-          <ZoomIn className="w-5 h-5" />
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="p-3 bg-white border border-border rounded-xl shadow-lg text-text-main hover:bg-surface-green transition-all"
-        >
-          <ZoomOut className="w-5 h-5" />
-        </button>
+        <button onClick={handleZoomIn} className="p-3 bg-white border border-border rounded-xl shadow-lg text-text-main hover:bg-surface-green transition-all"><ZoomIn className="w-5 h-5" /></button>
+        <button onClick={handleZoomOut} className="p-3 bg-white border border-border rounded-xl shadow-lg text-text-main hover:bg-surface-green transition-all"><ZoomOut className="w-5 h-5" /></button>
       </div>
 
-      {/* Selected Memory Detail Overlay */}
-      {selectedMemory && (
+      {/* 마커 클릭 상세 패널 */}
+      {selectedDetail && (
         <div className="absolute bottom-8 left-6 right-6 md:left-auto md:right-8 md:w-[400px] animate-in slide-in-from-bottom-8 duration-500">
           <div className="bg-white rounded-[32px] overflow-hidden shadow-2xl border border-border ring-1 ring-black/5">
-            <div className="relative h-48">
-              <Image
-                src={getImagePath(selectedMemory.path)}
-                alt="Location"
-                fill
-                className="object-cover"
-              />
-              <button
-                onClick={() => setSelectedMemory(null)}
-                className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <div className="absolute bottom-4 left-4 flex gap-1.5">
-                {selectedMemory.moment.category && (
-                  <span className="px-2.5 py-1 bg-main-green text-white text-[9px] font-black rounded-full shadow-lg uppercase tracking-widest">
-                    {selectedMemory.moment.category}
-                  </span>
-                )}
-                <span className="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-text-main text-[9px] font-black rounded-full shadow-lg">
-                  {selectedMemory.dailyLog.dateKey}
-                </span>
+            {detailLoading ? (
+              <div className="h-48 flex items-center justify-center text-text-sub text-sm font-bold">
+                <MapPin className="w-5 h-5 animate-bounce text-main-green mr-2" />불러오는 중...
               </div>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="space-y-1">
-                <h3 className="text-xl font-black text-text-main tracking-tight">
-                  {selectedMemory.moment.locationName || '추억의 장소'}
-                </h3>
-                <p className="text-sm font-bold text-text-sub flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-main-yellow fill-main-yellow" />
-                  {selectedMemory.moment.aiTitle || selectedMemory.dailyLog.aiTitle}
-                </p>
-              </div>
-
-              {selectedMemory.moment.aiDiary && (
-                <div className="bg-surface-green/50 p-4 rounded-2xl border border-main-green/5 italic text-sm font-medium text-text-main/80 leading-relaxed line-clamp-3">
-                  &quot;{selectedMemory.moment.aiDiary}&quot;
+            ) : (
+              <>
+                <div className="relative h-48">
+                  <Image src={getImagePath(selectedDetail.path)} alt="추억 사진" fill className="object-cover" />
+                  <button onClick={() => setSelectedDetail(null)} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                  <div className="absolute bottom-4 left-4 flex gap-1.5">
+                    {selectedDetail.moment.category && (
+                      <span className="px-2.5 py-1 bg-main-green text-white text-[9px] font-black rounded-full shadow-lg uppercase tracking-widest">{selectedDetail.moment.category}</span>
+                    )}
+                    <span className="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-text-main text-[9px] font-black rounded-full shadow-lg">{selectedDetail.dailyLog.dateKey}</span>
+                  </div>
                 </div>
-              )}
-
-              <div className="flex gap-2">
-                <Link
-                  href={`/calendar?date=${selectedMemory.dailyLog.dateKey}`}
-                  className="flex-1 py-3.5 bg-main-green text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-main-green/20"
-                >
-                  <Calendar className="w-3.5 h-3.5" /> 전체 일기 보기
-                </Link>
-                <button className="w-14 py-3.5 bg-surface-green text-text-main rounded-xl flex items-center justify-center hover:bg-border transition-all">
-                  <Navigation className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+                <div className="p-6 space-y-4">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-black text-text-main tracking-tight">{selectedDetail.moment.locationName || '추억의 장소'}</h3>
+                    <p className="text-sm font-bold text-text-sub flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-main-yellow fill-main-yellow" />
+                      {selectedDetail.moment.aiTitle || selectedDetail.dailyLog.aiTitle}
+                    </p>
+                  </div>
+                  {selectedDetail.moment.aiDiary && (
+                    <div className="bg-surface-green/50 p-4 rounded-2xl border border-main-green/5 italic text-sm font-medium text-text-main/80 leading-relaxed line-clamp-3">
+                      &quot;{selectedDetail.moment.aiDiary}&quot;
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Link href={`/calendar?date=${selectedDetail.dailyLog.dateKey}`} className="flex-1 py-3.5 bg-main-green text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-main-green/20">
+                      <Calendar className="w-3.5 h-3.5" /> 전체 일기 보기
+                    </Link>
+                    <button className="w-14 py-3.5 bg-surface-green text-text-main rounded-xl flex items-center justify-center hover:bg-border transition-all">
+                      <Navigation className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

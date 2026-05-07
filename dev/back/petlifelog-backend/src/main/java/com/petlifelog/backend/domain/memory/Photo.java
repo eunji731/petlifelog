@@ -14,7 +14,9 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "photos")
+@Table(name = "photos", indexes = {
+    @Index(name = "idx_photos_gps", columnList = "gps_lat, gps_lng")
+})
 public class Photo extends BaseTimeEntity {
 
     @Id
