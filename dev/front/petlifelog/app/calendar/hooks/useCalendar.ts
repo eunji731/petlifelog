@@ -1,34 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
-export function useCalendar() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+export function useCalendar(initialDate: Date = new Date()) {
+  const [currentDate, setCurrentDate] = useState(new Date(initialDate.getFullYear(), initialDate.getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState(initialDate);
 
-  const onPrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
+  const onPrevMonth = useCallback(() => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  }, []);
 
-  const onNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
+  const onNextMonth = useCallback(() => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  }, []);
 
-  const onToday = () => {
+  const onToday = useCallback(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     setCurrentDate(today);
     setSelectedDate(today);
-  };
+  }, []);
 
-  const onSelectDate = (date: Date) => {
+  const onSelectDate = useCallback((date: Date) => {
     setSelectedDate(date);
-  };
+  }, []);
 
-  const goToDate = (year: number, month: number) => {
+  const goToDate = useCallback((year: number, month: number) => {
     // month is 0-indexed (0 = Jan, 11 = Dec)
     setCurrentDate(new Date(year, month, 1));
-  };
+  }, []);
 
   return {
     currentDate,

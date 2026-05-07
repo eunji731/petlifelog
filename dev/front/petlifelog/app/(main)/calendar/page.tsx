@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import CalendarHeader from '@/app/calendar/components/CalendarHeader';
 import CalendarGrid from '@/app/calendar/components/CalendarGrid';
 import DiaryPreview from '@/app/calendar/components/DiaryPreview';
@@ -9,10 +10,26 @@ import DiaryEditor from '@/app/calendar/components/DiaryEditor';
 import { useDiary, DailyLog } from '@/app/common/hooks/useDiary';
 import { useCalendar } from '@/app/calendar/hooks/useCalendar';
 
-export default function CalendarPage() {
+function CalendarContent() {
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get('date');
+
+  // URL에서 초기 날짜 계산 (렌더링 시점에 바로 결정)
+  const getInitialDate = () => {
+    if (dateParam) {
+      const [year, month, day] = dateParam.split('-').map(Number);
+      const parsed = new Date(year, month - 1, day);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  };
+
+  const initialDate = getInitialDate();
+  
   const [isEditing, setIsEditing] = useState(false);
-  const [showSidePanel, setShowSidePanel] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false); // Expansion state
+  // dateParam이 있으면 처음부터 상세 창이 열린 상태로 시작 (단, 전체화면은 부담스러우므로 반반)
+  const [showSidePanel, setShowSidePanel] = useState(!!dateParam);
+  const [isExpanded, setIsExpanded] = useState(false);
   
   const { addDailyLog } = useDiary();
   const { 
@@ -23,7 +40,23 @@ export default function CalendarPage() {
     onToday, 
     goToDate,
     onSelectDate
-  } = useCalendar();
+  } = useCalendar(initialDate);
+
+  // URL 파라미터가 변경될 때를 위한 처리 (이미 페이지에 있을 때 파라미터만 바뀌는 경우)
+  useEffect(() => {
+    if (dateParam) {
+      const [year, month, day] = dateParam.split('-').map(Number);
+      const parsedDate = new Date(year, month - 1, day);
+      
+      if (!isNaN(parsedDate.getTime())) {
+        goToDate(parsedDate.getFullYear(), parsedDate.getMonth());
+        onSelectDate(parsedDate);
+        setIsEditing(false);
+        setShowSidePanel(true);
+        // 여기서도 isExpanded는 false로 유지하여 반반 뷰 제공
+      }
+    }
+  }, [dateParam, goToDate, onSelectDate]);
 
   const handleDateSelect = (date: Date) => {
     onSelectDate(date);
@@ -70,7 +103,7 @@ export default function CalendarPage() {
     <div className="flex-1 flex overflow-hidden flex-col lg:flex-row relative">
       {/* Main Calendar Area */}
       <div className={`flex-col min-h-0 bg-white p-2 lg:p-6 overflow-y-auto no-scrollbar transition-all duration-500 ${
-        isExpanded ? 'hidden lg:flex lg:w-0 lg:opacity-0 lg:invisible' : 'flex-1 flex'
+        isExpanded ? 'hidden lg:flex lg:w-0 lg:opacity-0 lg:invisible' : 'flex-1 flex lg:w-1/2 lg:flex-none'
       }`}>
         <div className="max-w-7xl mx-auto w-full h-full flex flex-col gap-2 lg:gap-4">
           <CalendarHeader 
@@ -96,8 +129,9 @@ export default function CalendarPage() {
 
       {/* Side Panel: Preview or Editor */}
       <div className={`
-        ${showSidePanel ? 'fixed inset-0 z-[150] lg:relative lg:inset-auto lg:z-auto lg:flex' : 'hidden lg:flex'}
-        ${isExpanded ? 'lg:flex-1' : 'w-full lg:w-[450px] xl:w-[520px]'}
+        ${showSidePanel ? 'fixed inset-0 z-[150] flex' : 'hidden'} 
+        lg:relative lg:inset-auto lg:z-auto lg:flex
+        ${isExpanded ? 'lg:flex-1' : 'w-full lg:w-1/2'}
         shrink-0 border-l border-border bg-white overflow-hidden flex-col transition-all duration-500 relative
       `}>
         {/* Expand/Collapse Toggle Button (Desktop Only) */}
@@ -124,9 +158,18 @@ export default function CalendarPage() {
             date={selectedDate}
             onEdit={handleEditRequest}
             onClose={handleClosePanel}
+            isExpanded={isExpanded}
           />
         )}
       </div>
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-white text-sm font-bold text-text-sub">불러오는 중...</div>}>
+      <CalendarContent />
+    </Suspense>
   );
 }
