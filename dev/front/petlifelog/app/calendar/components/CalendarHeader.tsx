@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Bell, Calendar as CalendarIcon, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Bell, Calendar as CalendarIcon, Plus, LayoutGrid, List } from 'lucide-react';
 import DateDropdown from './DateDropdown';
 
 interface CalendarHeaderProps {
@@ -11,6 +11,8 @@ interface CalendarHeaderProps {
   onToday: () => void;
   onGoToDate: (year: number, month: number) => void;
   onRecord: () => void;
+  isTimelineMode: boolean;
+  onToggleView: () => void;
 }
 
 export default function CalendarHeader({ 
@@ -19,7 +21,9 @@ export default function CalendarHeader({
   onNextMonth, 
   onToday,
   onGoToDate,
-  onRecord
+  onRecord,
+  isTimelineMode,
+  onToggleView
 }: CalendarHeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
@@ -41,7 +45,7 @@ export default function CalendarHeader({
           <div className="relative">
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-2 rounded-2xl transition-all group active:scale-95 ${
+              className={`flex items-center gap-1 lg:px-4 py-2 rounded-2xl transition-all group active:scale-95 ${
                 isDropdownOpen ? 'bg-main-yellow/10 text-main-yellow' : 'hover:bg-main-yellow/5'
               }`}
             >
@@ -75,13 +79,26 @@ export default function CalendarHeader({
           </button>
         </div>
 
-        {/* Improved Mobile-Friendly Today Button */}
-        <button 
-          onClick={onToday}
-          className="shrink-0 px-3 lg:px-4 py-1.5 lg:py-2 bg-white border border-border rounded-xl text-[11px] lg:text-sm font-black text-text-main hover:bg-main-yellow/5 hover:border-main-yellow/30 transition-all shadow-sm active:scale-95"
-        >
-          오늘
-        </button>
+        <div className="flex items-center gap-1 bg-surface-green/20 p-1 rounded-xl">
+          <button 
+            onClick={onToday}
+            className="shrink-0 px-3 lg:px-4 py-1.5 lg:py-2 bg-white border border-border rounded-lg text-[11px] lg:text-sm font-black text-text-main hover:bg-main-yellow/5 hover:border-main-yellow/30 transition-all shadow-sm active:scale-95"
+          >
+            오늘
+          </button>
+          
+          <button 
+            onClick={onToggleView}
+            className={`flex items-center gap-1.5 px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[11px] lg:text-sm font-black transition-all ${
+              isTimelineMode 
+                ? 'bg-main-green text-white shadow-md' 
+                : 'bg-white border border-border text-text-main hover:bg-main-green/5'
+            }`}
+          >
+            {isTimelineMode ? <LayoutGrid className="w-3.5 h-3.5" /> : <List className="w-3.5 h-3.5" />}
+            <span>{isTimelineMode ? '달력보기' : '모아보기'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Notifications & Record */}

@@ -26,7 +26,6 @@ const navItems = [
   { name: '대시보드', href: '/dashboard', icon: Book },
   { name: '캘린더', href: '/calendar', icon: Calendar },
   { name: '가족 관리', href: '/family', icon: Users },
-  { name: '타임라인', href: '/timeline', icon: ImageIcon },
   { name: '지도', href: '/map', icon: MapPin },
   { name: '도감', href: '/inventory', icon: Book },
   { name: '기록', href: '/record', icon: FileText },

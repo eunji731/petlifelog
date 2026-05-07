@@ -7,6 +7,7 @@ import CalendarHeader from '@/app/calendar/components/CalendarHeader';
 import CalendarGrid from '@/app/calendar/components/CalendarGrid';
 import DiaryPreview from '@/app/calendar/components/DiaryPreview';
 import DiaryEditor from '@/app/calendar/components/DiaryEditor';
+import MonthlyTimeline from '@/app/calendar/components/MonthlyTimeline';
 import { useDiary, DailyLog } from '@/app/common/hooks/useDiary';
 import { useCalendar } from '@/app/calendar/hooks/useCalendar';
 
@@ -30,6 +31,7 @@ function CalendarContent() {
   // dateParam이 있으면 처음부터 상세 창이 열린 상태로 시작 (단, 전체화면은 부담스러우므로 반반)
   const [showSidePanel, setShowSidePanel] = useState(!!dateParam);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isTimelineMode, setIsTimelineMode] = useState(false);
   
   const { addDailyLog } = useDiary();
   const { 
@@ -53,7 +55,7 @@ function CalendarContent() {
         onSelectDate(parsedDate);
         setIsEditing(false);
         setShowSidePanel(true);
-        // 여기서도 isExpanded는 false로 유지하여 반반 뷰 제공
+        setIsTimelineMode(false); // 상세 보기 시엔 타임라인 모드 해제
       }
     }
   }, [dateParam, goToDate, onSelectDate]);
@@ -62,6 +64,7 @@ function CalendarContent() {
     onSelectDate(date);
     setIsEditing(false);
     setShowSidePanel(true);
+    setIsTimelineMode(false); // 날짜 선택 시 타임라인 모드 해제
   };
 
   const handleSave = (data: DailyLog) => {
@@ -100,12 +103,9 @@ function CalendarContent() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden flex-col lg:flex-row relative">
-      {/* Main Calendar Area */}
-      <div className={`flex-col min-h-0 bg-white p-2 lg:p-6 overflow-y-auto no-scrollbar transition-all duration-500 ${
-        isExpanded ? 'hidden lg:flex lg:w-0 lg:opacity-0 lg:invisible' : 'flex-1 flex lg:w-1/2 lg:flex-none'
-      }`}>
-        <div className="max-w-7xl mx-auto w-full h-full flex flex-col gap-2 lg:gap-4">
+    <div className="flex-1 flex flex-col min-h-0 bg-white relative overflow-hidden">
+      <div className="bg-white border-b border-border">
+        <div className="max-w-[1600px] mx-auto w-full">
           <CalendarHeader 
             currentDate={currentDate}
             onPrevMonth={onPrevMonth}
@@ -115,51 +115,73 @@ function CalendarContent() {
             onRecord={() => {
               setIsEditing(true);
               setShowSidePanel(true);
+              setIsTimelineMode(false);
             }}
+            isTimelineMode={isTimelineMode}
+            onToggleView={() => setIsTimelineMode(!isTimelineMode)}
           />
-          <div className="flex-1 min-h-[400px]">
-            <CalendarGrid 
-              selectedDate={selectedDate} 
-              onDateSelect={handleDateSelect} 
-              currentDate={currentDate}
-            />
-          </div>
         </div>
       </div>
 
-      {/* Side Panel: Preview or Editor */}
-      <div className={`
-        ${showSidePanel ? 'fixed inset-0 z-[150] flex' : 'hidden'} 
-        lg:relative lg:inset-auto lg:z-auto lg:flex
-        ${isExpanded ? 'lg:flex-1' : 'w-full lg:w-1/2'}
-        shrink-0 border-l border-border bg-white overflow-hidden flex-col transition-all duration-500 relative
-      `}>
-        {/* Expand/Collapse Toggle Button (Desktop Only) */}
-        <button 
-          onClick={toggleExpand}
-          className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-[160] p-2 bg-white border border-border border-l-0 rounded-r-xl shadow-md hover:bg-surface-green transition-all group"
-          title={isExpanded ? "달력 보기" : "크게 보기"}
-        >
-          {isExpanded ? (
-            <ChevronRight className="w-4 h-4 text-text-main group-hover:translate-x-0.5 transition-transform" />
-          ) : (
-            <ChevronLeft className="w-4 h-4 text-text-main group-hover:-translate-x-0.5 transition-transform" />
-          )}
-        </button>
-
-        {isEditing ? (
-          <DiaryEditor 
-            date={selectedDate}
-            onSave={handleSave}
-            onCancel={handleCancel}
+      <div className="flex-1 flex overflow-hidden flex-col lg:flex-row relative">
+        {isTimelineMode ? (
+          <MonthlyTimeline 
+            currentDate={currentDate} 
+            onDateSelect={handleDateSelect} 
           />
         ) : (
-          <DiaryPreview 
-            date={selectedDate}
-            onEdit={handleEditRequest}
-            onClose={handleClosePanel}
-            isExpanded={isExpanded}
-          />
+          <>
+            {/* Main Calendar Area */}
+            <div className={`flex-col min-h-0 bg-white p-2 lg:p-6 overflow-y-auto no-scrollbar transition-all duration-500 ${
+              isExpanded ? 'hidden lg:flex lg:w-0 lg:opacity-0 lg:invisible' : 'flex-1 flex lg:w-1/2 lg:flex-none'
+            }`}>
+              <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
+                <div className="flex-1 min-h-[400px]">
+                  <CalendarGrid 
+                    selectedDate={selectedDate} 
+                    onDateSelect={handleDateSelect} 
+                    currentDate={currentDate}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Side Panel: Preview or Editor */}
+            <div className={`
+              ${showSidePanel ? 'fixed inset-0 z-[150] flex' : 'hidden'} 
+              lg:relative lg:inset-auto lg:z-auto lg:flex
+              ${isExpanded ? 'lg:flex-1' : 'w-full lg:w-1/2'}
+              shrink-0 border-l border-border bg-white overflow-hidden flex-col transition-all duration-500 relative
+            `}>
+              {/* Expand/Collapse Toggle Button (Desktop Only) */}
+              <button 
+                onClick={toggleExpand}
+                className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-[160] p-2 bg-white border border-border border-l-0 rounded-r-xl shadow-md hover:bg-surface-green transition-all group"
+                title={isExpanded ? "달력 보기" : "크게 보기"}
+              >
+                {isExpanded ? (
+                  <ChevronRight className="w-4 h-4 text-text-main group-hover:translate-x-0.5 transition-transform" />
+                ) : (
+                  <ChevronLeft className="w-4 h-4 text-text-main group-hover:-translate-x-0.5 transition-transform" />
+                )}
+              </button>
+
+              {isEditing ? (
+                <DiaryEditor 
+                  date={selectedDate}
+                  onSave={handleSave}
+                  onCancel={handleCancel}
+                />
+              ) : (
+                <DiaryPreview 
+                  date={selectedDate}
+                  onEdit={handleEditRequest}
+                  onClose={handleClosePanel}
+                  isExpanded={isExpanded}
+                />
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
