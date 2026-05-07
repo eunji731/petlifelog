@@ -17,7 +17,7 @@ export default function MobileHeader({ onMenuClick }: { onMenuClick: () => void 
 
       <Link href="/calendar" className="flex items-center gap-2.5">
         <div className="relative w-8 h-8 shrink-0">
-          <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+          <Image src="/logo_simple.png" alt="Logo" fill className="object-contain" />
         </div>
         <span className="text-lg font-black tracking-tighter text-text-main leading-tight">
           Pet<span className="text-main-green">Life</span>Log

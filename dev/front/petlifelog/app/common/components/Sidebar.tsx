@@ -199,14 +199,13 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
 
     try {
       const res = await clientApi.post('/api/auth/logout');
-
-      if (res.status === 200) {
-        const { kakaoLogoutUrl } = res.data;
+      const kakaoLogoutUrl = res.data?.data?.kakaoLogoutUrl;
+      if (kakaoLogoutUrl) {
         window.location.href = kakaoLogoutUrl;
         return;
       }
-    } catch {
-      // Network error fallback
+    } catch (err) {
+      console.error('Logout failed:', err);
     }
 
     success('안전하게 로그아웃되었습니다.');
