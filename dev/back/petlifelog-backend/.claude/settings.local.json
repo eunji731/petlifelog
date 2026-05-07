@@ -18,7 +18,13 @@
       "Bash(taskkill *)",
       "PowerShell(Stop-Process *)",
       "Bash(curl *)",
-      "Bash(PGPASSWORD='Gd1831541eTop!' psql *)"
+      "Bash(PGPASSWORD='Gd1831541eTop!' psql *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\back\\\\petlifelog-backend\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(grep -i \"\\\\.java$\")",
+      "Bash(grep \"\\\\.java$\")",
+      "Bash(Get-Content \"D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\back\\\\backend.log\")",
+      "Bash(Select-Object -Last 80)"
     ]
   }
 }

@@ -44,6 +44,51 @@ public interface PhotoRepository extends JpaRepository<Photo, UUID> {
 
     Optional<Photo> findFirstByMemory_IdAndGpsLatIsNotNull(UUID memoryId);
 
+    /** 키워드 검색 (location, aiTitle, aiDiary, summary, userMemo 대상) */
+    @Query("""
+            SELECT p FROM Photo p
+            JOIN FETCH p.memory m
+            WHERE p.gpsLat IS NOT NULL
+              AND p.gpsLng IS NOT NULL
+              AND m.user.id = :userId
+              AND (:petId IS NULL OR EXISTS (
+                    SELECT md FROM MemoryDog md
+                    WHERE md.memory = m AND md.dog.id = :petId
+              ))
+              AND (
+                    LOWER(m.location)  LIKE LOWER(CONCAT('%', :keyword, '%'))
+                 OR LOWER(m.aiTitle)   LIKE LOWER(CONCAT('%', :keyword, '%'))
+                 OR LOWER(m.aiDiary)   LIKE LOWER(CONCAT('%', :keyword, '%'))
+                 OR LOWER(m.summary)   LIKE LOWER(CONCAT('%', :keyword, '%'))
+                 OR LOWER(m.userMemo)  LIKE LOWER(CONCAT('%', :keyword, '%'))
+              )
+            ORDER BY m.memoryDate DESC, p.sortOrder ASC
+            """)
+    List<Photo> findMapMemoriesByKeyword(
+            @Param("userId") UUID userId,
+            @Param("keyword") String keyword,
+            @Param("petId") UUID petId
+    );
+
+    /** 검색 자동완성용: 장소명 + AI 제목 목록 (GPS 있는 것, 중복 제거) */
+    @Query("""
+            SELECT DISTINCT m.location FROM Memory m
+            WHERE m.user.id = :userId
+              AND m.location IS NOT NULL
+              AND (:q IS NULL OR LOWER(m.location) LIKE LOWER(CONCAT('%', :q, '%')))
+              AND EXISTS (SELECT p FROM Photo p WHERE p.memory = m AND p.gpsLat IS NOT NULL)
+            """)
+    List<String> findDistinctLocations(@Param("userId") UUID userId, @Param("q") String q);
+
+    @Query("""
+            SELECT DISTINCT m.aiTitle FROM Memory m
+            WHERE m.user.id = :userId
+              AND m.aiTitle IS NOT NULL
+              AND (:q IS NULL OR LOWER(m.aiTitle) LIKE LOWER(CONCAT('%', :q, '%')))
+              AND EXISTS (SELECT p FROM Photo p WHERE p.memory = m AND p.gpsLat IS NOT NULL)
+            """)
+    List<String> findDistinctAiTitles(@Param("userId") UUID userId, @Param("q") String q);
+
     /** bbox 안에 있는 GPS 사진만 경량 조회 (마커 전용) */
     @Query("""
             SELECT p FROM Photo p

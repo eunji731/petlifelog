@@ -12,8 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +46,29 @@ public class MapService {
 
         return photoRepository.findMapMarkers(userId, swLat, neLat, swLng, neLng, petId)
                 .stream().map(this::toMarkerResponse).toList();
+    }
+
+    public List<String> getSearchSuggestions(UUID userId, String q) {
+        String query = (q == null || q.isBlank()) ? null : q;
+        List<String> results = new java.util.ArrayList<>();
+        results.addAll(photoRepository.findDistinctLocations(userId, query));
+        results.addAll(photoRepository.findDistinctAiTitles(userId, query));
+        return results.stream().distinct().sorted().limit(10).toList();
+    }
+
+    public List<MapMemoryResponse> searchMapMemories(UUID userId, String keyword, UUID petId) {
+        return photoRepository.findMapMemoriesByKeyword(userId, keyword, petId)
+                .stream()
+                .collect(Collectors.toMap(
+                        p -> p.getMemory().getId(),
+                        p -> p,
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ))
+                .values()
+                .stream()
+                .map(this::toMemoryResponse)
+                .toList();
     }
 
     public MapMemoryResponse getMemoryDetail(UUID userId, UUID memoryId) {

@@ -55,6 +55,27 @@ public class MapController {
                 swLat, neLat, swLng, neLng, petId));
     }
 
+    /** 검색 자동완성 (장소명 + AI 제목 목록) */
+    @GetMapping("/search/suggestions")
+    public ApiResponse<List<String>> getSearchSuggestions(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) String q) {
+
+        return ApiResponse.success(mapService.getSearchSuggestions(
+                UUID.fromString(user.getUsername()), q));
+    }
+
+    /** 키워드 검색 (장소명, 제목, 내용, 메모) */
+    @GetMapping("/search")
+    public ApiResponse<List<MapMemoryResponse>> searchMapMemories(
+            @AuthenticationPrincipal User user,
+            @RequestParam String keyword,
+            @RequestParam(required = false) UUID petId) {
+
+        return ApiResponse.success(mapService.searchMapMemories(
+                UUID.fromString(user.getUsername()), keyword, petId));
+    }
+
     /** 마커 클릭 시 단건 상세 조회 */
     @GetMapping("/memories/{memoryId}")
     public ApiResponse<MapMemoryResponse> getMemoryDetail(

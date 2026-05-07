@@ -80,6 +80,48 @@ export function useMapMarkers() {
     }, DEBOUNCE_MS);
   }, [selectedPetId]);
 
+  const searchMarkers = useCallback(async (keyword: string): Promise<MapMemoryDetail[]> => {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = { keyword };
+      if (selectedPetId && selectedPetId !== ALL_PETS_ID) {
+        params.petId = selectedPetId;
+      }
+      
+      // 1. 검색 결과 리스트 (상세 정보 포함) 가져오기
+      const res = await clientApi.get<ApiResponse<MapMemoryDetail[]>>('/api/map/search', { params });
+      const results = res.data.data ?? [];
+      
+      // 2. 검색 결과에 맞춰 지도 마커 업데이트
+      const searchMarkers: MapMarker[] = results.map(r => ({
+        id: r.moment.id,
+        lat: r.latitude,
+        lng: r.longitude,
+        thumb: r.path,
+        momentId: r.moment.id,
+        dateKey: r.dailyLog.dateKey
+      }));
+      setMarkers(searchMarkers);
+      
+      return results;
+    } catch {
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedPetId]);
+
+  const fetchSuggestions = useCallback(async (q?: string): Promise<string[]> => {
+    try {
+      const params: Record<string, string> = {};
+      if (q) params.q = q;
+      const res = await clientApi.get<ApiResponse<string[]>>('/api/map/search/suggestions', { params });
+      return res.data.data ?? [];
+    } catch {
+      return [];
+    }
+  }, []);
+
   const fetchDetail = useCallback(async (memoryId: string): Promise<MapMemoryDetail | null> => {
     setDetailLoading(true);
     try {
@@ -92,5 +134,5 @@ export function useMapMarkers() {
     }
   }, []);
 
-  return { markers, loading, detailLoading, fetchMarkers, fetchDetail };
+  return { markers, loading, detailLoading, fetchMarkers, fetchDetail, searchMarkers, fetchSuggestions };
 }
