@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Search, Navigation, Layers, ZoomIn, ZoomOut, Calendar, Sparkles, X, MapPin } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { Search, Navigation, ZoomIn, ZoomOut, Calendar, Sparkles, X, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import NaverMap from '@/app/map/components/NaverMap';
+import MomentImageSlider from '@/app/calendar/components/MomentImageSlider';
 import { useMapMarkers, MapMemoryDetail, BBox } from '@/app/map/hooks/useMapMarkers';
 import { getImagePath } from '@/app/common/lib/clientApi';
 
@@ -29,20 +30,56 @@ function calcFit(markers: naver.maps.Marker[]): { center: naver.maps.LatLng; zoo
 }
 
 export default function MapPage() {
-  const { markers, loading, detailLoading, fetchMarkers, fetchDetail, searchMarkers, fetchSuggestions } = useMapMarkers();
+  const { markers, loading, detailLoading, fetchMarkers, fetchDetail, searchMarkers } = useMapMarkers();
   const [selectedDetail, setSelectedDetail] = useState<MapMemoryDetail | null>(null);
   const [mapVisible, setMapVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MapMemoryDetail[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
   const mapInstanceRef = useRef<naver.maps.Map | null>(null);
   const markersRef = useRef<naver.maps.Marker[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
   const lastBboxRef = useRef<BBox>(WORLD_BBOX);
   const isFirstLoad = useRef(true);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 클릭 외부 감지 (검색창 닫기)
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // markers에서 momentId별로 그룹화하여 하나씩만 표시
+  const groupedMarkers = useMemo(() => {
+    const momentMap = new Map<string, typeof markers[0]>();
+    markers.forEach(m => {
+      if (!momentMap.has(m.momentId)) {
+        momentMap.set(m.momentId, m);
+      }
+    });
+    return Array.from(momentMap.values());
+  }, [markers]);
+
+  // 선택된 모멘트의 모든 사진 추출
+  const photosForSelectedMoment = useMemo(() => {
+    if (!selectedDetail) return [];
+    const photos = markers
+      .filter(m => m.momentId === selectedDetail.moment.id)
+      .map(m => ({ id: m.id, path: m.thumb }));
+    
+    // 만약 현재 markers에 정보가 부족하면(검색 결과 등) 현재 상세 정보의 사진이라도 넣음
+    if (photos.length === 0) {
+      return [{ id: selectedDetail.photoId, path: selectedDetail.path }];
+    }
+    return photos;
+  }, [selectedDetail, markers]);
 
   // 지도 초기화 → 전체 범위 조회 (지도는 아직 안 보임)
   const handleMapLoad = useCallback((map: naver.maps.Map) => {
@@ -78,7 +115,7 @@ export default function MapPage() {
     markersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
 
-    markers.forEach((marker) => {
+    groupedMarkers.forEach((marker) => {
       const thumbUrl = getImagePath(marker.thumb);
       const naverMarker = new naver.maps.Marker({
         position: new naver.maps.LatLng(marker.lat, marker.lng),
@@ -111,7 +148,7 @@ export default function MapPage() {
     });
 
     // 최초 로드 시: 모든 마커가 보이도록 즉시(애니메이션 없이) 위치 설정
-    if (isFirstLoad.current && markers.length > 0) {
+    if (isFirstLoad.current && groupedMarkers.length > 0) {
       isFirstLoad.current = false;
       const fit = calcFit(markersRef.current);
       if (fit) {
@@ -124,28 +161,18 @@ export default function MapPage() {
       isFirstLoad.current = false;
       setMapVisible(true);
     }
-  }, [markers, fetchDetail, loading]);
+  }, [groupedMarkers, fetchDetail, loading]);
 
   useEffect(() => {
     if (mapInstanceRef.current) {
       updateMarkers(mapInstanceRef.current);
     }
-  }, [markers, updateMarkers]);
-
-  // 검색창 포커스 시 suggestions 미리 로드
-  const handleSearchFocus = useCallback(async () => {
-    setShowResults(true);
-    if (suggestions.length === 0) {
-      const list = await fetchSuggestions();
-      setSuggestions(list);
-    }
-  }, [fetchSuggestions, suggestions.length]);
+  }, [groupedMarkers, updateMarkers]);
 
   // 검색 로직
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
-      setShowResults(false);
       fetchMarkers(lastBboxRef.current);
       return;
     }
@@ -153,12 +180,8 @@ export default function MapPage() {
     setIsSearching(true);
     setShowResults(true);
     try {
-      const [results, newSuggestions] = await Promise.all([
-        searchMarkers(query),
-        fetchSuggestions(query),
-      ]);
+      const results = await searchMarkers(query);
       setSearchResults(results);
-      setSuggestions(newSuggestions);
       
       // 검색 결과가 있으면 해당 마커들이 다 보이도록 지도 이동
       if (results.length > 0 && mapInstanceRef.current) {
@@ -175,7 +198,7 @@ export default function MapPage() {
     } finally {
       setIsSearching(false);
     }
-  }, [fetchMarkers, searchMarkers, fetchSuggestions]);
+  }, [fetchMarkers, searchMarkers]);
 
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -235,14 +258,14 @@ export default function MapPage() {
 
       {/* 상단 검색/컨트롤 */}
       <div className="absolute top-6 left-6 right-6 flex flex-col md:flex-row gap-4 items-start">
-        <div className="relative flex-1 max-w-md w-full">
+        <div ref={searchRef} className="relative flex-1 max-w-md w-full">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-sub" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={handleSearchFocus}
+              onFocus={() => setShowResults(true)}
               placeholder="장소나 추억을 검색해 보세요..."
               className="w-full pl-11 pr-12 py-4 bg-white/90 backdrop-blur-md border border-white rounded-[24px] shadow-2xl shadow-main-green/10 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-main-green/20 transition-all"
             />
@@ -256,8 +279,8 @@ export default function MapPage() {
             )}
           </div>
 
-          {/* 검색 결과 리스트 */}
-          {showResults && (
+          {/* 검색 결과 리스트 - 내용이 있을 때만 표시 */}
+          {showResults && (isSearching || searchQuery) && (
             <div className="absolute top-full mt-3 w-full bg-white/95 backdrop-blur-lg rounded-[24px] shadow-2xl border border-white overflow-hidden z-20 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="max-h-[400px] overflow-y-auto no-scrollbar">
                 {isSearching ? (
@@ -265,50 +288,39 @@ export default function MapPage() {
                     <Sparkles className="w-5 h-5 animate-pulse text-main-yellow mx-auto mb-2" />
                     추억 속을 검색하고 있어요...
                   </div>
-                ) : !searchQuery && suggestions.length > 0 ? (
-                  <div className="p-4">
-                    <p className="px-2 pb-2 text-[10px] font-black text-main-green uppercase tracking-widest">내 추억 속 장소 · 제목</p>
-                    <div className="flex flex-wrap gap-2">
-                      {suggestions.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setSearchQuery(s)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-green hover:bg-main-green/10 text-text-main text-xs font-bold rounded-full transition-colors"
-                        >
-                          <MapPin className="w-3 h-3 text-main-green shrink-0" />
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : searchResults.length > 0 ? (
-                  <div className="p-2">
-                    <p className="px-4 py-2 text-[10px] font-black text-main-green uppercase tracking-widest">검색 결과 {searchResults.length}건</p>
-                    {searchResults.map((result) => (
-                      <button
-                        key={result.moment.id}
-                        onClick={() => handleResultClick(result)}
-                        className="w-full flex items-center gap-4 p-3 hover:bg-surface-green rounded-2xl transition-all text-left group"
-                      >
-                        <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-sm ring-1 ring-black/5">
-                          <Image src={getImagePath(result.path)} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-bold text-text-main truncate">{result.moment.locationName || '추억의 장소'}</h4>
-                          <p className="text-[11px] font-medium text-text-sub truncate">
-                            {result.dailyLog.dateKey} · {result.moment.aiTitle || result.dailyLog.aiTitle}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
                 ) : (
-                  <div className="p-12 text-center">
-                    <div className="w-16 h-16 bg-surface-green rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Search className="w-6 h-6 text-main-green/30" />
-                    </div>
-                    <p className="text-sm font-bold text-text-main">검색 결과가 없어요</p>
-                    <p className="text-xs font-medium text-text-sub mt-1">다른 키워드로 검색해 보세요.</p>
+                  <div className="py-2">
+                    {/* 사진 검색 결과 */}
+                    {searchResults.length > 0 ? (
+                      <div className="p-2">
+                        <p className="px-4 py-2 text-[10px] font-black text-main-green uppercase tracking-widest">추억 사진 {searchResults.length}건</p>
+                        {searchResults.map((result) => (
+                          <button
+                            key={result.moment.id}
+                            onClick={() => handleResultClick(result)}
+                            className="w-full flex items-center gap-4 p-3 hover:bg-surface-green rounded-2xl transition-all text-left group"
+                          >
+                            <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-sm ring-1 ring-black/5">
+                              <Image src={getImagePath(result.path)} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-bold text-text-main truncate">{result.moment.locationName || '추억의 장소'}</h4>
+                              <p className="text-[11px] font-medium text-text-sub truncate">
+                                {result.dailyLog.dateKey} · {result.moment.aiTitle || result.dailyLog.aiTitle}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : searchQuery && !isSearching && (
+                      <div className="p-12 text-center">
+                        <div className="w-16 h-16 bg-surface-green rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Search className="w-6 h-6 text-main-green/30" />
+                        </div>
+                        <p className="text-sm font-bold text-text-main">검색 결과가 없어요</p>
+                        <p className="text-xs font-medium text-text-sub mt-1">다른 키워드로 검색해 보세요.</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -319,9 +331,6 @@ export default function MapPage() {
         <div className="flex gap-2">
           <button onClick={handleCurrentLocation} className="p-4 bg-white/90 backdrop-blur-md border border-white rounded-2xl shadow-xl text-text-main hover:bg-main-green hover:text-white transition-all">
             <Navigation className="w-5 h-5" />
-          </button>
-          <button className="p-4 bg-white/90 backdrop-blur-md border border-white rounded-2xl shadow-xl text-text-main hover:bg-main-green hover:text-white transition-all">
-            <Layers className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -342,11 +351,11 @@ export default function MapPage() {
             ) : (
               <>
                 <div className="relative h-48">
-                  <Image src={getImagePath(selectedDetail.path)} alt="추억 사진" fill className="object-cover" />
-                  <button onClick={() => setSelectedDetail(null)} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors">
+                  <MomentImageSlider photos={photosForSelectedMoment} alt={selectedDetail.moment.aiTitle || '추억 사진'} />
+                  <button onClick={() => setSelectedDetail(null)} className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-20">
                     <X className="w-4 h-4" />
                   </button>
-                  <div className="absolute bottom-4 left-4 flex gap-1.5">
+                  <div className="absolute bottom-4 left-4 flex gap-1.5 z-10">
                     {selectedDetail.moment.category && (
                       <span className="px-2.5 py-1 bg-main-green text-white text-[9px] font-black rounded-full shadow-lg uppercase tracking-widest">{selectedDetail.moment.category}</span>
                     )}
@@ -362,7 +371,7 @@ export default function MapPage() {
                     </p>
                   </div>
                   {selectedDetail.moment.aiDiary && (
-                    <div className="bg-surface-green/50 p-4 rounded-2xl border border-main-green/5 italic text-sm font-medium text-text-main/80 leading-relaxed line-clamp-3">
+                    <div className="bg-surface-green/50 p-4 rounded-2xl border border-main-green/5 italic text-sm font-medium text-text-main/80 leading-relaxed max-h-[120px] overflow-y-auto no-scrollbar">
                       &quot;{selectedDetail.moment.aiDiary}&quot;
                     </div>
                   )}
