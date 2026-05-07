@@ -30,7 +30,7 @@ export default function LoginPage() {
                 <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
                     <div className="relative w-40 h-40 md:w-56 md:h-56 mb-8 drop-shadow-sm hover:scale-105 transition-transform duration-500">
                         <Image
-                            src="/logo.png" // 로고 이미지 경로입니다.
+                            src="/logo_simple.png" // 로고 이미지 경로입니다.
                             alt="petLifeLog Logo" // 이미지 설명입니다.
                             fill // 부모 요소를 꽉 채우게 설정합니다.
                             className="object-contain" // 이미지 비율을 유지하면서 영역 안에 맞춥니다.

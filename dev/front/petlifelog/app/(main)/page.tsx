@@ -17,6 +17,7 @@ import {
 import { useDiary } from '@/app/common/hooks/useDiary';
 import { usePet } from '@/app/common/hooks/usePet';
 import { useInventory } from '@/app/common/hooks/useInventory';
+import { getImagePath } from '@/app/common/lib/clientApi';
 
 export default function DashboardPage() {
   const { allLogs } = useDiary();
@@ -40,7 +41,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-6 lg:gap-10">
             <div className="relative w-20 h-20 lg:w-24 lg:h-24 rounded-full overflow-hidden border-4 border-white shadow-xl ring-4 ring-main-green/10">
               {primaryPet ? (
-                <Image src={primaryPet.photo || '/dog-profile.png'} alt={primaryPet.name} fill className="object-cover" />
+                <Image src={getImagePath(primaryPet.photo, 'profiles')} alt={primaryPet.name} fill className="object-cover" />
               ) : (
                 <div className="w-full h-full bg-surface-green flex items-center justify-center">
                   <Plus className="w-8 h-8 text-main-green" />
@@ -94,7 +95,7 @@ export default function DashboardPage() {
               <div className="bg-white rounded-[40px] overflow-hidden border border-border shadow-sm group">
                 <div className="relative h-64 lg:h-80 overflow-hidden">
                   <Image 
-                    src={recentLog.representativePhotoPath || '/dog-profile.png'} 
+                    src={getImagePath(recentLog.representativePhotoPath)} 
                     alt="Recent" 
                     fill 
                     className="object-cover group-hover:scale-105 transition-transform duration-700" 
@@ -120,7 +121,7 @@ export default function DashboardPage() {
                     <div className="flex -space-x-3">
                       {recentLog.moments.slice(0, 3).map((m, i) => (
                         <div key={i} className="w-12 h-12 rounded-full border-4 border-white overflow-hidden shadow-sm relative">
-                          <Image src={m.photos[0]?.path || '/dog-profile.png'} alt="Pet" fill className="object-cover" />
+                          <Image src={getImagePath(m.photos[0]?.path)} alt="Pet" fill className="object-cover" />
                         </div>
                       ))}
                       {recentLog.moments.length > 3 && (

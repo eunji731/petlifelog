@@ -45,7 +45,7 @@ const SidebarContent = ({ pathname, onClose, onLogout, primaryPet }: SidebarCont
     <div className="p-5 lg:p-6 flex items-center justify-between border-b border-main-yellow/10">
       <Link href="/" className="flex items-center gap-2" onClick={onClose}>
         <div className="relative w-8 h-8 shrink-0">
-          <Image src="/logo.png" alt="Logo" fill sizes="32px" className="object-contain" />
+          <Image src="/logo_simple.png" alt="Logo" fill sizes="32px" className="object-contain" />
         </div>
         <span className="text-lg font-black tracking-tighter text-text-main leading-tight">
           Pet<span className="text-main-green">Life</span>Log
