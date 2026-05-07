@@ -112,6 +112,10 @@ public class Pet extends BaseTimeEntity {
         this.diaryTone = diaryTone;
     }
 
+    public void updateProfileImage(String profileImagePath) {
+        this.profileImagePath = profileImagePath;
+    }
+
     public void delete() {
         this.isActive = false;
     }

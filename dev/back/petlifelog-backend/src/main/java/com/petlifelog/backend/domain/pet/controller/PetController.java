@@ -26,13 +26,20 @@ public class PetController {
     }
 
     @PostMapping
-    public ApiResponse<PetResponse> addPet(@AuthenticationPrincipal User user, @RequestBody PetRequest request) {
-        return ApiResponse.success(petService.addPet(UUID.fromString(user.getUsername()), request));
+    public ResponseEntity<ApiResponse<PetResponse>> addPet(
+            @AuthenticationPrincipal User user,
+            @RequestBody PetRequest request) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                petService.addPet(UUID.fromString(user.getUsername()), request)));
     }
 
     @PutMapping("/{petId}")
-    public ApiResponse<PetResponse> updatePet(@PathVariable UUID petId, @RequestBody PetRequest request) {
-        return ApiResponse.success(petService.updatePet(petId, request));
+    public ResponseEntity<ApiResponse<PetResponse>> updatePet(
+            @PathVariable UUID petId,
+            @RequestBody PetRequest request) {
+
+        return ResponseEntity.ok(ApiResponse.success(petService.updatePet(petId, request)));
     }
 
     @DeleteMapping("/{petId}")

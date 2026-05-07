@@ -1,6 +1,7 @@
 package com.petlifelog.backend.common.exception;
 
 import com.petlifelog.backend.common.dto.ApiResponse;
+import com.petlifelog.backend.common.file.exception.FileStorageException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -9,6 +10,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<ApiResponse<Void>> handleFileStorageException(FileStorageException e) {
+        log.error("FileStorageException: ", e);
+        return ResponseEntity.internalServerError()
+                .body(ApiResponse.error(e.getMessage(), "FILE_STORAGE_ERROR"));
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException e) {

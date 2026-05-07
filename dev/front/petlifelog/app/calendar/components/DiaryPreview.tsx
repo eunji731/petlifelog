@@ -4,6 +4,8 @@ import React from 'react';
 import { X, Calendar, MapPin, Sparkles, TrendingUp, Zap, Clock, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { useDiary, DailyLog } from '@/app/common/hooks/useDiary';
+import { getImagePath } from '@/app/common/lib/clientApi';
+import MomentImageSlider from './MomentImageSlider';
 
 interface DiaryPreviewProps {
   date: Date;
@@ -44,37 +46,40 @@ export default function DiaryPreview({
 
     return (
       <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-500">
-        {/* Scrollable Container for everything below the sticky date header */}
+        {/* Scrollable Container */}
         <div className="flex-1 overflow-y-auto no-scrollbar bg-surface-green/20">
-          {/* Daily Summary Header - Now part of scroll */}
-          <div className="relative h-[240px] lg:h-[300px] shrink-0">
-            <Image 
-              src={log.representativePhotoPath || '/dog-profile.png'} 
-              alt="Daily Summary" 
-              fill 
-              className="object-cover" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-            
-            <div className="absolute bottom-6 left-6 right-6 text-white space-y-2 lg:space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-main-green text-white text-[9px] lg:text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg">Daily Summary</span>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/10">
-                  <Sparkles className="w-3 h-3 text-main-yellow fill-main-yellow" />
-                  <span className="text-[9px] lg:text-[10px] font-black">{log.moments.length} Moments</span>
+          {/* Daily Summary (Simplified) */}
+          <div className="bg-white border-b border-border overflow-hidden">
+            {log.representativePhotoPath && (
+              <div className="relative w-full h-48 lg:h-64 bg-surface-green/5">
+                <Image 
+                  src={getImagePath(log.representativePhotoPath)} 
+                  alt="오늘의 대표 사진" 
+                  fill 
+                  className="object-cover" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+              </div>
+            )}
+            <div className="p-6 lg:p-10 space-y-4 lg:space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-main-green/10 rounded-2xl flex items-center justify-center shrink-0">
+                  <Sparkles className="w-6 h-6 text-main-green" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-black text-main-green uppercase tracking-widest px-2 py-0.5 bg-main-green/10 rounded-full">Daily Summary</span>
+                    <span className="text-[10px] font-black text-text-sub">{log.moments.length} Moments</span>
+                  </div>
+                  <h1 className="text-xl lg:text-3xl font-black text-text-main tracking-tight leading-tight">{log.aiTitle}</h1>
                 </div>
               </div>
-              <h1 className="text-2xl lg:text-3xl font-black tracking-tight leading-tight">{log.aiTitle}</h1>
-            </div>
-          </div>
-
-          {/* AI Summary Text */}
-          <div className="p-6 lg:p-10 bg-white border-b border-border">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-surface-green rounded-2xl flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-main-green" />
+              
+              <div className="relative pl-6 border-l-2 border-main-green/20">
+                <p className="text-base lg:text-lg font-medium text-text-main leading-relaxed italic">
+                  &quot;{log.aiSummary}&quot;
+                </p>
               </div>
-              <p className="text-base lg:text-lg font-medium text-text-main leading-relaxed italic">&quot;{log.aiSummary}&quot;</p>
             </div>
           </div>
 
@@ -90,41 +95,39 @@ export default function DiaryPreview({
                   {/* Timeline Node */}
                   <div className="absolute left-6 top-6 w-4 h-4 rounded-full bg-main-green border-4 border-white shadow-md group-hover:scale-125 transition-transform z-10" />
                   
-                  <div className="bg-white rounded-[24px] lg:rounded-[32px] p-5 lg:p-6 border border-border shadow-sm hover:shadow-xl transition-all duration-500">
-                    <div className="flex flex-col gap-4 lg:gap-6">
-                      <div className="relative aspect-video rounded-xl lg:rounded-2xl overflow-hidden shadow-sm">
-                        <Image 
-                          src={moment.photos[0]?.path || '/dog-profile.png'} 
+                  <div className="bg-white rounded-[24px] lg:rounded-[32px] overflow-hidden border border-border shadow-sm hover:shadow-xl transition-all duration-500">
+                    {moment.photos && moment.photos.length > 0 && (
+                      <div className="relative w-full h-48 lg:h-64 bg-surface-green/5">
+                        <MomentImageSlider 
+                          photos={moment.photos} 
                           alt={moment.aiTitle} 
-                          fill 
-                          className="object-cover transition-transform group-hover:scale-105 duration-1000" 
                         />
-                        <div className="absolute top-4 left-4 px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl text-[10px] font-black text-main-green shadow-sm">
+                        <div className="absolute top-4 left-4 px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl text-[10px] font-black text-main-green shadow-sm z-10">
                           {moment.category}
                         </div>
                       </div>
+                    )}
+                    
+                    <div className="p-5 lg:p-6 space-y-3 lg:space-y-4">
+                      <div className="flex justify-between items-start gap-2">
+                        <h4 className="text-lg lg:text-2xl font-black text-text-main leading-tight group-hover:text-main-green transition-colors">{moment.aiTitle}</h4>
+                        <div className="flex items-center gap-1 text-amber-500 font-black text-[10px] bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 shrink-0">
+                          <Zap className="w-3.5 h-3.5 fill-current" /> Lv.{moment.energyLevel}
+                        </div>
+                      </div>
                       
-                      <div className="space-y-3 lg:space-y-4">
-                        <div className="flex justify-between items-start">
-                          <h4 className="text-xl lg:text-2xl font-black text-text-main leading-tight group-hover:text-main-green transition-colors">{moment.aiTitle}</h4>
-                          <div className="flex items-center gap-1 text-amber-500 font-black text-xs bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
-                            <Zap className="w-3.5 h-3.5 fill-current" /> Lv.{moment.energyLevel}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-xs font-bold text-text-sub">
-                          <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-main-green" /> {moment.locationName || '어딘가'}</span>
-                        </div>
-                        
-                        <p className="text-sm lg:text-base font-medium text-text-main/80 leading-relaxed italic line-clamp-4">
-                          &quot;{moment.aiContent}&quot;
-                        </p>
-                        
-                        <div className="flex flex-wrap gap-2 pt-2 border-t border-border pt-4">
-                          {moment.tags.map(t => (
-                            <span key={t} className="px-3 py-1 bg-surface-green text-text-sub text-[10px] font-bold rounded-lg border border-border">#{t}</span>
-                          ))}
-                        </div>
+                      <div className="flex items-center gap-4 text-xs font-bold text-text-sub">
+                        <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-main-green" /> {moment.locationName || '어딘가'}</span>
+                      </div>
+                      
+                      <p className="text-sm lg:text-base font-medium text-text-main/80 leading-relaxed italic">
+                        &quot;{moment.aiContent}&quot;
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-border mt-2">
+                        {moment.tags.map(t => (
+                          <span key={t} className="px-3 py-1 bg-surface-green text-text-sub text-[10px] font-bold rounded-lg border border-border">#{t}</span>
+                        ))}
                       </div>
                     </div>
                   </div>

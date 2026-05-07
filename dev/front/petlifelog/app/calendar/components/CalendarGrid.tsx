@@ -5,6 +5,7 @@ import { Calendar, ChevronLeft, ChevronRight, Plus, Sparkles, MessageCircle } fr
 import Image from 'next/image';
 import { useCalendar } from '../hooks/useCalendar';
 import { useDiary } from '@/app/common/hooks/useDiary';
+import { getImagePath } from '@/app/common/lib/clientApi';
 
 export default function CalendarGrid({ 
   onDateSelect, 
@@ -107,10 +108,10 @@ export default function CalendarGrid({
                   <div className="flex flex-col items-center gap-1">
                     {/* Tiny Thumbnail - strictly sized */}
                     <div className="relative w-6 h-6 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-main-green/20">
-                      <Image 
-                        src={log.representativePhotoPath || '/dog-profile.png'} 
-                        alt="Log" 
-                        fill 
+                      <Image
+                        src={getImagePath(log.representativePhotoPath)}
+                        alt="Log"
+                        fill
                         className="object-cover"
                       />
                     </div>

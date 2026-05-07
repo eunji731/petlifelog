@@ -9,6 +9,11 @@ spring:
   profiles:
     active: dev
 
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -46,3 +51,13 @@ jwt:
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  upload:
+    base-path: D:/uploads
+    daily-path: ${app.upload.base-path}/daily
+    profile-path: ${app.upload.base-path}/profiles
+    files-path: ${app.upload.base-path}/files   # AttachedFile 시스템 저장 루트
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: gemini-2.5-flash
+  url: https://generativelanguage.googleapis.com/v1beta

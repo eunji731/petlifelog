@@ -43,7 +43,7 @@ public class PetResponse {
     @JsonProperty("addedAt")
     private String addedAt;
 
-    public static PetResponse from(Pet pet) {
+    public static PetResponse from(Pet pet, String photoUrl) {
         return PetResponse.builder()
                 .id(pet.getId())
                 .name(pet.getName())
@@ -52,14 +52,14 @@ public class PetResponse {
                 .adoptionDate(pet.getAdoptionDate())
                 .gender(pet.getGender())
                 .weightKg(pet.getWeightKg())
-                .photo(pet.getProfileImagePath())
+                .photo(photoUrl)
                 .traits(pet.getPersonality())
                 .appearance(pet.getAppearance())
                 .likes(pet.getLikes())
                 .dislikes(pet.getDislikes())
                 .diaryTone(pet.getDiaryTone())
-                .addedAt(pet.getCreatedAt() != null ? 
-                        pet.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString() : 
+                .addedAt(pet.getCreatedAt() != null ?
+                        pet.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString() :
                         java.time.LocalDate.now().toString())
                 .build();
     }

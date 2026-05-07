@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import CalendarHeader from '@/app/calendar/components/CalendarHeader';
 import CalendarGrid from '@/app/calendar/components/CalendarGrid';
 import DiaryPreview from '@/app/calendar/components/DiaryPreview';
@@ -11,6 +12,7 @@ import { useCalendar } from '@/app/calendar/hooks/useCalendar';
 export default function CalendarPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [showSidePanel, setShowSidePanel] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false); // Expansion state
   
   const { addDailyLog } = useDiary();
   const { 
@@ -25,19 +27,21 @@ export default function CalendarPage() {
 
   const handleDateSelect = (date: Date) => {
     onSelectDate(date);
-    setIsEditing(false); // Switch to preview mode on date change
-    setShowSidePanel(true); // Show panel on mobile
+    setIsEditing(false);
+    setShowSidePanel(true);
   };
 
   const handleSave = (data: DailyLog) => {
     addDailyLog(data);
     setIsEditing(false);
     setShowSidePanel(false);
+    setIsExpanded(false);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setShowSidePanel(false);
+    setIsExpanded(false);
   };
 
   const handleEditRequest = () => {
@@ -47,6 +51,11 @@ export default function CalendarPage() {
 
   const handleClosePanel = () => {
     setShowSidePanel(false);
+    setIsExpanded(false);
+  };
+
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
   };
 
   const handleToday = () => {
@@ -60,7 +69,9 @@ export default function CalendarPage() {
   return (
     <div className="flex-1 flex overflow-hidden flex-col lg:flex-row relative">
       {/* Main Calendar Area */}
-      <div className="flex-1 flex flex-col min-h-0 bg-white p-2 lg:p-6 overflow-y-auto no-scrollbar">
+      <div className={`flex-col min-h-0 bg-white p-2 lg:p-6 overflow-y-auto no-scrollbar transition-all duration-500 ${
+        isExpanded ? 'hidden lg:flex lg:w-0 lg:opacity-0 lg:invisible' : 'flex-1 flex'
+      }`}>
         <div className="max-w-7xl mx-auto w-full h-full flex flex-col gap-2 lg:gap-4">
           <CalendarHeader 
             currentDate={currentDate}
@@ -84,11 +95,24 @@ export default function CalendarPage() {
       </div>
 
       {/* Side Panel: Preview or Editor */}
-      {/* Desktop: Always visible or conditional? Usually always visible on LG */}
       <div className={`
         ${showSidePanel ? 'fixed inset-0 z-[150] lg:relative lg:inset-auto lg:z-auto lg:flex' : 'hidden lg:flex'}
-        w-full lg:w-[400px] xl:w-[480px] shrink-0 border-l border-border bg-white overflow-hidden flex-col
+        ${isExpanded ? 'lg:flex-1' : 'w-full lg:w-[450px] xl:w-[520px]'}
+        shrink-0 border-l border-border bg-white overflow-hidden flex-col transition-all duration-500 relative
       `}>
+        {/* Expand/Collapse Toggle Button (Desktop Only) */}
+        <button 
+          onClick={toggleExpand}
+          className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-[160] p-2 bg-white border border-border border-l-0 rounded-r-xl shadow-md hover:bg-surface-green transition-all group"
+          title={isExpanded ? "달력 보기" : "크게 보기"}
+        >
+          {isExpanded ? (
+            <ChevronRight className="w-4 h-4 text-text-main group-hover:translate-x-0.5 transition-transform" />
+          ) : (
+            <ChevronLeft className="w-4 h-4 text-text-main group-hover:-translate-x-0.5 transition-transform" />
+          )}
+        </button>
+
         {isEditing ? (
           <DiaryEditor 
             date={selectedDate}

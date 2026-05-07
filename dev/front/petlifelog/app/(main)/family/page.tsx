@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { Camera, Plus, Trash2, Sparkles, User, Heart, Info, X, Calendar, TrendingUp } from 'lucide-react';
-import { usePet, PetProfile } from '@/app/common/hooks/usePet';
+import { Plus, Trash2, Sparkles, User, Heart, Info, X, Calendar, TrendingUp } from 'lucide-react';
+import { usePet, PetProfile, PetFormData } from '@/app/common/hooks/usePet';
+import { getImagePath } from '@/app/common/lib/clientApi';
 import { useToast } from '@/app/common/hooks/useToast';
+import { useAttachedFiles } from '@/app/common/hooks/useAttachedFiles';
+import FileAttachment from '@/app/common/components/FileAttachment';
 
 export default function FamilyPage() {
-  const { pets, addPet, updatePet, removePet, loading } = usePet();
+  const { pets, addPet, updatePet, uploadPetPhoto, removePet, loading } = usePet();
   const { success, error: toastError, warning } = useToast();
   const [isAdding, setIsAdding] = useState(false);
   const [editingPetId, setEditingPetId] = useState<string | null>(null);
@@ -25,18 +28,8 @@ export default function FamilyPage() {
   const [newLikes, setNewLikes] = useState('');
   const [newDislikes, setNewDislikes] = useState('');
   const [newDiaryTone, setNewDiaryTone] = useState('');
-  const [newPhoto, setNewPhoto] = useState<string | null>(null);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handlePhotoClick = () => fileInputRef.current?.click();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      setNewPhoto(URL.createObjectURL(files[0]));
-    }
-  };
+  // 프로필 사진 — 공통 파일 훅 사용 (최대 1장)
+  const profilePhoto = useAttachedFiles({ maxFiles: 1 });
 
   const handleEditClick = (e: React.MouseEvent, pet: PetProfile) => {
     e.stopPropagation();
@@ -52,7 +45,11 @@ export default function FamilyPage() {
     setNewLikes(pet.likes || '');
     setNewDislikes(pet.dislikes || '');
     setNewDiaryTone(pet.diaryTone || '');
-    setNewPhoto(pet.photo);
+    // 수정 시: 기존 사진을 AttachedFileResponse 형태로 변환해 훅에 세팅
+    profilePhoto.setInitialFiles(
+      pet.photo ? [{ id: `existing-${pet.id}`, originalName: '프로필 사진', fileUrl: pet.photo,
+                     contentType: 'image/jpeg', fileSize: 0, sortOrder: 0, createdAt: '' }] : []
+    );
     setIsAdding(true);
     setViewingPet(null);
   };
@@ -71,28 +68,35 @@ export default function FamilyPage() {
       return;
     }
 
-    const petData: Omit<PetProfile, 'id' | 'addedAt'> = {
+    // photo 제외 - 파일은 별도로 전달
+    const petData: PetFormData = {
       name: newName,
       breed: newBreed,
       birthDate: newBirthDate,
       adoptionDate: newAdoptionDate || undefined,
       gender: newGender,
       weightKg: newWeightKg ? parseFloat(newWeightKg) : undefined,
-      photo: newPhoto || '/dog-profile.png',
       traits: newTraits,
       appearance: newAppearance || undefined,
       likes: newLikes || undefined,
       dislikes: newDislikes || undefined,
       diaryTone: newDiaryTone || undefined,
-      isActive: true,
     };
 
     try {
       if (editingPetId) {
+        // 1) 기본 정보 수정
         await updatePet(editingPetId, petData);
+        // 2) 사진 변경이 있으면 파일 API로 동기화 (신규 추가된 경우만)
+        const newFile = profilePhoto.pendingFiles[0];
+        if (newFile) await uploadPetPhoto(editingPetId, newFile);
         success(`${newName}의 정보가 수정되었습니다! ✨`);
       } else {
-        await addPet(petData);
+        // 1) 기본 정보 등록
+        const created = await addPet(petData);
+        // 2) 사진이 있으면 파일 API로 업로드
+        const newFile = profilePhoto.pendingFiles[0];
+        if (newFile) await uploadPetPhoto(created.id, newFile);
         success(`${newName}가 우리 가족으로 등록되었습니다! 🐶`);
       }
       resetForm();
@@ -126,7 +130,7 @@ export default function FamilyPage() {
     setNewLikes('');
     setNewDislikes('');
     setNewDiaryTone('');
-    setNewPhoto(null);
+    profilePhoto.setInitialFiles([]);
   };
 
   const calculateAge = (birthDate: string) => {
@@ -185,23 +189,15 @@ export default function FamilyPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                   {/* Photo Upload */}
                   <div className="flex flex-col items-center gap-4">
-                    <div 
-                      onClick={handlePhotoClick}
-                      className="relative w-48 h-48 rounded-full bg-light-green border-4 border-dashed border-main-green/30 flex flex-col items-center justify-center cursor-pointer hover:bg-light-green/50 transition-all overflow-hidden group shadow-inner"
-                    >
-                      {newPhoto ? (
-                        <Image src={newPhoto} alt="Preview" fill className="object-cover" />
-                      ) : (
-                        <>
-                          <Camera className="w-10 h-10 text-main-green mb-2" />
-                          <span className="text-xs font-black text-main-green">프로필 사진</span>
-                        </>
-                      )}
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Sparkles className="w-8 h-8 text-white" />
-                      </div>
-                    </div>
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                    <FileAttachment
+                      attachedFiles={profilePhoto}
+                      accept="image/*"
+                      multiple={false}
+                      isCircle={true}
+                      hideHeader={true}
+                      cardSize="xl"
+                      emptyText="사진 추가"
+                    />
                     
                     <div className="w-full space-y-2">
                       <label className="text-sm font-black text-text-main">일기 말투</label>
@@ -465,7 +461,7 @@ export default function FamilyPage() {
                 className={`group bg-white rounded-[32px] border p-6 flex items-center gap-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer ${viewingPet?.id === pet.id ? 'border-main-green ring-4 ring-main-green/5' : 'border-border'}`}
               >
                 <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
-                  <Image src={pet.photo || '/dog-profile.png'} alt={pet.name} fill className="object-cover" />
+                  <Image src={getImagePath(pet.photo)} alt={pet.name} fill className="object-cover" />
                 </div>
                 
                 <div className="flex-1 min-w-0">

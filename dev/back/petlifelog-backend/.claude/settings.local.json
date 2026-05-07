@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew compileJava --no-daemon -q)",
+      "Bash(./gradlew compileJava --no-daemon)",
+      "Bash(./gradlew compileJava --no-daemon --rerun-tasks)",
+      "Bash(npx tsc *)",
+      "Bash(npx --prefix \"D:/selfProject/petLifeLog/dev/front/petlifelog\" tsc --noEmit --project \"D:/selfProject/petLifeLog/dev/front/petlifelog/tsconfig.json\")"
+    ]
+  }
+}

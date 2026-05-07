@@ -30,7 +30,6 @@ public class PetRequest {
     @JsonProperty("weightKg")
     private BigDecimal weightKg;
     
-    private String photo;
     private String traits;
     private String appearance;
     private String likes;
