@@ -30,10 +30,12 @@ interface UseAttachedFilesOptions {
   parentId?: string;
   /** 허용할 최대 파일 수 (기존 + 신규 합산, undefined = 무제한) */
   maxFiles?: number;
+  /** 이미지 경로 변환 시 사용할 서브폴더 (기본: daily) */
+  subfolder?: 'daily' | 'profiles';
 }
 
 export function useAttachedFiles(options: UseAttachedFilesOptions = {}) {
-  const { parentType, parentId, maxFiles } = options;
+  const { parentType, parentId, maxFiles, subfolder = 'daily' } = options;
 
   const [existingFiles, setExistingFiles] = useState<AttachedFileResponse[]>([]);
   const [pendingFiles, setPendingFiles]   = useState<File[]>([]);
@@ -130,7 +132,7 @@ export function useAttachedFiles(options: UseAttachedFilesOptions = {}) {
     ...existingFiles.map(f => ({
       type: 'existing' as const,
       data: f,
-      fullUrl: getImagePath(f.fileUrl),   // 절대 URL로 변환
+      fullUrl: getImagePath(f.fileUrl, subfolder),   // 절대 URL로 변환
     })),
     ...pendingFiles.map((file, i) => ({
       type: 'pending' as const,

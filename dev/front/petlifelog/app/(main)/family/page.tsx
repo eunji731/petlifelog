@@ -29,7 +29,7 @@ export default function FamilyPage() {
   const [newDislikes, setNewDislikes] = useState('');
   const [newDiaryTone, setNewDiaryTone] = useState('');
   // 프로필 사진 — 공통 파일 훅 사용 (최대 1장)
-  const profilePhoto = useAttachedFiles({ maxFiles: 1 });
+  const profilePhoto = useAttachedFiles({ maxFiles: 1, subfolder: 'profiles' });
 
   const handleEditClick = (e: React.MouseEvent, pet: PetProfile) => {
     e.stopPropagation();
@@ -357,7 +357,7 @@ export default function FamilyPage() {
                 
                 <div className="absolute -bottom-16 left-10 flex items-end gap-6">
                   <div className="relative w-32 h-32 rounded-[32px] overflow-hidden border-4 border-white shadow-xl bg-white">
-                    <Image src={viewingPet.photo || '/dog-profile.png'} alt={viewingPet.name} fill className="object-cover" />
+                    <Image src={getImagePath(viewingPet.photo, 'profiles')} alt={viewingPet.name} fill className="object-cover" />
                   </div>
                   <div className="pb-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -461,7 +461,7 @@ export default function FamilyPage() {
                 className={`group bg-white rounded-[32px] border p-6 flex items-center gap-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer ${viewingPet?.id === pet.id ? 'border-main-green ring-4 ring-main-green/5' : 'border-border'}`}
               >
                 <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
-                  <Image src={getImagePath(pet.photo)} alt={pet.name} fill className="object-cover" />
+                  <Image src={getImagePath(pet.photo, 'profiles')} alt={pet.name} fill className="object-cover" />
                 </div>
                 
                 <div className="flex-1 min-w-0">

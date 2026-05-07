@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Camera, Plus, Trash2, Sparkles, Check, RefreshCw, Calendar, MapPin, Zap, Info } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/app/common/hooks/useToast';
 import { usePet } from '@/app/common/hooks/usePet';
 import { DailyLog } from '@/app/common/hooks/useDiary';
-import clientApi, { BACKEND_URL, toFileUrl } from '@/app/common/lib/clientApi';
+import clientApi, { toFileUrl, getImagePath } from '@/app/common/lib/clientApi';
 import MomentImageSlider from './MomentImageSlider';
 
 // 백엔드 AnalyzeDiaryResult 에 맞는 타입
@@ -65,14 +65,33 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
   const [rawAiResult, setRawAiResult] = useState<RawAiResult | null>(null);
   const [storedFiles, setStoredFiles] = useState<StoredFileInfo[]>([]);
 
-  // 분석 횟수 제한 (최대 3회)
-  const [analyzeCount, setAnalyzeCount] = useState(0);
+  // 서버 사용량 상태
+  const [usageInfo, setUsageInfo] = useState<{
+    dateCount: number; dateLimit: number;
+    dailyTotal: number; dailyLimit: number;
+    dateBlocked: boolean; dailyBlocked: boolean;
+  } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const targetDateStr = date.toLocaleDateString('en-CA'); // "yyyy-MM-dd"
 
   const formattedDate = date.toLocaleDateString('ko-KR', {
     month: 'long', day: 'numeric', weekday: 'short',
   });
+
+  // ─── 사용량 조회 ──────────────────────────────────────────────────
+
+  const fetchUsage = useCallback(async () => {
+    try {
+      const res = await clientApi.get(`/api/ai/usage?targetDate=${targetDateStr}`);
+      setUsageInfo(res.data?.data ?? null);
+    } catch {
+      // 조회 실패는 무시 (버튼 활성화 유지)
+    }
+  }, [targetDateStr]);
+
+  useEffect(() => { fetchUsage(); }, [fetchUsage]);
 
   // ─── 사진 선택 ────────────────────────────────────────────────────
 
@@ -95,16 +114,23 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
   const triggerBatchAIAnalysis = async () => {
     if (photoFiles.length === 0) { warning('분석할 사진을 최소 1장 이상 등록해 주세요.'); return; }
     if (selectedDogIds.length === 0) { warning('사진 속 주인공들을 선택해 주세요.'); return; }
-    if (analyzeCount >= 3) { 
-      warning('AI 분석은 최대 3회까지만 가능합니다. 현재 결과를 저장하거나 다시 시작해 주세요.'); 
-      return; 
+
+    if (usageInfo?.dateBlocked) {
+      warning(`${formattedDate}의 AI 일기 작성 기회(${usageInfo.dateLimit}회)를 모두 사용했습니다. 다른 날짜를 선택해 주세요.`);
+      return;
+    }
+    if (usageInfo?.dailyBlocked) {
+      warning(`오늘의 AI 일기 작성 한도(${usageInfo?.dailyLimit}회)를 모두 사용했습니다. 내일 다시 시도해 주세요.`);
+      return;
     }
 
     setIsAnalyzing(true);
-    info(`AI가 사진들을 분석 중입니다... (남은 횟수: ${2 - analyzeCount}회)`);
+    const remaining = usageInfo ? usageInfo.dateLimit - usageInfo.dateCount - 1 : '?';
+    info(`AI가 사진들을 분석 중입니다... (이 날짜 사용 후 남은 횟수: ${remaining}회)`);
 
     try {
       const formData = new FormData();
+      formData.append('targetDate', targetDateStr);
       photoFiles.forEach(file => formData.append('images', file));
 
       const selectedPets = pets.filter(p => selectedDogIds.includes(p.id));
@@ -176,15 +202,29 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
       setRawAiResult(raw);
       setStoredFiles(files);
       setAiResult(processed);
-      setAnalyzeCount(prev => prev + 1);
+      await fetchUsage();
       success('AI가 하루를 완벽하게 정리했습니다!');
 
     } catch (err: unknown) {
       console.error('AI Analysis Error:', err);
-      const errorObj = err as { code?: string };
-      error(errorObj.code === 'ECONNABORTED'
-        ? '분석 시간이 너무 오래 걸립니다. 다시 시도해 주세요.'
-        : 'AI 분석 중 오류가 발생했습니다.');
+      const axiosErr = err as { code?: string; response?: { status?: number; data?: { error?: { code?: string; message?: string } } } };
+
+      if (axiosErr.response?.status === 429) {
+        const serverCode = axiosErr.response?.data?.error?.code;
+        const serverMsg = axiosErr.response?.data?.error?.message;
+        if (serverCode === 'AI_DATE_LIMIT_EXCEEDED') {
+          error(`📅 ${serverMsg ?? `${formattedDate}의 AI 일기 기회 ${usageInfo?.dateLimit ?? 2}회를 모두 사용했습니다.`}`);
+        } else if (serverCode === 'AI_DAILY_LIMIT_EXCEEDED') {
+          error(`🚫 ${serverMsg ?? `오늘 AI 일기 한도(${usageInfo?.dailyLimit ?? 10}회)를 초과했습니다. 내일 다시 시도해 주세요.`}`);
+        } else {
+          error('AI 사용 한도를 초과했습니다.');
+        }
+        await fetchUsage();
+      } else if (axiosErr.code === 'ECONNABORTED') {
+        error('분석 시간이 너무 오래 걸립니다. 다시 시도해 주세요.');
+      } else {
+        error('AI 분석 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -295,7 +335,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                         className={`flex flex-col items-center gap-2 transition-all ${selectedDogIds.includes(pet.id) ? 'scale-105' : 'opacity-40 grayscale'}`}
                       >
                         <div className={`relative w-16 h-16 rounded-full overflow-hidden border-2 ${selectedDogIds.includes(pet.id) ? 'border-main-green ring-4 ring-main-green/10' : 'border-transparent'}`}>
-                          <Image src={pet.photo || '/dog-profile.png'} alt={pet.name} fill className="object-cover" />
+                          <Image src={getImagePath(pet.photo, 'profiles')} alt={pet.name} fill className="object-cover" />
                         </div>
                         <span className="text-[10px] font-black">{pet.name}</span>
                       </button>
@@ -328,20 +368,62 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                 </div>
 
                 <div className="space-y-4">
+                  {/* 사용량 안내 배너 */}
+                  {usageInfo && (
+                    <div className={`rounded-2xl px-4 py-3 text-[11px] font-bold space-y-1 ${
+                      usageInfo.dateBlocked || usageInfo.dailyBlocked
+                        ? 'bg-red-50 border border-red-200 text-red-600'
+                        : usageInfo.dateCount > 0 || usageInfo.dailyTotal > 0
+                        ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                        : 'bg-light-green border border-main-green/20 text-main-green'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Info className="w-3.5 h-3.5" />
+                          이 날짜 사용 횟수
+                        </span>
+                        <span className={`font-black ${usageInfo.dateBlocked ? 'text-red-600' : ''}`}>
+                          {usageInfo.dateCount} / {usageInfo.dateLimit}회
+                          {usageInfo.dateBlocked && ' (소진)'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Info className="w-3.5 h-3.5" />
+                          오늘 전체 사용 횟수
+                        </span>
+                        <span className={`font-black ${usageInfo.dailyBlocked ? 'text-red-600' : ''}`}>
+                          {usageInfo.dailyTotal} / {usageInfo.dailyLimit}회
+                          {usageInfo.dailyBlocked && ' (소진)'}
+                        </span>
+                      </div>
+                      {usageInfo.dateBlocked && (
+                        <p className="text-red-600 pt-1 border-t border-red-200">
+                          이 날짜의 AI 일기 기회를 모두 사용했습니다. 다른 날짜를 선택해 주세요.
+                        </p>
+                      )}
+                      {!usageInfo.dateBlocked && usageInfo.dailyBlocked && (
+                        <p className="text-red-600 pt-1 border-t border-red-200">
+                          오늘 AI 일기 한도를 초과했습니다. 내일 다시 시도해 주세요.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     onClick={triggerBatchAIAnalysis}
-                    disabled={photoPreviews.length === 0 || selectedDogIds.length === 0 || analyzeCount >= 3}
-                    className="w-full py-6 bg-main-green text-white font-black rounded-[24px] shadow-xl shadow-main-green/20 flex flex-col items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                    disabled={
+                      photoPreviews.length === 0 ||
+                      selectedDogIds.length === 0 ||
+                      usageInfo?.dateBlocked === true ||
+                      usageInfo?.dailyBlocked === true
+                    }
+                    className="w-full py-6 bg-main-green text-white font-black rounded-[24px] shadow-xl shadow-main-green/20 flex flex-col items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Sparkles className="w-6 h-6 fill-white" />
-                    <span>AI에게 하루 맡기기 {analyzeCount > 0 && `(${analyzeCount}/3)`}</span>
+                    <span>AI에게 하루 맡기기</span>
                     <span className="text-[10px] opacity-70">모든 사진을 분석하여 모멘트를 자동으로 나눠드려요</span>
                   </button>
-                  {analyzeCount > 0 && (
-                    <p className="text-center text-[10px] font-bold text-text-sub flex items-center justify-center gap-1">
-                      <Info className="w-3 h-3" /> AI 분석은 하루 최대 3회까지 권장됩니다. ({analyzeCount}/3)
-                    </p>
-                  )}
                 </div>
               </div>
             </div>

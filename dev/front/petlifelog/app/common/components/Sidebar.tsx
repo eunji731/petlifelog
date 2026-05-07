@@ -20,8 +20,7 @@ import Image from 'next/image';
 import { useToast } from '../hooks/useToast';
 import { useConfirm } from '../hooks/useConfirm';
 import { usePet, PetProfile } from '../hooks/usePet';
-
-import clientApi from '../lib/clientApi';
+import clientApi, { getImagePath } from '../lib/clientApi';
 
 const navItems = [
   { name: '대시보드', href: '/dashboard', icon: Book },
@@ -96,7 +95,7 @@ const SidebarContent = ({ pathname, onClose, onLogout, primaryPet }: SidebarCont
           className="flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-main-yellow/5 hover:bg-white transition-all shadow-sm group"
         >
           <div className="w-10 h-10 rounded-full bg-main-green/20 relative overflow-hidden ring-2 ring-white shadow-sm shrink-0">
-            <Image src={primaryPet.photo || '/dog-profile.png'} alt={primaryPet.name} fill className="object-cover" />
+            <Image src={getImagePath(primaryPet.photo, 'profiles')} alt={primaryPet.name} fill className="object-cover" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-black text-sm text-text-main truncate group-hover:text-main-green transition-colors">{primaryPet.name}</div>

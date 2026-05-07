@@ -7,6 +7,7 @@ import com.drew.metadata.exif.GpsDirectory;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.petlifelog.backend.common.ai.GeminiClient;
+import com.petlifelog.backend.common.exception.AiRateLimitException;
 import com.petlifelog.backend.common.file.domain.AttachedFile;
 import com.petlifelog.backend.common.file.domain.ParentDomainType;
 import com.petlifelog.backend.common.file.dto.StoredFileInfo;
@@ -42,6 +43,9 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AiDiaryService {
 
+    private static final int DATE_LIMIT = 2;
+    private static final int DAILY_LIMIT = 10;
+
     private final GeminiClient geminiClient;
     private final PetRepository petRepository;
     private final MemberRepository memberRepository;
@@ -51,6 +55,7 @@ public class AiDiaryService {
     private final ObjectMapper objectMapper;
     private final FileStorageService fileStorageService;
     private final AttachedFileService attachedFileService;
+    private final AiDiaryUsageRepository aiDiaryUsageRepository;
 
     // ─────────────────────────────────────────────────────────────────
     // 1단계: 이미지 분석
@@ -60,9 +65,13 @@ public class AiDiaryService {
     //  - 결과(AnalyzeDiaryResult) 반환 → 프론트가 저장 시 storedFiles 를 그대로 전달
     // ─────────────────────────────────────────────────────────────────
 
-    public AnalyzeDiaryResult analyzeDiary(List<MultipartFile> images,
+    @Transactional
+    public AnalyzeDiaryResult analyzeDiary(UUID userId, LocalDate targetDate,
+                                           List<MultipartFile> images,
                                            String petInfoJson,
                                            List<String> userTags) {
+        checkRateLimit(userId, targetDate);
+
         try {
             List<PetInfoRequest> petInfos = objectMapper.readValue(
                     petInfoJson, new TypeReference<List<PetInfoRequest>>() {});
@@ -109,6 +118,8 @@ public class AiDiaryService {
 
             String prompt = buildPrompt(petContext, metadataContext, userTags);
             DailyLogResponse aiResult = geminiClient.analyzeImages(base64Images, prompt);
+
+            recordUsage(userId, targetDate);
 
             return AnalyzeDiaryResult.builder()
                     .aiResult(aiResult)
@@ -327,6 +338,51 @@ public class AiDiaryService {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         Thumbnails.of(originalImage).size(512, 512).outputFormat("jpg").toOutputStream(outputStream);
         return Base64.getEncoder().encodeToString(outputStream.toByteArray());
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Rate limit
+    // ─────────────────────────────────────────────────────────────────
+
+    private void checkRateLimit(UUID userId, LocalDate targetDate) {
+        long dateCount = aiDiaryUsageRepository.countByMember_IdAndTargetDate(userId, targetDate);
+        if (dateCount >= DATE_LIMIT) {
+            throw AiRateLimitException.dateLimitExceeded(targetDate.toString());
+        }
+
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+        LocalDateTime todayEnd = todayStart.plusDays(1);
+        long dailyTotal = aiDiaryUsageRepository.countByMember_IdAndCalledAtBetween(userId, todayStart, todayEnd);
+        if (dailyTotal >= DAILY_LIMIT) {
+            throw AiRateLimitException.dailyLimitExceeded();
+        }
+    }
+
+    private void recordUsage(UUID userId, LocalDate targetDate) {
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        aiDiaryUsageRepository.save(AiDiaryUsage.builder()
+                .member(member)
+                .targetDate(targetDate)
+                .calledAt(LocalDateTime.now())
+                .build());
+    }
+
+    public AiUsageResponse getUsage(UUID userId, LocalDate targetDate) {
+        long dateCount = aiDiaryUsageRepository.countByMember_IdAndTargetDate(userId, targetDate);
+
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+        LocalDateTime todayEnd = todayStart.plusDays(1);
+        long dailyTotal = aiDiaryUsageRepository.countByMember_IdAndCalledAtBetween(userId, todayStart, todayEnd);
+
+        return AiUsageResponse.builder()
+                .dateCount(dateCount)
+                .dateLimit(DATE_LIMIT)
+                .dailyTotal(dailyTotal)
+                .dailyLimit(DAILY_LIMIT)
+                .dateBlocked(dateCount >= DATE_LIMIT)
+                .dailyBlocked(dailyTotal >= DAILY_LIMIT)
+                .build();
     }
 
     /** EXIF 파싱 결과를 담는 내부 레코드 */

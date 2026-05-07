@@ -3,6 +3,7 @@ package com.petlifelog.backend.common.exception;
 import com.petlifelog.backend.common.dto.ApiResponse;
 import com.petlifelog.backend.common.file.exception.FileStorageException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -10,6 +11,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AiRateLimitException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAiRateLimitException(AiRateLimitException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
+    }
 
     @ExceptionHandler(FileStorageException.class)
     public ResponseEntity<ApiResponse<Void>> handleFileStorageException(FileStorageException e) {
