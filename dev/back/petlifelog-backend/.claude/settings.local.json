@@ -10,7 +10,8 @@
       "Bash(Select-Object -First 50)",
       "Bash(./gradlew compileJava)",
       "Bash(npx --prefix \"D:/selfProject/petLifeLog/dev/front/petlifelog\" tsc --noEmit)",
-      "Bash(powershell -Command \"Set-Location 'D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\front\\\\petlifelog'; npx tsc --noEmit 2>&1\")"
+      "Bash(powershell -Command \"Set-Location 'D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\front\\\\petlifelog'; npx tsc --noEmit 2>&1\")",
+      "Bash(\"D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\front\\\\petlifelog\\\\node_modules\\\\.bin\\\\tsc.cmd\" --noEmit --project \"D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\front\\\\petlifelog\\\\tsconfig.json\")"
     ]
   }
 }

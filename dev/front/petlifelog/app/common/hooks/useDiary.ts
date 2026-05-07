@@ -9,6 +9,8 @@ export interface Photo {
   id: string;
   path: string;
   takenAt?: string;
+  lat?: number;
+  lng?: number;
 }
 
 // 개별 사건 (Moment) 정보
@@ -60,7 +62,7 @@ export const useDiaryStore = create<DiaryState>()(
               aiTitle: '햇살 가득한 한강 산책!',
               aiContent: '오늘은 주말이라 그런지 친구들이 정말 많았어! 바람도 시원하고 기분이 최고야.',
               energyLevel: 5,
-              photos: [{ id: 'p1', path: '/dog-walk.jpg' }],
+              photos: [{ id: 'p1', path: '/dog-walk.jpg', lat: 37.5286, lng: 127.0691 }],
               tags: ['한강공원', '산책'],
               dogIds: ['봉봉이-id']
             },
@@ -72,7 +74,7 @@ export const useDiaryStore = create<DiaryState>()(
               aiTitle: '산책 후 꿀맛 같은 간식 시간',
               aiContent: '신나게 놀고 와서 먹는 소고기 간식은 정말 꿀맛이야! 엄마가 더 줬으면 좋겠다.',
               energyLevel: 3,
-              photos: [{ id: 'p2', path: '/dog-eat.jpg' }],
+              photos: [{ id: 'p2', path: '/dog-eat.jpg', lat: 37.5310, lng: 127.0610 }],
               tags: ['간식시간', '소고기'],
               dogIds: ['봉봉이-id']
             }
