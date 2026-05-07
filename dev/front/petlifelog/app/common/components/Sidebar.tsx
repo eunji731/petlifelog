@@ -19,7 +19,7 @@ import {
 import Image from 'next/image';
 import { useToast } from '../hooks/useToast';
 import { useConfirm } from '../hooks/useConfirm';
-import { usePet, PetProfile } from '../hooks/usePet';
+import { usePet, PetProfile, ALL_PETS_ID } from '../hooks/usePet';
 import clientApi, { getImagePath } from '../lib/clientApi';
 
 const navItems = [
@@ -43,7 +43,7 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
   const { pets, selectedPetId, setSelectedPetId } = usePet();
   const [isPetSwitcherOpen, setIsPetSwitcherOpen] = React.useState(false);
 
-  const primaryPet = pets.find(p => p.id === selectedPetId) || pets[0];
+  const primaryPet = pets.find(p => p.id === selectedPetId);
 
   return (
     <div className="flex flex-col h-full bg-sidebar-bg">
@@ -64,7 +64,7 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
       <nav className="flex-1 px-3 lg:px-4 py-6 space-y-1 lg:space-y-1.5 overflow-y-auto no-scrollbar">
         {navItems.map((item) => {
           const isActive = (item.href === '/dashboard' && (pathname === '/' || pathname === '/dashboard')) || 
-                          (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                        (item.href !== '/dashboard' && pathname.startsWith(item.href));
           const Icon = item.icon;
           return (
             <Link
@@ -86,12 +86,30 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
 
       <div className="p-3 lg:p-4 border-t border-main-yellow/10 space-y-2 relative">
         {/* Pet Switcher Dropdown */}
-        {isPetSwitcherOpen && pets.length > 1 && (
+        {isPetSwitcherOpen && (
           <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-2xl shadow-2xl border border-border overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200">
             <div className="p-3 border-b border-border bg-surface-green/30">
               <span className="text-[10px] font-black text-main-green uppercase tracking-widest">가족 선택</span>
             </div>
-            <div className="max-h-48 overflow-y-auto no-scrollbar">
+            <div className="max-h-64 overflow-y-auto no-scrollbar">
+              {/* All Pets Option */}
+              <button
+                onClick={() => {
+                  setSelectedPetId(ALL_PETS_ID);
+                  setIsPetSwitcherOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 p-3 hover:bg-surface-green transition-all ${selectedPetId === ALL_PETS_ID ? 'bg-main-green/5' : ''}`}
+              >
+                <div className="w-8 h-8 rounded-full bg-main-green flex items-center justify-center shrink-0 border border-white text-white">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <div className={`font-bold text-sm truncate ${selectedPetId === ALL_PETS_ID ? 'text-main-green' : 'text-text-main'}`}>모든 가족</div>
+                  <div className="text-[9px] text-text-sub font-medium truncate">전체 기록 보기</div>
+                </div>
+                {selectedPetId === ALL_PETS_ID && <div className="w-1.5 h-1.5 rounded-full bg-main-green" />}
+              </button>
+
               {pets.map(pet => (
                 <button
                   key={pet.id}
@@ -123,9 +141,23 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
           <span className="text-[14px] font-bold tracking-tight">로그아웃</span>
         </button>
 
-        {primaryPet ? (
+        {selectedPetId === ALL_PETS_ID ? (
           <div 
-            onClick={() => pets.length > 1 && setIsPetSwitcherOpen(!isPetSwitcherOpen)}
+            onClick={() => pets.length > 0 && setIsPetSwitcherOpen(!isPetSwitcherOpen)}
+            className={`flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-main-yellow/5 hover:bg-white transition-all shadow-sm group cursor-pointer ${isPetSwitcherOpen ? 'ring-2 ring-main-green' : ''}`}
+          >
+            <div className="w-10 h-10 rounded-full bg-main-green flex items-center justify-center shrink-0 ring-2 ring-white shadow-sm text-white">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-black text-sm text-text-main truncate group-hover:text-main-green transition-colors">모든 가족</div>
+              <div className="text-[10px] text-text-sub font-bold truncate">가족 전체 관리 중</div>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-text-sub group-hover:text-main-green transition-all ${isPetSwitcherOpen ? 'rotate-180' : ''}`} />
+          </div>
+        ) : primaryPet ? (
+          <div 
+            onClick={() => pets.length > 0 && setIsPetSwitcherOpen(!isPetSwitcherOpen)}
             className={`flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-main-yellow/5 hover:bg-white transition-all shadow-sm group cursor-pointer ${isPetSwitcherOpen ? 'ring-2 ring-main-green' : ''}`}
           >
             <div className="w-10 h-10 rounded-full bg-main-green/20 relative overflow-hidden ring-2 ring-white shadow-sm shrink-0">
@@ -135,9 +167,7 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
               <div className="font-black text-sm text-text-main truncate group-hover:text-main-green transition-colors">{primaryPet.name}</div>
               <div className="text-[10px] text-text-sub font-bold truncate">{primaryPet.breed} · {primaryPet.birthDate}</div>
             </div>
-            {pets.length > 1 && (
-              <ChevronDown className={`w-4 h-4 text-text-sub group-hover:text-main-green transition-all ${isPetSwitcherOpen ? 'rotate-180' : ''}`} />
-            )}
+            <ChevronDown className={`w-4 h-4 text-text-sub group-hover:text-main-green transition-all ${isPetSwitcherOpen ? 'rotate-180' : ''}`} />
           </div>
         ) : (
           <Link 

@@ -35,13 +35,15 @@ interface FileResponse {
   originalName: string;
 }
 
+export const ALL_PETS_ID = 'ALL';
+
 interface PetState {
   pets: PetProfile[];
-  selectedPetId: string | null;
+  selectedPetId: string | typeof ALL_PETS_ID | null;
   loading: boolean;
   error: string | null;
   fetchPets: () => Promise<void>;
-  setSelectedPetId: (id: string | null) => void;
+  setSelectedPetId: (id: string | typeof ALL_PETS_ID | null) => void;
   addPet: (data: PetFormData) => Promise<PetProfile>;
   updatePet: (id: string, data: Partial<PetFormData>) => Promise<PetProfile>;
   uploadPetPhoto: (petId: string, photo: File) => Promise<string>;
@@ -52,7 +54,7 @@ export const usePetStore = create<PetState>()(
   persist(
     (set, get) => ({
       pets: [],
-      selectedPetId: null,
+      selectedPetId: ALL_PETS_ID, // 기본값을 'ALL'로 변경
       loading: false,
       error: null,
 
@@ -63,10 +65,10 @@ export const usePetStore = create<PetState>()(
           const pets = res.data.data;
           set({ pets, loading: false });
           
-          // 만약 선택된 펫이 없거나 목록에 없으면 첫 번째 펫 선택
+          // 만약 선택된 펫이 'ALL'이 아니고 목록에도 없으면 'ALL'로 전환
           const currentId = get().selectedPetId;
-          if (pets.length > 0 && (!currentId || !pets.find(p => p.id === currentId))) {
-            set({ selectedPetId: pets[0].id });
+          if (pets.length > 0 && currentId !== ALL_PETS_ID && !pets.find(p => p.id === currentId)) {
+            set({ selectedPetId: ALL_PETS_ID });
           }
         } catch (err: any) {
           set({ error: err.response?.data?.message || err.message, loading: false });

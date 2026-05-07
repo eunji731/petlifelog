@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { usePetStore, ALL_PETS_ID } from './usePet';
 
 // 모멘트에 포함된 사진 정보
 export interface Photo {
@@ -96,10 +97,21 @@ export const useDiaryStore = create<DiaryState>()(
 
 export const useDiary = () => {
   const { dailyLogs, addDailyLog, getDailyLog } = useDiaryStore();
+  const { selectedPetId } = usePetStore();
+
+  const allLogs = Object.values(dailyLogs).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+
+  // 필터링된 로그 계산
+  const filteredLogs = selectedPetId === ALL_PETS_ID
+    ? allLogs
+    : allLogs.filter(log => 
+        log.moments.some(moment => moment.dogIds.includes(selectedPetId || ''))
+      );
+
   return {
     dailyLogs,
     addDailyLog,
     getDailyLog,
-    allLogs: Object.values(dailyLogs).sort((a, b) => b.dateKey.localeCompare(a.dateKey)),
+    allLogs: filteredLogs,
   };
 };

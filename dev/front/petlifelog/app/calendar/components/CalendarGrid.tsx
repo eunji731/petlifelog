@@ -5,6 +5,7 @@ import { Calendar, ChevronLeft, ChevronRight, Plus, Sparkles, MessageCircle } fr
 import Image from 'next/image';
 import { useCalendar } from '../hooks/useCalendar';
 import { useDiary } from '@/app/common/hooks/useDiary';
+import { usePet, ALL_PETS_ID } from '@/app/common/hooks/usePet';
 import { getImagePath } from '@/app/common/lib/clientApi';
 
 export default function CalendarGrid({ 
@@ -17,6 +18,7 @@ export default function CalendarGrid({
   currentDate: Date;
 }) {
   const { dailyLogs } = useDiary();
+  const { selectedPetId } = usePet();
 
   // Helper to generate days for the current month view
   const generateDays = () => {
@@ -60,7 +62,16 @@ export default function CalendarGrid({
 
   const getDayContent = (date: Date) => {
     const dateKey = date.toISOString().split('T')[0];
-    return dailyLogs[dateKey];
+    const log = dailyLogs[dateKey];
+    if (!log) return null;
+
+    // 필터링된 결과 확인
+    if (selectedPetId !== ALL_PETS_ID) {
+      const hasPet = log.moments.some(m => m.dogIds.includes(selectedPetId || ''));
+      if (!hasPet) return null;
+    }
+    
+    return log;
   };
 
   return (

@@ -15,19 +15,26 @@ import {
   MapPin
 } from 'lucide-react';
 import { useDiary } from '@/app/common/hooks/useDiary';
-import { usePet } from '@/app/common/hooks/usePet';
+import { usePet, ALL_PETS_ID } from '@/app/common/hooks/usePet';
 import { useInventory } from '@/app/common/hooks/useInventory';
 import { getImagePath } from '@/app/common/lib/clientApi';
 
 export default function DashboardPage() {
   const { allLogs } = useDiary();
-  const { pets } = usePet();
+  const { pets, selectedPetId } = usePet();
   const { items } = useInventory();
 
-  const primaryPet = pets[0];
+  const primaryPet = pets.find(p => p.id === selectedPetId);
   const recentLog = allLogs[0];
+
   const stats = [
-    { label: '함께한 날', value: primaryPet ? '128일' : '0일', icon: Heart, color: 'text-pink-500', bg: 'bg-pink-50' },
+    { 
+      label: '함께한 날', 
+      value: selectedPetId === ALL_PETS_ID 
+        ? (pets.length > 0 ? '전체 관리 중' : '0일')
+        : (primaryPet ? '128일' : '0일'), 
+      icon: Heart, color: 'text-pink-500', bg: 'bg-pink-50' 
+    },
     { label: '기록된 추억', value: `${allLogs.length}개`, icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-50' },
     { label: '수집한 아이템', value: `${items.length}개`, icon: Sparkles, color: 'text-main-yellow', bg: 'bg-yellow-50' },
   ];
@@ -40,7 +47,11 @@ export default function DashboardPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 lg:p-12 rounded-[40px] border border-border shadow-sm">
           <div className="flex items-center gap-6 lg:gap-10">
             <div className="relative w-20 h-20 lg:w-24 lg:h-24 rounded-full overflow-hidden border-4 border-white shadow-xl ring-4 ring-main-green/10">
-              {primaryPet ? (
+              {selectedPetId === ALL_PETS_ID ? (
+                <div className="w-full h-full bg-main-green flex items-center justify-center text-white">
+                  <Heart className="w-10 h-10 fill-current" />
+                </div>
+              ) : primaryPet ? (
                 <Image src={getImagePath(primaryPet.photo, 'profiles')} alt={primaryPet.name} fill className="object-cover" />
               ) : (
                 <div className="w-full h-full bg-surface-green flex items-center justify-center">
@@ -50,7 +61,7 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-1">
               <h1 className="text-2xl lg:text-3xl font-black text-text-main tracking-tight">
-                {primaryPet ? `${primaryPet.name}와 함께하는` : '반려동물과 함께하는'} <br/>
+                {selectedPetId === ALL_PETS_ID ? '우리 모든 가족과' : (primaryPet ? `${primaryPet.name}와 함께하는` : '반려동물과 함께하는')} <br/>
                 <span className="text-main-green">특별한 일상</span>을 기록하세요!
               </h1>
               <p className="text-sm font-bold text-text-sub">AI가 아이의 시선으로 소중한 순간을 정리해 드립니다.</p>
