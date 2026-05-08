@@ -18,6 +18,7 @@ import { useDiary } from '@/app/common/hooks/useDiary';
 import { getImagePath, default as clientApi } from '@/app/common/lib/clientApi';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import TimelineDatePicker from './TimelineDatePicker';
 
 interface MonthlyTimelineProps {
   currentDate: Date;
@@ -181,25 +182,17 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
           <span className="text-[11px] lg:text-xs font-black text-main-green">기간 필터</span>
         </div>
         <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={dateRange.start}
-            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-            className="text-[11px] lg:text-xs font-bold border border-border rounded-lg px-2 py-1 focus:outline-none focus:border-main-green"
+          <TimelineDatePicker 
+            value={dateRange.start} 
+            onChange={(val) => setDateRange(prev => ({ ...prev, start: val }))}
+            label="시작일"
           />
           <span className="text-text-sub text-xs">~</span>
-          <input
-            type="date"
-            value={dateRange.end}
-            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-            className="text-[11px] lg:text-xs font-bold border border-border rounded-lg px-2 py-1 focus:outline-none focus:border-main-green"
+          <TimelineDatePicker 
+            value={dateRange.end} 
+            onChange={(val) => setDateRange(prev => ({ ...prev, end: val }))}
+            label="종료일"
           />
-          <button
-            onClick={() => setDateRange({ start: '', end: '' })}
-            className="text-[10px] font-black text-text-sub hover:text-red-500 transition-colors px-2"
-          >
-            초기화
-          </button>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-[10px] lg:text-xs font-bold text-text-sub">
