@@ -379,9 +379,6 @@ export default function MapPage() {
                     <Link href={`/calendar?date=${selectedDetail.dailyLog.dateKey}`} className="flex-1 py-3.5 bg-main-green text-white text-xs font-black rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-main-green/20">
                       <Calendar className="w-3.5 h-3.5" /> 전체 일기 보기
                     </Link>
-                    <button className="w-14 py-3.5 bg-surface-green text-text-main rounded-xl flex items-center justify-center hover:bg-border transition-all">
-                      <Navigation className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
               </>
