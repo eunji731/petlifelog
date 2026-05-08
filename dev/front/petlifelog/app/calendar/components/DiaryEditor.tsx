@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Camera, Plus, Trash2, Sparkles, Check, RefreshCw, Calendar, MapPin, Zap, Info } from 'lucide-react';
+import { X, Camera, Plus, Trash2, Sparkles, Check, RefreshCw, Calendar, MapPin, Zap, Info, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/app/common/hooks/useToast';
 import { usePet } from '@/app/common/hooks/usePet';
@@ -623,9 +623,28 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                     </div>
                   )}
 
+                  {/* AI Accuracy Warning */}
+                  <div className="mb-4 space-y-2 p-4 bg-main-yellow/5 border border-main-yellow/20 rounded-2xl">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-main-yellow shrink-0 mt-0.5" />
+                      <p className="text-[10px] lg:text-[11px] font-medium text-text-sub leading-tight">
+                        AI 일기는 입력하신 데이터를 기반으로 작성되어 실제 사실과 다를 수 있습니다. 생성 후 내용을 반드시 확인 및 수정해 주세요.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-2 pl-6 relative before:absolute before:left-2 before:top-2 before:w-1 before:h-1 before:bg-main-yellow/40 before:rounded-full">
+                      <p className="text-[10px] lg:text-[11px] font-medium text-text-sub/80 leading-tight">
+                        추가 태그를 상세히 적어주시면 우리 아이만의 특별한 순간을 더 정확하게 기록할 수 있어요.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-2 pl-6 relative before:absolute before:left-2 before:top-2 before:w-1 before:h-1 before:bg-main-yellow/40 before:rounded-full">
+                      <p className="text-[10px] lg:text-[11px] font-medium text-text-sub/80 leading-tight">
+                        사진의 위치나 시간 정보(메타데이터)가 없는 경우 AI의 분류 정확도가 낮아질 수 있습니다.
+                      </p>
+                    </div>
+                  </div>
+
                   <button
-                    onClick={triggerBatchAIAnalysis}
-                    disabled={
+                    onClick={triggerBatchAIAnalysis}                    disabled={
                       photoPreviews.length === 0 ||
                       selectedDogIds.length === 0 ||
                       usageInfo?.dateBlocked === true ||
