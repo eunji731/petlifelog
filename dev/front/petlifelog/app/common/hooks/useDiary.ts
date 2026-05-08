@@ -109,9 +109,13 @@ export const useDiary = () => {
         log.moments.some(moment => moment.dogIds.includes(selectedPetId || ''))
       );
 
-  const syncFromBackend = async () => {
+  const syncFromBackend = async (params?: { startDate?: string; endDate?: string }) => {
     try {
-      const res = await clientApi.get('/api/memories');
+      const queryString = params 
+        ? `?${new URLSearchParams(Object.entries(params).filter(([_, v]) => !!v) as string[][]).toString()}`
+        : '';
+      
+      const res = await clientApi.get(`/api/memories${queryString}`);
       const memories: MemoryApiItem[] = res.data?.data ?? [];
 
       const logs: Record<string, DailyLog> = {};

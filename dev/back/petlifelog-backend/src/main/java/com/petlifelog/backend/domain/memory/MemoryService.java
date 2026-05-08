@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -19,11 +20,11 @@ public class MemoryService {
     private final MemoryRepository memoryRepository;
     private final AttachedFileService attachedFileService;
 
-    public List<MemoryListResponse> getMemories(UUID userId) {
-        return memoryRepository.findByUser_IdOrderByMemoryDateDesc(userId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public List<MemoryListResponse> getMemories(UUID userId, LocalDate startDate, LocalDate endDate) {
+        List<Memory> memories = (startDate != null && endDate != null)
+                ? memoryRepository.findByUser_IdAndMemoryDateBetweenOrderByMemoryDateDesc(userId, startDate, endDate)
+                : memoryRepository.findByUser_IdOrderByMemoryDateDesc(userId);
+        return memories.stream().map(this::toResponse).toList();
     }
 
     @Transactional
@@ -46,10 +47,7 @@ public class MemoryService {
 
         List<MemoryListResponse.PhotoInfo> photos = memory.getPhotos().stream()
                 .sorted(Comparator.comparingInt(Photo::getSortOrder))
-                .map(p -> MemoryListResponse.PhotoInfo.builder()
-                        .id(p.getId().toString())
-                        .path(p.getPathOrigin())
-                        .build())
+                .map(this::toPhotoInfo)
                 .toList();
 
         List<String> petIds = memory.getMemoryDogs().stream()
@@ -58,26 +56,20 @@ public class MemoryService {
 
         List<MemoryListResponse.MomentInfo> moments = memory.getMoments().stream()
                 .sorted(Comparator.comparingInt(MemoryMoment::getSortOrder))
-                .map(m -> {
-                    List<MemoryListResponse.PhotoInfo> momentPhotos = m.getPhotos().stream()
-                            .sorted(Comparator.comparingInt(Photo::getSortOrder))
-                            .map(p -> MemoryListResponse.PhotoInfo.builder()
-                                    .id(p.getId().toString())
-                                    .path(p.getPathOrigin())
-                                    .build())
-                            .toList();
-                    return MemoryListResponse.MomentInfo.builder()
-                            .id(m.getId().toString())
-                            .category(m.getCategory())
-                            .aiTitle(m.getAiTitle())
-                            .aiContent(m.getAiContent())
-                            .locationName(m.getLocationName())
-                            .energyLevel(m.getEnergyLevel())
-                            .tags(m.getTags())
-                            .representativePhotoPath(m.getRepresentativePhotoPath())
-                            .photos(momentPhotos)
-                            .build();
-                })
+                .map(m -> MemoryListResponse.MomentInfo.builder()
+                        .id(m.getId().toString())
+                        .category(m.getCategory())
+                        .aiTitle(m.getAiTitle())
+                        .aiContent(m.getAiContent())
+                        .locationName(m.getLocationName())
+                        .energyLevel(m.getEnergyLevel())
+                        .tags(m.getTags())
+                        .representativePhotoPath(m.getRepresentativePhotoPath())
+                        .photos(m.getPhotos().stream()
+                                .sorted(Comparator.comparingInt(Photo::getSortOrder))
+                                .map(this::toPhotoInfo)
+                                .toList())
+                        .build())
                 .toList();
 
         return MemoryListResponse.builder()
@@ -92,6 +84,16 @@ public class MemoryService {
                 .photos(photos)
                 .petIds(petIds)
                 .moments(moments)
+                .build();
+    }
+
+    private MemoryListResponse.PhotoInfo toPhotoInfo(Photo p) {
+        return MemoryListResponse.PhotoInfo.builder()
+                .id(p.getId().toString())
+                .path(p.getPathOrigin())
+                .takenAt(p.getTakenAt() != null ? p.getTakenAt().toString() : null)
+                .latitude(p.getGpsLat())
+                .longitude(p.getGpsLng())
                 .build();
     }
 }

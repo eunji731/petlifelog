@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
-import { 
-  Calendar, 
-  MapPin, 
-  Sparkles, 
-  Clock, 
-  ChevronRight, 
-  Download, 
-  Image as ImageIcon, 
+import {
+  Calendar,
+  MapPin,
+  Sparkles,
+  Clock,
+  ChevronRight,
+  Download,
+  Image as ImageIcon,
   FileText,
   Loader2,
   Share2
@@ -25,7 +25,7 @@ interface MonthlyTimelineProps {
 }
 
 export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTimelineProps) {
-  const { allLogs } = useDiary();
+  const { allLogs, syncFromBackend } = useDiary();
   const [isExporting, setIsExporting] = useState<string | null>(null);
 
   const currentYear = currentDate.getFullYear();
@@ -37,25 +37,35 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
     end: ''
   });
 
-  // 현재 월의 로그만 필터링 + 선택된 기간 필터링
+  // Sync from backend when date range changes
+  useEffect(() => {
+    if (dateRange.start || dateRange.end) {
+      syncFromBackend({ startDate: dateRange.start, endDate: dateRange.end });
+    }
+  }, [dateRange.start, dateRange.end, syncFromBackend]);
+
+  // 필터링 로직 수정: 기간 필터가 있으면 해당 기간만, 없으면 현재 월만 표시
   const monthlyLogs = allLogs
     .filter(log => {
       const logDate = new Date(log.dateKey);
+
+      // 기간 필터가 설정된 경우
+      if (dateRange.start || dateRange.end) {
+        const logDateStr = log.dateKey;
+        if (dateRange.start && logDateStr < dateRange.start) return false;
+        if (dateRange.end && logDateStr > dateRange.end) return false;
+        return true;
+      }
+
+      // 기간 필터가 없는 경우 기본값: 현재 월
       return logDate.getFullYear() === currentYear && logDate.getMonth() === currentMonth;
-    })
-    .filter(log => {
-      if (!dateRange.start && !dateRange.end) return true;
-      const logDateStr = log.dateKey;
-      if (dateRange.start && logDateStr < dateRange.start) return false;
-      if (dateRange.end && logDateStr > dateRange.end) return false;
-      return true;
     })
     .sort((a, b) => b.dateKey.localeCompare(a.dateKey)); // 최신순
 
   const captureSingleLog = async (logId: string) => {
     const element = document.getElementById(`log-container-${logId}`);
     if (!element) return null;
-    
+
     try {
       // Find all images in the log container
       const images = Array.from(element.getElementsByTagName('img'));
@@ -86,7 +96,7 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
       // Hide non-export elements
       const noExportElements = element.querySelectorAll('.no-export');
       noExportElements.forEach(el => (el as HTMLElement).style.opacity = '0');
-      
+
       await new Promise(resolve => setTimeout(resolve, 300));
 
       const dataUrl = await toPng(element, {
@@ -115,10 +125,10 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
   const handleExportSingle = async (logId: string, logDate: string, format: 'png' | 'pdf') => {
     try {
       setIsExporting(logId);
-      
+
       const dataUrl = await captureSingleLog(logId);
       if (!dataUrl) return;
-      
+
       if (format === 'png') {
         const link = document.createElement('a');
         link.download = `petlifelog-${logDate}.png`;
@@ -171,20 +181,20 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
           <span className="text-[11px] lg:text-xs font-black text-main-green">기간 필터</span>
         </div>
         <div className="flex items-center gap-2">
-          <input 
-            type="date" 
+          <input
+            type="date"
             value={dateRange.start}
             onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
             className="text-[11px] lg:text-xs font-bold border border-border rounded-lg px-2 py-1 focus:outline-none focus:border-main-green"
           />
           <span className="text-text-sub text-xs">~</span>
-          <input 
-            type="date" 
+          <input
+            type="date"
             value={dateRange.end}
             onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
             className="text-[11px] lg:text-xs font-bold border border-border rounded-lg px-2 py-1 focus:outline-none focus:border-main-green"
           />
-          <button 
+          <button
             onClick={() => setDateRange({ start: '', end: '' })}
             className="text-[10px] font-black text-text-sub hover:text-red-500 transition-colors px-2"
           >
@@ -216,9 +226,9 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
                     <div className="px-6 py-2 bg-main-green text-white text-xs font-black rounded-full shadow-lg shadow-main-green/20 whitespace-nowrap border-2 border-white">
                       {log.dateKey}
                     </div>
-                    
+
                     <div className="flex items-center gap-2 no-export opacity-0 group-hover/container:opacity-100 transition-opacity duration-300">
-                      <button 
+                      <button
                         onClick={() => handleExportSingle(log.id, log.dateKey, 'png')}
                         disabled={!!isExporting}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-md border border-border rounded-xl text-text-sub hover:text-main-green hover:border-main-green/30 transition-all shadow-sm active:scale-95 disabled:opacity-50 group/btn"
@@ -226,7 +236,7 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
                         {isExporting === log.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5 group/btn:scale-110 transition-transform" />}
                         <span className="text-[10px] font-black">이미지</span>
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleExportSingle(log.id, log.dateKey, 'pdf')}
                         disabled={!!isExporting}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-md border border-border rounded-xl text-text-sub hover:text-main-green hover:border-main-green/30 transition-all shadow-sm active:scale-95 disabled:opacity-50 group/btn"
@@ -253,11 +263,11 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
                         {/* Photo Side */}
                         <div className="w-full md:w-1/2 px-4">
                           <div className="relative aspect-video rounded-[32px] overflow-hidden shadow-xl group border-4 border-white">
-                            <Image 
-                              src={getImagePath(moment.photos[0]?.path) || '/dog-profile.png'} 
-                              alt={moment.aiTitle} 
-                              fill 
-                              className="object-cover group-hover:scale-110 transition-transform duration-1000" 
+                            <Image
+                              src={getImagePath(moment.photos[0]?.path) || '/dog-profile.png'}
+                              alt={moment.aiTitle}
+                              fill
+                              className="object-cover group-hover:scale-110 transition-transform duration-1000"
                             />
                             <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[9px] font-black text-main-green shadow-sm">
                               {moment.category}
@@ -284,9 +294,9 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
                         </div>
                       </div>
                     ))}
-                    
+
                     <div className="flex justify-center pt-4 no-export">
-                      <button 
+                      <button
                         onClick={() => onDateSelect(new Date(log.dateKey))}
                         className="px-6 py-2.5 bg-white border border-border text-main-green text-[11px] font-black rounded-full hover:bg-main-green hover:text-white transition-all shadow-sm flex items-center gap-2 group"
                       >

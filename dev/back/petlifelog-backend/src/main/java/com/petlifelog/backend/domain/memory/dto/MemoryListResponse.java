@@ -26,6 +26,9 @@ public class MemoryListResponse {
     public static class PhotoInfo {
         private String id;
         private String path;
+        private String takenAt;
+        private Double latitude;
+        private Double longitude;
     }
 
     @Getter

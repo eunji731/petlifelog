@@ -5,6 +5,7 @@ import com.petlifelog.backend.common.auth.JwtAuthenticationFilter;
 import com.petlifelog.backend.common.auth.JwtTokenProvider;
 import com.petlifelog.backend.common.auth.OAuth2FailureHandler;
 import com.petlifelog.backend.common.auth.OAuth2SuccessHandler;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -96,13 +97,20 @@ public class SecurityConfig {
                 
                 // 6. [URL별 권한 설정] - 어떤 문을 열어줄지 정합니다.
                 .authorizeHttpRequests(auth -> auth
-                        // 아래 적힌 주소들은 로그인 없이 누구나 들어올 수 있습니다.
                         .requestMatchers("/", "/kakao/auth-code", "/oauth2/**", "/error", "/favicon.ico").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // API 문서 주소
-                        .requestMatchers("/api/auth/reissue").permitAll() // 토큰 재발급은 로그인 안 된 상태에서도 가능해야 함
-                        
-                        // 그 외 나머지 모든(/api/** 등) 주소는 반드시 로그인을 해야만 들어올 수 있습니다.
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/api/auth/reissue").permitAll()
+                        // 정적 이미지 파일: 인증 없이 접근 가능 (경로에 UUID 포함되어 추측 불가)
+                        .requestMatchers("/files/**", "/uploads/**").permitAll()
                         .anyRequest().authenticated()
+                )
+                // 미인증 요청 시 OAuth2 로그인 리다이렉트 대신 401 반환
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"error\":\"Unauthorized\"}");
+                        })
                 )
                 
                 // 7. [OAuth2 로그인(카카오) 설정]
