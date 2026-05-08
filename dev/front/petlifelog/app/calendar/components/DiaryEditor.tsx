@@ -68,11 +68,6 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
   const [preAiDateModal, setPreAiDateModal] = useState<{ exifDates: string[] } | null>(null);
   // AI 호출 전 메타데이터 누락 확인 모달
   const [preMetaModal, setPreMetaModal] = useState<{ missingDate: boolean; missingGps: boolean } | null>(null);
-  // AI 호출 후 저장 시점 EXIF 날짜 불일치 모달 (사후 확인)
-  const [dateMismatchModal, setDateMismatchModal] = useState<{
-    exifDates: string[];
-    pendingData: DailyLog;
-  } | null>(null);
   // AI 에러 모달
   const [aiErrorModal, setAiErrorModal] = useState<{ title: string; message: string } | null>(null);
   // 메타데이터 누락 경고
@@ -273,15 +268,6 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
       const hasMissingLocation = files.some(f => f.latitude == null);
       setMetaWarnings(hasMissingDate || hasMissingLocation ? { missingDate: hasMissingDate, missingLocation: hasMissingLocation } : null);
 
-      // EXIF 날짜 vs 선택 날짜 불일치 체크
-      const exifDates = files
-        .map(f => f.takenAt ? f.takenAt.split('T')[0] : null)
-        .filter((d): d is string => d !== null);
-      const mismatchedDates = [...new Set(exifDates)].filter(d => d !== targetDateStr);
-      if (mismatchedDates.length > 0) {
-        setDateMismatchModal({ exifDates: mismatchedDates, pendingData: processed });
-      }
-
       success('AI가 하루를 완벽하게 정리했습니다!');
 
     } catch (err: unknown) {
@@ -380,45 +366,10 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
   // ─── 렌더링 ───────────────────────────────────────────────────────
 
   const formatKoreanDate = (dateStr: string) =>
-    new Date(dateStr + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+    new Date(dateStr + 'T00:00:00').toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <div className="flex flex-col h-full bg-surface-green/30">
-      {/* EXIF 날짜 불일치 모달 */}
-      {dateMismatchModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
-            <div className="space-y-2">
-              <p className="text-base font-black text-text-main">사진 촬영일이 달라요</p>
-              <p className="text-sm font-medium text-text-sub leading-relaxed">
-                사진의 촬영 날짜({dateMismatchModal.exifDates.map(formatKoreanDate).join(', ')})가
-                선택한 날짜({formatKoreanDate(targetDateStr)})와 다릅니다.
-              </p>
-              <p className="text-sm font-medium text-text-sub">
-                선택한 날짜로 저장할까요?
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDateMismatchModal(null)}
-                className="flex-1 py-3 bg-surface-green border border-border text-text-sub font-black rounded-2xl text-sm hover:bg-surface-green/80 transition-all"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => {
-                  const pending = dateMismatchModal.pendingData;
-                  setDateMismatchModal(null);
-                  handleSave(pending);
-                }}
-                className="flex-[2] py-3 bg-main-green text-white font-black rounded-2xl text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                {formatKoreanDate(targetDateStr)}로 저장
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* AI 호출 전 날짜 불일치 확인 모달 */}
       {preAiDateModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -682,7 +633,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
               </div>
               <div className="text-center space-y-2">
                 <h3 className="text-xl font-black text-text-main">AI가 사진들의 장소와 맥락을 분류 중...</h3>
-                <p className="text-text-sub font-bold">봉봉이의 성격에 딱 맞는 일기를 작성하고 있어요.</p>
+                <p className="text-text-sub font-bold">{pets.filter(p => selectedDogIds.includes(p.id)).map(p => p.name).join(', ')}의 성격에 딱 맞는 일기를 작성하고 있어요.</p>
               </div>
             </div>
 
@@ -769,45 +720,36 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                 </div>
               </div>
 
-              {/* 메타데이터 누락 경고 배너 */}
-              {metaWarnings && (
-                <div className="space-y-3">
-                  {metaWarnings.missingDate && (
-                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
-                      <Calendar className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                      <div className="space-y-0.5">
-                        <p className="text-sm font-black text-amber-700">촬영 날짜 정보가 없어요</p>
-                        <p className="text-xs font-medium text-amber-600 leading-relaxed">
-                          일부 사진에 날짜 메타데이터가 없어 시간 순서가 부정확할 수 있어요. 선택한 날짜({formattedDate})로 저장됩니다.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {metaWarnings.missingLocation && (
-                    <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4">
-                      <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                      <div className="space-y-0.5">
-                        <p className="text-sm font-black text-blue-700">위치 정보가 없어요</p>
-                        <p className="text-xs font-medium text-blue-600 leading-relaxed">
-                          GPS 정보가 없는 사진이 포함되어 있어요. 해당 추억은 지도 메뉴에 표시되지 않아요.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-center text-xs font-bold text-text-sub px-4">
-                    위 내용을 확인하셨나요? 그래도 저장하시려면 아래 버튼을 눌러주세요.
-                  </p>
-                </div>
-              )}
-
               {/* 하단 액션 */}
               <div className="flex gap-4 pt-6">
-                <button
-                  onClick={handleReAnalyze}
-                  className="flex-1 py-4 bg-white border-2 border-border text-text-sub font-black rounded-2xl hover:bg-surface-green transition-all flex items-center justify-center gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" /> 다시 분석하기
-                </button>
+                <div className="flex-1 flex flex-col gap-2">
+                  {metaWarnings && (
+                    <div className="space-y-1.5">
+                      {metaWarnings.missingDate && (
+                        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                          <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                          <p className="text-[11px] font-medium text-amber-700 leading-relaxed">
+                            날짜 정보가 없어 시간 순서가 부정확할 수 있어요. {formattedDate}로 저장됩니다.
+                          </p>
+                        </div>
+                      )}
+                      {metaWarnings.missingLocation && (
+                        <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
+                          <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                          <p className="text-[11px] font-medium text-blue-700 leading-relaxed">
+                            위치 정보가 없어 지도 메뉴에 표시되지 않아요.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleReAnalyze}
+                    className="w-full py-4 bg-white border-2 border-border text-text-sub font-black rounded-2xl hover:bg-surface-green transition-all flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" /> 다시 분석하기
+                  </button>
+                </div>
                 <button
                   onClick={() => handleSave(aiResult)}
                   disabled={isSaving}
