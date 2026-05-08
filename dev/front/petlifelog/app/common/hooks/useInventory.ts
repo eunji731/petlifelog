@@ -1,71 +1,113 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import clientApi from '../lib/clientApi';
 
 export interface InventoryItem {
-  id: string;
+  id: string | number;
   name: string;
-  category: 'SNACK' | 'TOY' | 'CLOTHES' | 'HEALTH';
+  category: 'FOOD' | 'SNACK' | 'TOY' | 'HEALTH' | 'CLOTHES' | 'ETC';
   photo: string;
+  photos?: { id: string; url: string }[];
   brand?: string;
-  expiryDate?: string;
-  recommendedAmount?: string;
+
+  // Dates
+  productionDate?: string;
+  expiryDateText?: string;
+  expiryDateSpecific?: string;
+  openedAt?: string;
+
+  // Category Specific
+  flavor?: string;
+  ingredients?: string[];
+  material?: string;
+  size?: string;
+  storageMethod?: 'ROOM_TEMP' | 'REFRIGERATED' | 'FROZEN';
+  suggestedUsage?: string;
+
+  // Management
   rating: number;
+  stock: number;
+  price?: number;
+  isFeeding: boolean;
   addedAt: string;
 }
 
 interface InventoryState {
   items: InventoryItem[];
+  loading: boolean;
+  error: string | null;
+  fetchItems: () => Promise<void>;
   addItem: (item: InventoryItem) => void;
-  removeItem: (id: string) => void;
-  updateItem: (id: string, updates: Partial<InventoryItem>) => void;
+  updateItem: (item: InventoryItem) => void;
+  removeItem: (id: string | number) => Promise<void>;
+  toggleFeeding: (id: string | number) => Promise<void>;
 }
 
-export const useInventoryStore = create<InventoryState>()(
-  persist(
-    (set) => ({
-      items: [
-        {
-          id: '1',
-          name: '오리안심 육포',
-          category: 'SNACK',
-          photo: '/dog-eat.jpg',
-          brand: '펫프렌즈',
-          expiryDate: '2027-05-20',
-          recommendedAmount: '하루 2개 이내',
-          rating: 5,
-          addedAt: '2026-05-01'
-        },
-        {
-          id: '2',
-          name: '노란색 삑삑이 공',
-          category: 'TOY',
-          photo: '/dog-play.jpg',
-          brand: '콩(KONG)',
-          rating: 4,
-          addedAt: '2026-04-15'
-        }
-      ],
-      addItem: (item) => set((state) => ({ items: [item, ...state.items] })),
-      removeItem: (id) => set((state) => ({ items: state.items.filter(i => i.id !== id) })),
-      updateItem: (id, updates) => set((state) => ({
-        items: state.items.map(i => i.id === id ? { ...i, ...updates } : i)
-      }))
-    }),
-    {
-      name: 'inventory-storage'
+export const useInventoryStore = create<InventoryState>((set, get) => ({
+  items: [],
+  loading: false,
+  error: null,
+
+  fetchItems: async () => {
+    set({ loading: true, error: null });
+    try {
+      const res = await clientApi.get('/api/inventory');
+      set({ items: res.data?.data ?? [], loading: false });
+    } catch (err: any) {
+      console.error('인벤토리 조회 실패', err);
+      set({ error: err.message, loading: false });
     }
-  )
-);
+  },
+
+  addItem: (item) => {
+    set((state) => ({ items: [item, ...state.items] }));
+  },
+
+  updateItem: (item) => {
+    set((state) => ({
+      items: state.items.map((i) => (String(i.id) === String(item.id) ? item : i)),
+    }));
+  },
+
+  removeItem: async (id) => {
+    try {
+      await clientApi.delete(`/api/inventory/${id}`);
+      set((state) => ({ items: state.items.filter((i) => String(i.id) !== String(id)) }));
+    } catch (err) {
+      console.error('아이템 삭제 실패', err);
+      throw err;
+    }
+  },
+
+  toggleFeeding: async (id) => {
+    try {
+      const res = await clientApi.patch(`/api/inventory/${id}/feeding`);
+      const updated: InventoryItem = res.data?.data;
+      set((state) => ({
+        items: state.items.map((i) => (String(i.id) === String(id) ? { ...i, isFeeding: updated.isFeeding } : i)),
+      }));
+    } catch (err) {
+      console.error('지급 상태 변경 실패', err);
+      throw err;
+    }
+  },
+}));
 
 export const useInventory = () => {
   const store = useInventoryStore();
+  
+  // Helper filters
+  const snacks = store.items.filter(i => i.category === 'SNACK');
+  const toys = store.items.filter(i => i.category === 'TOY');
+  const health = store.items.filter(i => i.category === 'HEALTH');
+  const clothes = store.items.filter(i => i.category === 'CLOTHES');
+
   return {
     ...store,
-    snacks: store.items.filter(i => i.category === 'SNACK'),
-    toys: store.items.filter(i => i.category === 'TOY'),
-    health: store.items.filter(i => i.category === 'HEALTH'),
-    clothes: store.items.filter(i => i.category === 'CLOTHES'),
+    snacks,
+    toys,
+    health,
+    clothes,
   };
 };

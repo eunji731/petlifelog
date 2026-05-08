@@ -412,14 +412,14 @@ public class AiDiaryService {
     // ─────────────────────────────────────────────────────────────────
 
     private void checkRateLimit(UUID userId, LocalDate targetDate) {
-        long dateCount = aiDiaryUsageRepository.countByMember_IdAndTargetDate(userId, targetDate);
+        long dateCount = aiDiaryUsageRepository.countByMember_IdAndUsageTypeAndTargetDate(userId, "DIARY", targetDate);
         if (dateCount >= DATE_LIMIT) {
             throw AiRateLimitException.dateLimitExceeded(targetDate.toString());
         }
 
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
         LocalDateTime todayEnd = todayStart.plusDays(1);
-        long dailyTotal = aiDiaryUsageRepository.countByMember_IdAndCalledAtBetween(userId, todayStart, todayEnd);
+        long dailyTotal = aiDiaryUsageRepository.countByMember_IdAndUsageTypeAndCalledAtBetween(userId, "DIARY", todayStart, todayEnd);
         if (dailyTotal >= DAILY_LIMIT) {
             throw AiRateLimitException.dailyLimitExceeded();
         }
@@ -432,15 +432,16 @@ public class AiDiaryService {
                 .member(member)
                 .targetDate(targetDate)
                 .calledAt(LocalDateTime.now())
+                .usageType("DIARY")
                 .build());
     }
 
     public AiUsageResponse getUsage(UUID userId, LocalDate targetDate) {
-        long dateCount = aiDiaryUsageRepository.countByMember_IdAndTargetDate(userId, targetDate);
+        long dateCount = aiDiaryUsageRepository.countByMember_IdAndUsageTypeAndTargetDate(userId, "DIARY", targetDate);
 
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
         LocalDateTime todayEnd = todayStart.plusDays(1);
-        long dailyTotal = aiDiaryUsageRepository.countByMember_IdAndCalledAtBetween(userId, todayStart, todayEnd);
+        long dailyTotal = aiDiaryUsageRepository.countByMember_IdAndUsageTypeAndCalledAtBetween(userId, "DIARY", todayStart, todayEnd);
 
         return AiUsageResponse.builder()
                 .dateCount(dateCount)

@@ -15,7 +15,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "ai_diary_usages", indexes = {
+@Table(name = "ai_usages", indexes = {
         @Index(name = "idx_ai_usage_member_target", columnList = "member_id, target_date"),
         @Index(name = "idx_ai_usage_member_called", columnList = "member_id, called_at")
 })
@@ -38,10 +38,15 @@ public class AiDiaryUsage {
     @Column(name = "called_at", nullable = false)
     private LocalDateTime calledAt;
 
+    /** 어떤 기능에서 호출했는지 (DIARY / INVENTORY) */
+    @Column(name = "usage_type", nullable = false, length = 20)
+    private String usageType;
+
     @Builder
-    public AiDiaryUsage(Member member, LocalDate targetDate, LocalDateTime calledAt) {
+    public AiDiaryUsage(Member member, LocalDate targetDate, LocalDateTime calledAt, String usageType) {
         this.member = member;
         this.targetDate = targetDate;
         this.calledAt = calledAt;
+        this.usageType = usageType != null ? usageType : "DIARY";
     }
 }

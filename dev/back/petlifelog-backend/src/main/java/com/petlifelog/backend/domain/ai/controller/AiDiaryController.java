@@ -2,7 +2,9 @@ package com.petlifelog.backend.domain.ai.controller;
 
 import com.petlifelog.backend.common.dto.ApiResponse;
 import com.petlifelog.backend.domain.ai.AiDiaryService;
+import com.petlifelog.backend.domain.ai.AiInventoryService;
 import com.petlifelog.backend.domain.ai.dto.AnalyzeDiaryResult;
+import com.petlifelog.backend.domain.ai.dto.AnalyzeProductResult;
 import com.petlifelog.backend.domain.ai.dto.AiUsageResponse;
 import com.petlifelog.backend.domain.ai.dto.CheckMetadataResponse;
 import com.petlifelog.backend.domain.ai.dto.SaveDiaryRequest;
@@ -23,6 +25,7 @@ import java.util.UUID;
 public class AiDiaryController {
 
     private final AiDiaryService aiDiaryService;
+    private final AiInventoryService aiInventoryService;
 
     /**
      * 사용량 조회: 특정 날짜의 AI 호출 횟수 및 오늘 전체 총 횟수 반환
@@ -74,6 +77,19 @@ public class AiDiaryController {
      * - analyze 응답의 storedFiles 를 그대로 body 에 포함해야 함
      * - Memory + AttachedFile + Photo + MemoryDog 가 한 트랜잭션으로 저장됨
      */
+    /**
+     * 인벤토리 제품 AI 분석: 이미지(최대 3장)로 제품 정보를 자동 추출
+     */
+    @PostMapping("/analyze-product")
+    public ApiResponse<AnalyzeProductResult> analyzeProduct(
+            @AuthenticationPrincipal User user,
+            @RequestParam("images") List<MultipartFile> images) {
+
+        AnalyzeProductResult result = aiInventoryService.analyzeProduct(
+                UUID.fromString(user.getUsername()), images);
+        return ApiResponse.success(result);
+    }
+
     @PostMapping("/save")
     public ApiResponse<UUID> saveDiary(
             @AuthenticationPrincipal User user,

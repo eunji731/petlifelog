@@ -29,7 +29,10 @@
       "Bash(cd /d \"D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\back\\\\petlifelog-backend\\\\src\\\\main\\\\java\\\\com\\\\petlifelog\\\\backend\\\\domain\\\\memory\")",
       "Bash(Get-ChildItem -Recurse -File)",
       "Bash(Get-Content \"D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\front\\\\petlifelog\\\\package.json\")",
-      "Bash(Select-String \"exif\")"
+      "Bash(Select-String \"exif\")",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(cmd *)"
     ]
   }
 }

@@ -8,5 +8,6 @@ public enum ParentDomainType {
     MEMORY,
     DIARY,
     RECORD,
-    PET_PROFILE
+    PET_PROFILE,
+    INVENTORY
 }

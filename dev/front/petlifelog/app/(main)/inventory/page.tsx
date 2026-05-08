@@ -1,60 +1,31 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Camera, Star, Sparkles, Calendar, ShoppingBag, X, Tag } from 'lucide-react';
-import { useInventory, InventoryItem } from '@/app/common/hooks/useInventory';
-import { useToast } from '@/app/common/hooks/useToast';
+import { useRouter } from 'next/navigation';
+import { Plus, Star, ShoppingBag, X, Calendar, Tag, Package, Activity, Pencil } from 'lucide-react';
+import { useInventory } from '@/app/common/hooks/useInventory';
+import { getImagePath } from '@/app/common/lib/clientApi';
 
 export default function InventoryPage() {
-  const { items, addItem, removeItem } = useInventory();
-  const { success } = useToast();
-  const [activeTab, setActiveTab] = useState<'ALL' | 'SNACK' | 'TOY' | 'HEALTH' | 'CLOTHES'>('ALL');
-  const [isScanning, setIsScanning] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const { items, loading, fetchItems, removeItem, toggleFeeding } = useInventory();
 
-  const handleScanClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const photoUrl = URL.createObjectURL(files[0]);
-      triggerAIScan(photoUrl);
-    }
-    e.target.value = '';
-  };
-
-  const triggerAIScan = (photoUrl: string) => {
-    setIsScanning(true);
-    // Simulate AI Scan & OCR
-    setTimeout(() => {
-      const newItem: InventoryItem = {
-        id: Date.now().toString(36) + Math.random().toString(36).substring(2),
-        name: '유기농 동결건조 북어 트릿',
-        category: 'SNACK',
-        photo: photoUrl,
-        brand: '더독(The Dog)',
-        expiryDate: '2027-12-31',
-        recommendedAmount: '5kg 기준 3-5조각',
-        rating: 5,
-        addedAt: new Date().toISOString().split('T')[0]
-      };
-      addItem(newItem);
-      success('AI가 제품 정보를 성공적으로 스캔했습니다! ✨');
-      setIsScanning(false);
-    }, 3000);
-  };
+  useEffect(() => {
+    fetchItems();
+  }, []);
+  const [activeTab, setActiveTab] = useState<'ALL' | 'FOOD' | 'SNACK' | 'TOY' | 'HEALTH' | 'CLOTHES' | 'ETC'>('ALL');
 
   const filteredItems = activeTab === 'ALL' ? items : items.filter(i => i.category === activeTab);
 
   const tabs = [
     { label: '전체', value: 'ALL' },
+    { label: '사료', value: 'FOOD' },
     { label: '간식', value: 'SNACK' },
     { label: '장난감', value: 'TOY' },
     { label: '건강/영양', value: 'HEALTH' },
     { label: '옷/액세서리', value: 'CLOTHES' },
+    { label: '기타', value: 'ETC' },
   ] as const;
 
   return (
@@ -66,32 +37,16 @@ export default function InventoryPage() {
             <span className="text-xs font-black text-main-yellow tracking-widest uppercase mb-1 block">Smart Inventory</span>
             <h1 className="text-3xl lg:text-4xl font-black text-text-main tracking-tight">아이의 보물창고</h1>
             <p className="text-text-sub text-sm lg:text-base font-bold mt-2">
-              사진 스캔으로 간식과 장난감을 스마트하게 관리하세요.
+              AI 스캔으로 정보를 자동 입력하고 재고를 스마트하게 관리하세요.
             </p>
           </div>
           
           <div className="flex gap-3">
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*"
-              onChange={handleFileChange}
-            />
             <button 
-              onClick={handleScanClick}
-              disabled={isScanning}
-              className="flex items-center gap-2 px-8 py-4 bg-main-yellow text-white font-black rounded-2xl shadow-lg shadow-main-yellow/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              onClick={() => router.push('/inventory/register')}
+              className="flex items-center gap-2 px-8 py-4 bg-main-yellow text-white font-black rounded-2xl shadow-lg shadow-main-yellow/30 hover:scale-105 active:scale-95 transition-all"
             >
-              {isScanning ? (
-                <>
-                  <Sparkles className="w-5 h-5 animate-spin" /> 스캔 중...
-                </>
-              ) : (
-                <>
-                  <Camera className="w-5 h-5" /> 제품 스캔하기
-                </>
-              )}
+              <Plus className="w-5 h-5" /> 등록
             </button>
           </div>
         </div>
@@ -121,84 +76,178 @@ export default function InventoryPage() {
       {/* Grid Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar p-6 lg:p-10">
         <div className="max-w-6xl mx-auto">
-          {isScanning && (
-            <div className="mb-8 p-12 bg-white rounded-[32px] border-2 border-dashed border-main-yellow/30 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in duration-500">
-              <div className="relative">
-                <div className="w-20 h-20 border-4 border-light-yellow border-t-main-yellow rounded-full animate-spin" />
-                <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-main-yellow" />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-text-main">AI가 제품을 분석하고 있어요</h3>
-                <p className="text-text-sub font-medium">이름, 유통기한, 권장 급여량을 자동으로 추출 중입니다.</p>
-              </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-12 h-12 border-4 border-light-yellow border-t-main-yellow rounded-full animate-spin" />
             </div>
-          )}
-
-          {filteredItems.length === 0 && !isScanning ? (
+          ) : filteredItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-20 h-20 bg-light-yellow rounded-full flex items-center justify-center mb-6">
                 <ShoppingBag className="w-10 h-10 text-main-yellow" />
               </div>
               <h3 className="text-xl font-black text-text-main">도감이 텅 비어있어요</h3>
-              <p className="text-text-sub mt-2 font-medium">제품 사진을 찍어 스마트하게 등록해보세요!</p>
+              <p className="text-text-sub mt-2 font-medium">제품을 등록해 스마트하게 관리해보세요!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredItems.map((item) => (
                 <div 
                   key={item.id} 
-                  className="bg-white rounded-[32px] border border-border overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                  className={`bg-white rounded-[32px] border transition-all duration-300 group relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 ${
+                    item.isFeeding ? 'border-main-green/50 ring-2 ring-main-green/10' : 'border-border'
+                  }`}
                 >
                   {/* Photo */}
-                  <div className="relative aspect-square overflow-hidden">
-                    <Image src={item.photo} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
-                    <div className="absolute top-4 left-4">
+                  <div 
+                    className="relative aspect-square overflow-hidden bg-light-yellow/30 cursor-pointer"
+                    onClick={() => router.push(`/inventory/edit/${item.id}`)}
+                  >
+                    {item.photo ? (
+                      <Image src={getImagePath(item.photo)} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ShoppingBag className="w-12 h-12 text-light-yellow" />
+                      </div>
+                    )}
+                    
+                    {/* Status Badges */}
+                    <div className="absolute top-4 left-4 flex flex-col gap-2">
                       <span className={`px-3 py-1.5 bg-white/90 backdrop-blur-md text-[10px] font-black rounded-full shadow-sm ${
-                        item.category === 'SNACK' ? 'text-amber-500' : 'text-blue-500'
+                        item.category === 'FOOD' ? 'text-orange-500' :
+                        item.category === 'SNACK' ? 'text-amber-500' :
+                        item.category === 'TOY' ? 'text-blue-500' :
+                        item.category === 'HEALTH' ? 'text-emerald-500' :
+                        item.category === 'CLOTHES' ? 'text-purple-500' : 'text-text-sub'
                       }`}>
-                        {item.category === 'SNACK' ? '간식' : item.category === 'TOY' ? '장난감' : '아이템'}
+                        {tabs.find(t => t.value === item.category)?.label || '아이템'}
+                      </span>
+                      {item.isFeeding && (
+                        <span className="px-3 py-1.5 bg-main-green text-white text-[10px] font-black rounded-full shadow-lg flex items-center gap-1 animate-pulse">
+                          <Activity className="w-3 h-3" /> 지급 중
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Stock Badge */}
+                    <div className="absolute bottom-4 right-4">
+                      <span className={`px-3 py-1.5 backdrop-blur-md text-[11px] font-black rounded-xl shadow-sm border ${
+                        item.stock <= 2 ? 'bg-red-50 text-red-500 border-red-100' : 'bg-white/90 text-text-main border-white/20'
+                      }`}>
+                        재고 {item.stock}개
                       </span>
                     </div>
-                    <button 
-                      onClick={() => removeItem(item.id)}
-                      className="absolute top-4 right-4 p-2 bg-black/30 backdrop-blur-md text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+
+                    {/* Action Buttons */}
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/inventory/edit/${item.id}`);
+                        }}
+                        className="p-2 bg-white/80 backdrop-blur-md text-text-main rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-main-yellow hover:text-white"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeItem(item.id);
+                        }}
+                        className="p-2 bg-black/30 backdrop-blur-md text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Info */}
-                  <div className="p-6">
-                    <div className="text-[10px] font-black text-text-sub mb-1">{item.brand || 'Brand'}</div>
-                    <h3 className="text-lg font-black text-text-main mb-3 line-clamp-1">{item.name}</h3>
-                    
-                    <div className="space-y-2 mb-4">
-                      {item.expiryDate && (
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-text-sub">
-                          <Calendar className="w-3.5 h-3.5 text-main-yellow" />
-                          유통기한: {item.expiryDate}
-                        </div>
-                      )}
-                      {item.recommendedAmount && (
-                        <div className="flex items-center gap-2 text-[11px] font-bold text-text-sub">
-                          <Tag className="w-3.5 h-3.5 text-main-green" />
-                          급여량: {item.recommendedAmount}
-                        </div>
-                      )}
-                    </div>
+                  <div className="p-5">
+                    <div className="text-[10px] font-black text-text-sub mb-0.5">{item.brand || 'Brand'}</div>
+                    <h3 className="text-base font-black text-text-main mb-3 line-clamp-1">{item.name}</h3>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-border">
+                    {/* Size + StorageMethod */}
+                    {(item.size || item.storageMethod) && (
+                      <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+                        {item.size && (
+                          <span className="px-2.5 py-1 bg-surface-green/70 text-[10px] font-black text-text-main rounded-lg">
+                            {item.size}
+                          </span>
+                        )}
+                        {item.storageMethod && (
+                          <span className={`px-2.5 py-1 text-[10px] font-black rounded-lg ${
+                            item.storageMethod === 'REFRIGERATED' ? 'bg-blue-50 text-blue-600' :
+                            item.storageMethod === 'FROZEN' ? 'bg-indigo-50 text-indigo-600' :
+                            'bg-emerald-50 text-emerald-600'
+                          }`}>
+                            {item.storageMethod === 'REFRIGERATED' ? '냉장' :
+                             item.storageMethod === 'FROZEN' ? '냉동' : '상온'}
+                          </span>
+                        )}
+                        {item.material && (
+                          <span className="px-2.5 py-1 bg-surface-green/70 text-[10px] font-black text-text-main rounded-lg">
+                            {item.material}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Expiry */}
+                    {(item.expiryDateSpecific || item.expiryDateText) && (
+                      <div className="mb-2.5 px-3 py-2 bg-amber-50 rounded-xl border border-amber-100">
+                        {item.expiryDateSpecific && (
+                          <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-700">
+                            <Calendar className="w-3 h-3 shrink-0" />
+                            유통: {item.expiryDateSpecific}
+                          </div>
+                        )}
+                        {item.expiryDateText && (
+                          <div className="text-[10px] font-bold text-amber-500 mt-0.5 pl-4">{item.expiryDateText}</div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Ingredients */}
+                    {item.ingredients && item.ingredients.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2.5">
+                        {item.ingredients.slice(0, 3).map((ing, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-surface-green/50 text-[9px] font-bold text-text-sub rounded-full border border-border/40 line-clamp-1 max-w-[80px] truncate">
+                            {ing}
+                          </span>
+                        ))}
+                        {item.ingredients.length > 3 && (
+                          <span className="px-2 py-0.5 bg-border/30 text-[9px] font-black text-text-sub rounded-full">
+                            +{item.ingredients.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Suggested Usage */}
+                    {item.suggestedUsage && (
+                      <p className="text-[10px] text-text-sub font-medium mb-2.5 line-clamp-2 leading-relaxed px-2.5 py-2 bg-surface-green/30 rounded-lg">
+                        {item.suggestedUsage}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
                       <div className="flex gap-0.5">
                         {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i} 
-                            className={`w-3 h-3 ${i < item.rating ? 'text-main-yellow fill-main-yellow' : 'text-border fill-border'}`} 
+                          <Star
+                            key={i}
+                            className={`w-3 h-3 ${i < item.rating ? 'text-main-yellow fill-main-yellow' : 'text-border fill-border'}`}
                           />
                         ))}
                       </div>
-                      <span className="text-[10px] font-black text-text-sub bg-surface-green px-2 py-1 rounded-md">
-                        {item.addedAt}
-                      </span>
+                      <button
+                        onClick={() => toggleFeeding(item.id)}
+                        className={`text-[10px] font-black px-3 py-1.5 rounded-full transition-all ${
+                          item.isFeeding
+                            ? 'bg-main-green text-white shadow-md shadow-main-green/20'
+                            : 'bg-surface-green text-text-sub border border-border hover:border-main-green/50'
+                        }`}
+                      >
+                        {item.isFeeding ? '지급 중지' : '지급 시작'}
+                      </button>
                     </div>
                   </div>
                 </div>

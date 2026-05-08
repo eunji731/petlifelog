@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useCallback, useMemo } from 'react';
 import { create } from 'zustand';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -39,11 +40,18 @@ export const useToastStore = create<ToastState>((set) => ({
 
 export const useToast = () => {
   const addToast = useToastStore((state) => state.addToast);
-  return {
-    success: (msg: string) => addToast(msg, 'success'),
-    error: (msg: string) => addToast(msg, 'error'),
-    info: (msg: string) => addToast(msg, 'info'),
-    warning: (msg: string) => addToast(msg, 'warning'),
-    toast: (msg: string, type?: ToastType) => addToast(msg, type),
-  };
+  
+  const success = useCallback((msg: string) => addToast(msg, 'success'), [addToast]);
+  const error = useCallback((msg: string) => addToast(msg, 'error'), [addToast]);
+  const info = useCallback((msg: string) => addToast(msg, 'info'), [addToast]);
+  const warning = useCallback((msg: string) => addToast(msg, 'warning'), [addToast]);
+  const toast = useCallback((msg: string, type?: ToastType) => addToast(msg, type), [addToast]);
+
+  return React.useMemo(() => ({
+    success,
+    error,
+    info,
+    warning,
+    toast,
+  }), [success, error, info, warning, toast]);
 };
