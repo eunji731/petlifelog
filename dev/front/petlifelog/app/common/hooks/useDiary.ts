@@ -71,6 +71,18 @@ export const useDiaryStore = create<DiaryState>()(
   )
 );
 
+interface MemoryMomentItem {
+  id: string;
+  category: string;
+  aiTitle: string;
+  aiContent: string;
+  locationName?: string;
+  energyLevel?: number;
+  tags?: string; // JSON 문자열 "[\"태그1\",\"태그2\"]"
+  representativePhotoPath?: string;
+  photos: { id: string; path: string }[];
+}
+
 interface MemoryApiItem {
   id: string;
   dateKey: string;
@@ -82,6 +94,7 @@ interface MemoryApiItem {
   energyLevel?: number;
   photos: { id: string; path: string }[];
   petIds: string[];
+  moments?: MemoryMomentItem[];
 }
 
 export const useDiary = () => {
@@ -103,23 +116,41 @@ export const useDiary = () => {
 
       const logs: Record<string, DailyLog> = {};
       for (const m of memories) {
+        const parseTags = (tagsJson?: string): string[] => {
+          try { return tagsJson ? JSON.parse(tagsJson) : []; } catch { return []; }
+        };
+
+        const moments: Moment[] = m.moments && m.moments.length > 0
+          ? m.moments.map(mo => ({
+              id: mo.id,
+              category: (mo.category as Moment['category']) || 'GENERAL',
+              locationName: mo.locationName || '알 수 없는 곳',
+              aiTitle: mo.aiTitle || '기록',
+              aiContent: mo.aiContent || '',
+              energyLevel: mo.energyLevel || 3,
+              photos: (mo.photos || []).map(p => ({ id: p.id, path: p.path })),
+              tags: parseTags(mo.tags),
+              dogIds: m.petIds || [],
+            }))
+          : [{
+              id: `m-${m.id}`,
+              category: 'GENERAL' as Moment['category'],
+              locationName: m.locationName || '알 수 없는 곳',
+              aiTitle: m.aiTitle || '기록',
+              aiContent: m.aiDiary || '',
+              energyLevel: m.energyLevel || 3,
+              photos: (m.photos || []).map(p => ({ id: p.id, path: p.path })),
+              tags: [],
+              dogIds: m.petIds || [],
+            }];
+
         logs[m.dateKey] = {
           id: m.id,
           dateKey: m.dateKey,
           aiTitle: m.aiTitle || '기록',
           aiSummary: m.aiSummary || '',
           representativePhotoPath: m.representativePhotoPath || undefined,
-          moments: [{
-            id: `m-${m.id}`,
-            category: 'GENERAL',
-            locationName: m.locationName || '알 수 없는 곳',
-            aiTitle: m.aiTitle || '기록',
-            aiContent: m.aiDiary || '',
-            energyLevel: m.energyLevel || 3,
-            photos: (m.photos || []).map(p => ({ id: p.id, path: p.path })),
-            tags: [],
-            dogIds: m.petIds || [],
-          }],
+          moments,
         };
       }
       setDailyLogs(logs);

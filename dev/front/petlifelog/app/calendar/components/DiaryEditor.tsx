@@ -66,7 +66,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
   const [storedFiles, setStoredFiles] = useState<StoredFileInfo[]>([]);
   // AI 호출 전 EXIF 날짜 불일치 확인 모달
   const [preAiDateModal, setPreAiDateModal] = useState<{ exifDates: string[] } | null>(null);
-  // AI 호출 전 메타데이터 누락 확인 모달
+  // AI 호출 전 메타데이터 누락 확인 모달 (백엔드 EXIF 결과 기반)
   const [preMetaModal, setPreMetaModal] = useState<{ missingDate: boolean; missingGps: boolean } | null>(null);
   // AI 에러 모달
   const [aiErrorModal, setAiErrorModal] = useState<{ title: string; message: string } | null>(null);
@@ -119,14 +119,15 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
 
   // ─── EXIF 파싱 (날짜 + GPS 존재 여부) ───────────────────────────
 
-  const readExifMeta = (file: File): Promise<{ date: string | null; hasGps: boolean }> =>
+  // hasGps: true=GPS있음, false=EXIF파싱성공+GPS없음, null=파싱불가(비JPEG등)
+  const readExifMeta = (file: File): Promise<{ date: string | null; hasGps: boolean | null }> =>
     new Promise(resolve => {
       const reader = new FileReader();
       reader.onload = e => {
         try {
           const buf = e.target?.result as ArrayBuffer;
           const view = new DataView(buf);
-          if (view.getUint16(0) !== 0xFFD8) { resolve({ date: null, hasGps: false }); return; }
+          if (view.getUint16(0) !== 0xFFD8) { resolve({ date: null, hasGps: null }); return; }
           let offset = 2;
           while (offset < view.byteLength - 2) {
             if (view.getUint8(offset) !== 0xFF) break;
@@ -150,7 +151,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                   const tagOffset = ifd0 + 2 + i * 12;
                   const tag = getU16(tagOffset);
                   if (tag === 0x8769) { exifIfdOffset = getU32(tagOffset + 8); }
-                  if (tag === 0x8825) { hasGps = true; } // GPS IFD 태그
+                  if (tag === 0x8825) { hasGps = true; }
                 }
                 let date: string | null = null;
                 if (exifIfdOffset >= 0) {
@@ -168,14 +169,19 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                     }
                   }
                 }
+                // EXIF 파싱 성공 → hasGps는 확정값(true/false)
                 resolve({ date, hasGps });
                 return;
               }
             }
             offset += 2 + segLen;
           }
-          resolve({ date: null, hasGps: false });
-        } catch { resolve({ date: null, hasGps: false }); }
+          // EXIF 세그먼트 없음 → GPS 여부 불명
+          resolve({ date: null, hasGps: null });
+        } catch {
+          // 파싱 실패 → GPS 여부 불명 (false로 잘못 경고하지 않음)
+          resolve({ date: null, hasGps: null });
+        }
       };
       reader.readAsArrayBuffer(file.slice(0, 65536));
     });
@@ -309,7 +315,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
       return;
     }
 
-    // EXIF 날짜 + GPS를 API 호출 전에 클라이언트에서 먼저 체크
+    // 1) 날짜 불일치 체크 (클라이언트 EXIF)
     const exifResults = await Promise.all(photoFiles.map(readExifMeta));
     const exifDates = [...new Set(exifResults.map(r => r.date).filter((d): d is string => d !== null))];
     const mismatchedDates = exifDates.filter(d => d !== targetDateStr);
@@ -319,11 +325,22 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
       return;
     }
 
-    const hasMissingDate = exifResults.some(r => !r.date);
-    const hasMissingGps = exifResults.some(r => !r.hasGps);
-    if (hasMissingDate || hasMissingGps) {
-      setPreMetaModal({ missingDate: hasMissingDate, missingGps: hasMissingGps });
-      return;
+    // 2) 메타데이터 누락 체크 (백엔드 EXIF — 신뢰할 수 있는 결과)
+    try {
+      const metaForm = new FormData();
+      photoFiles.forEach(file => metaForm.append('images', file));
+      const metaRes = await clientApi.post('/api/ai/check-metadata', metaForm, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const metaList: { originalName: string; hasDate: boolean; hasGps: boolean }[] = metaRes.data?.data ?? [];
+      const hasMissingDate = metaList.some(m => !m.hasDate);
+      const hasMissingGps = metaList.some(m => !m.hasGps);
+      if (hasMissingDate || hasMissingGps) {
+        setPreMetaModal({ missingDate: hasMissingDate, missingGps: hasMissingGps });
+        return;
+      }
+    } catch {
+      // 메타데이터 체크 실패 시 그냥 AI 분석 진행
     }
 
     await runAIAnalysis();

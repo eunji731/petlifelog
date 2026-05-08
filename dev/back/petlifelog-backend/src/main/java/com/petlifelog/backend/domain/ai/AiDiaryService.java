@@ -51,6 +51,7 @@ public class AiDiaryService {
     private final MemberRepository memberRepository;
     private final MemoryRepository memoryRepository;
     private final PhotoRepository photoRepository;
+    private final MemoryMomentRepository memoryMomentRepository;
     private final MemoryDogRepository memoryDogRepository;
     private final ObjectMapper objectMapper;
     private final FileStorageService fileStorageService;
@@ -133,6 +134,21 @@ public class AiDiaryService {
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // 0단계: 메타데이터 확인 (AI 호출 없음, rate limit 차감 없음)
+    // ─────────────────────────────────────────────────────────────────
+
+    public List<CheckMetadataResponse> checkMetadata(List<MultipartFile> images) {
+        return images.stream().map(file -> {
+            ExifMeta exif = extractExif(file, file.getOriginalFilename());
+            return CheckMetadataResponse.builder()
+                    .originalName(file.getOriginalFilename())
+                    .hasDate(exif.takenAt() != null)
+                    .hasGps(exif.lat() != null && exif.lng() != null)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // 2단계: 일기 저장
     //  - Memory 엔티티 생성
     //  - AttachedFile 레코드 등록 (이미 디스크에 있는 파일을 DB에 연결)
@@ -162,11 +178,18 @@ public class AiDiaryService {
                 .build();
         memoryRepository.save(memory);
 
-        // 2. AttachedFile 등록 (파일 시스템 - 통합 관리)
+        // 2. AttachedFile 등록
         List<AttachedFile> attachedFiles =
                 attachedFileService.registerExisting(ParentDomainType.MEMORY, memory.getId(), storedFiles);
 
-        // 3. Photo 등록 (EXIF 메타데이터 보존)
+        // originalName → Photo 매핑을 위한 인덱스 (저장 전 먼저 구성)
+        Map<String, Integer> nameToIndex = new HashMap<>();
+        for (int i = 0; i < storedFiles.size(); i++) {
+            nameToIndex.put(storedFiles.get(i).getOriginalName(), i);
+        }
+
+        // 3. Photo 먼저 저장 (moment 없이) — moment 연결은 아래에서
+        List<Photo> savedPhotos = new ArrayList<>();
         Photo representativePhoto = null;
         for (int i = 0; i < attachedFiles.size(); i++) {
             AttachedFile af = attachedFiles.get(i);
@@ -174,30 +197,72 @@ public class AiDiaryService {
 
             Photo photo = Photo.builder()
                     .memory(memory)
-                    .pathOrigin("/files/" + af.getStoredPath())   // 프론트 접근 URL
+                    .pathOrigin("/files/" + af.getStoredPath())
                     .takenAt(info.getTakenAt())
                     .gpsLat(info.getLatitude())
                     .gpsLng(info.getLongitude())
                     .sortOrder(i)
                     .build();
             photoRepository.save(photo);
+            savedPhotos.add(photo);
 
-            // AI 가 지정한 대표 사진 매칭 (original 파일명으로 비교)
             if (aiResult.getRepresentativePhotoPath() != null
                     && aiResult.getRepresentativePhotoPath().equals(info.getOriginalName())) {
                 representativePhoto = photo;
             }
         }
 
-        // 첫 번째 사진을 fallback 대표 사진으로
-        if (representativePhoto == null && !attachedFiles.isEmpty()) {
-            representativePhoto = photoRepository.findByMemoryAndSortOrder(memory, 0).orElse(null);
+        // 4. MemoryMoment 저장 + Photo에 moment 연결
+        List<MomentResponse> moments = aiResult.getMoments();
+        for (int mi = 0; mi < moments.size(); mi++) {
+            MomentResponse mr = moments.get(mi);
+
+            // 모멘트 대표 사진 경로 결정
+            String momentRepPath = null;
+            if (mr.getRepresentativePhotoPath() != null) {
+                Integer idx = nameToIndex.get(mr.getRepresentativePhotoPath());
+                if (idx != null && idx < savedPhotos.size()) {
+                    momentRepPath = savedPhotos.get(idx).getPathOrigin();
+                }
+            }
+
+            String tagsJson = mr.getTags() != null
+                    ? "[\"" + String.join("\",\"", mr.getTags()) + "\"]"
+                    : "[]";
+
+            MemoryMoment moment = MemoryMoment.builder()
+                    .memory(memory)
+                    .sortOrder(mi)
+                    .category(mr.getCategory())
+                    .aiTitle(mr.getAiTitle())
+                    .aiContent(mr.getAiContent())
+                    .locationName(mr.getLocationName())
+                    .energyLevel(mr.getEnergyLevel())
+                    .tags(tagsJson)
+                    .representativePhotoPath(momentRepPath)
+                    .build();
+            memoryMomentRepository.save(moment);
+
+            // 이 모멘트에 속하는 사진들 연결
+            if (mr.getPhotoFileNames() != null) {
+                for (String fname : mr.getPhotoFileNames()) {
+                    Integer idx = nameToIndex.get(fname);
+                    if (idx != null && idx < savedPhotos.size()) {
+                        savedPhotos.get(idx).assignMoment(moment);
+                    }
+                }
+            }
+        }
+
+        // 5. 대표 사진 설정
+        if (representativePhoto == null && !savedPhotos.isEmpty()) {
+            representativePhoto = savedPhotos.get(0);
         }
         if (representativePhoto != null) {
             memory.setRepresentativePhoto(representativePhoto);
         }
 
-        // 4. MemoryDog 매핑
+        // 6. MemoryDog 매핑
         for (String petId : petIds) {
             Pet pet = petRepository.findById(UUID.fromString(petId))
                     .orElseThrow(() -> new IllegalArgumentException("반려동물을 찾을 수 없습니다."));

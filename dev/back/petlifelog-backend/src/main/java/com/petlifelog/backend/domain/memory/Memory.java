@@ -67,6 +67,9 @@ public class Memory extends BaseTimeEntity {
     private List<Photo> photos = new ArrayList<>();
 
     @OneToMany(mappedBy = "memory", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MemoryMoment> moments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "memory", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MemoryDog> memoryDogs = new ArrayList<>();
 
     @Builder

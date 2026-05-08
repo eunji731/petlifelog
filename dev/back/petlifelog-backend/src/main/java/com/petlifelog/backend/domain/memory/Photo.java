@@ -28,6 +28,10 @@ public class Photo extends BaseTimeEntity {
     @JoinColumn(name = "memory_id", nullable = false)
     private Memory memory;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "moment_id")
+    private MemoryMoment moment;
+
     @Column(name = "path_origin", nullable = false)
     private String pathOrigin;
 
@@ -59,13 +63,18 @@ public class Photo extends BaseTimeEntity {
     private Integer sortOrder = 0;
 
     @Builder
-    public Photo(Memory memory, String pathOrigin, LocalDateTime takenAt, Double gpsLat, Double gpsLng, String gpsSource, Integer sortOrder) {
+    public Photo(Memory memory, MemoryMoment moment, String pathOrigin, LocalDateTime takenAt, Double gpsLat, Double gpsLng, String gpsSource, Integer sortOrder) {
         this.memory = memory;
+        this.moment = moment;
         this.pathOrigin = pathOrigin;
         this.takenAt = takenAt;
         this.gpsLat = gpsLat;
         this.gpsLng = gpsLng;
         this.gpsSource = gpsSource != null ? gpsSource : "NONE";
         this.sortOrder = sortOrder != null ? sortOrder : 0;
+    }
+
+    public void assignMoment(MemoryMoment moment) {
+        this.moment = moment;
     }
 }

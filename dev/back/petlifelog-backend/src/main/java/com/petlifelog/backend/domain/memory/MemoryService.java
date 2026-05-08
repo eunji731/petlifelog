@@ -56,6 +56,30 @@ public class MemoryService {
                 .map(md -> md.getDog().getId().toString())
                 .toList();
 
+        List<MemoryListResponse.MomentInfo> moments = memory.getMoments().stream()
+                .sorted(Comparator.comparingInt(MemoryMoment::getSortOrder))
+                .map(m -> {
+                    List<MemoryListResponse.PhotoInfo> momentPhotos = m.getPhotos().stream()
+                            .sorted(Comparator.comparingInt(Photo::getSortOrder))
+                            .map(p -> MemoryListResponse.PhotoInfo.builder()
+                                    .id(p.getId().toString())
+                                    .path(p.getPathOrigin())
+                                    .build())
+                            .toList();
+                    return MemoryListResponse.MomentInfo.builder()
+                            .id(m.getId().toString())
+                            .category(m.getCategory())
+                            .aiTitle(m.getAiTitle())
+                            .aiContent(m.getAiContent())
+                            .locationName(m.getLocationName())
+                            .energyLevel(m.getEnergyLevel())
+                            .tags(m.getTags())
+                            .representativePhotoPath(m.getRepresentativePhotoPath())
+                            .photos(momentPhotos)
+                            .build();
+                })
+                .toList();
+
         return MemoryListResponse.builder()
                 .id(memory.getId().toString())
                 .dateKey(memory.getMemoryDate().toString())
@@ -67,6 +91,7 @@ public class MemoryService {
                 .energyLevel(memory.getEnergyLevel())
                 .photos(photos)
                 .petIds(petIds)
+                .moments(moments)
                 .build();
     }
 }

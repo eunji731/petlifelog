@@ -4,6 +4,7 @@ import com.petlifelog.backend.common.dto.ApiResponse;
 import com.petlifelog.backend.domain.ai.AiDiaryService;
 import com.petlifelog.backend.domain.ai.dto.AnalyzeDiaryResult;
 import com.petlifelog.backend.domain.ai.dto.AiUsageResponse;
+import com.petlifelog.backend.domain.ai.dto.CheckMetadataResponse;
 import com.petlifelog.backend.domain.ai.dto.SaveDiaryRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,6 +34,16 @@ public class AiDiaryController {
 
         AiUsageResponse usage = aiDiaryService.getUsage(UUID.fromString(user.getUsername()), targetDate);
         return ApiResponse.success(usage);
+    }
+
+    /**
+     * 0단계: 메타데이터 확인 (AI 호출 없음, rate limit 차감 없음)
+     */
+    @PostMapping("/check-metadata")
+    public ApiResponse<List<CheckMetadataResponse>> checkMetadata(
+            @RequestParam("images") List<MultipartFile> images) {
+
+        return ApiResponse.success(aiDiaryService.checkMetadata(images));
     }
 
     /**
