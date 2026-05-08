@@ -103,12 +103,26 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
 
   // ─── 사진 선택 ────────────────────────────────────────────────────
 
+  const { toast } = useToast();
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
       const fileArray = Array.from(files);
-      setPhotoFiles(prev => [...prev, ...fileArray]);
-      setPhotoPreviews(prev => [...prev, ...fileArray.map(f => URL.createObjectURL(f))]);
+      
+      if (photoFiles.length + fileArray.length > 5) {
+        toast('사진은 최대 5개까지만 업로드 가능합니다.', 'warning');
+        // Limit to 5 total if some were already present
+        const remainingSlots = 5 - photoFiles.length;
+        if (remainingSlots <= 0) return;
+        
+        const slicedFiles = fileArray.slice(0, remainingSlots);
+        setPhotoFiles(prev => [...prev, ...slicedFiles]);
+        setPhotoPreviews(prev => [...prev, ...slicedFiles.map(f => URL.createObjectURL(f))]);
+      } else {
+        setPhotoFiles(prev => [...prev, ...fileArray]);
+        setPhotoPreviews(prev => [...prev, ...fileArray.map(f => URL.createObjectURL(f))]);
+      }
     }
   };
 
@@ -509,19 +523,28 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
               <div className="bg-white rounded-[32px] p-8 border border-border shadow-sm space-y-8">
                 {/* 사진 업로드 */}
                 <div className="space-y-4">
-                  <label className="text-sm font-black text-text-main flex items-center gap-2">
-                    <Camera className="w-5 h-5 text-main-green" /> 사진 일괄 업로드
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-black text-text-main flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-main-green" /> 사진 일괄 업로드
+                    </label>
+                    <span className={`text-[10px] font-black ${photoFiles.length >= 5 ? 'text-red-500' : 'text-main-green'}`}>
+                      {photoFiles.length} / 5
+                    </span>
+                  </div>
                   <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-2xl border-2 border-dashed border-main-green/30 bg-light-green/30 flex flex-col items-center justify-center gap-2 text-main-green hover:bg-light-green/50 transition-all"
+                      disabled={photoFiles.length >= 5}
+                      className={`aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${
+                        photoFiles.length >= 5 
+                          ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                          : 'border-main-green/30 bg-light-green/30 text-main-green hover:bg-light-green/50'
+                      }`}
                     >
                       <Plus className="w-8 h-8" />
                       <span className="text-[10px] font-bold">사진 추가</span>
                     </button>
-                    {photoPreviews.map((url, i) => (
-                      <div key={url} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm group">
+                    {photoPreviews.map((url, i) => (                      <div key={url} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm group">
                         <Image src={url} alt={`Upload ${i}`} fill className="object-cover" />
                         <button
                           onClick={() => removePhoto(i)}
@@ -558,12 +581,19 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
 
                 {/* 태그 */}
                 <div className="space-y-4 border-t border-border pt-8">
-                  <label className="text-sm font-black text-text-main">추가 태그 (선택)</label>
+                  <div>
+                    <label className="text-sm font-black text-text-main">
+                      추가 태그(선택)
+                    </label>
+                    <p className="mt-1 text-xs font-medium text-text-sub/70">
+                      태그를 입력한 뒤 Enter를 눌러 추가하세요.
+                    </p>
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="text" value={newTag} onChange={e => setNewTag(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter' && newTag.trim() && !userTags.includes(newTag.trim())) { setUserTags(p => [...p, newTag.trim()]); setNewTag(''); } }}
-                      placeholder="#바쁜하루 #피곤"
+                      placeholder="#서울숲 #피곤 #카페 #산책"
                       className="flex-1 px-4 py-3 bg-surface-green border border-border rounded-xl text-sm font-bold focus:outline-none"
                     />
                     <button
@@ -583,13 +613,12 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                 <div className="space-y-4">
                   {/* 사용량 안내 배너 */}
                   {usageInfo && (
-                    <div className={`rounded-2xl px-4 py-3 text-[11px] font-bold space-y-1 ${
-                      usageInfo.dateBlocked || usageInfo.dailyBlocked
-                        ? 'bg-red-50 border border-red-200 text-red-600'
-                        : usageInfo.dateCount > 0 || usageInfo.dailyTotal > 0
+                    <div className={`rounded-2xl px-4 py-3 text-[11px] font-bold space-y-1 ${usageInfo.dateBlocked || usageInfo.dailyBlocked
+                      ? 'bg-red-50 border border-red-200 text-red-600'
+                      : usageInfo.dateCount > 0 || usageInfo.dailyTotal > 0
                         ? 'bg-amber-50 border border-amber-200 text-amber-700'
                         : 'bg-light-green border border-main-green/20 text-main-green'
-                    }`}>
+                      }`}>
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1">
                           <Info className="w-3.5 h-3.5" />
@@ -644,7 +673,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                   </div>
 
                   <button
-                    onClick={triggerBatchAIAnalysis}                    disabled={
+                    onClick={triggerBatchAIAnalysis} disabled={
                       photoPreviews.length === 0 ||
                       selectedDogIds.length === 0 ||
                       usageInfo?.dateBlocked === true ||
@@ -680,10 +709,10 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
               <div className="bg-white rounded-[32px] overflow-hidden border border-border shadow-sm">
                 {aiResult.representativePhotoPath && (
                   <div className="relative w-full h-48 lg:h-64 bg-surface-green/10 border-b border-border/50">
-                    <Image 
-                      src={aiResult.representativePhotoPath} 
-                      alt="오늘의 대표 사진" 
-                      fill 
+                    <Image
+                      src={aiResult.representativePhotoPath}
+                      alt="오늘의 대표 사진"
+                      fill
                       className="object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
@@ -721,9 +750,9 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                         {/* 사진 영역: 슬라이더 적용 */}
                         {moment.photos && moment.photos.length > 0 && (
                           <div className="relative w-full h-48 lg:h-64 bg-surface-green/10">
-                            <MomentImageSlider 
-                              photos={moment.photos} 
-                              alt={moment.aiTitle} 
+                            <MomentImageSlider
+                              photos={moment.photos}
+                              alt={moment.aiTitle}
                             />
                             <div className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[9px] font-black text-main-green z-10">
                               {moment.category}
