@@ -70,6 +70,7 @@ public class AiDiaryController {
 
         UUID memoryId = aiDiaryService.saveDiary(
                 UUID.fromString(user.getUsername()),
+                request.getTargetDate(),
                 request.getAiResult(),
                 request.getStoredFiles(),
                 request.getPetIds()

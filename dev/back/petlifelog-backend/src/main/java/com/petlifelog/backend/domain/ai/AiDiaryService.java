@@ -141,16 +141,18 @@ public class AiDiaryService {
     // ─────────────────────────────────────────────────────────────────
 
     @Transactional
-    public UUID saveDiary(UUID userId, DailyLogResponse aiResult,
+    public UUID saveDiary(UUID userId, LocalDate targetDate, DailyLogResponse aiResult,
                           List<StoredFileInfo> storedFiles, List<String> petIds) {
 
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        LocalDate memoryDate = (targetDate != null) ? targetDate : resolveMemoryDate(storedFiles);
+
         // 1. Memory 생성
         Memory memory = Memory.builder()
                 .user(member)
-                .memoryDate(resolveMemoryDate(storedFiles))
+                .memoryDate(memoryDate)
                 .summary(aiResult.getAiSummary())
                 .aiTitle(aiResult.getAiTitle())
                 .aiDiary(aiResult.getMoments().stream()

@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
-import { X, Calendar, MapPin, Sparkles, TrendingUp, Zap, Clock, ChevronRight } from 'lucide-react';
+import { X, Calendar, MapPin, Sparkles, TrendingUp, Zap, Clock, ChevronRight, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useDiary, DailyLog } from '@/app/common/hooks/useDiary';
-import { getImagePath } from '@/app/common/lib/clientApi';
+import clientApi, { getImagePath } from '@/app/common/lib/clientApi';
+import { useConfirm } from '@/app/common/hooks/useConfirm';
+import { useToast } from '@/app/common/hooks/useToast';
 import MomentImageSlider from './MomentImageSlider';
 
 interface DiaryPreviewProps {
@@ -20,9 +22,27 @@ export default function DiaryPreview({
   onClose,
   isExpanded = false
 }: DiaryPreviewProps) {
-  const { getDailyLog } = useDiary();
-  const dateKey = date.toISOString().split('T')[0];
+  const { getDailyLog, removeDailyLog } = useDiary();
+  const { confirm } = useConfirm();
+  const { success, error } = useToast();
+  const dateKey = date.toLocaleDateString('en-CA');
   const log = getDailyLog(dateKey);
+
+  const handleDelete = async () => {
+    const isConfirmed = await confirm('이 날의 모든 기록을 삭제하시겠습니까? 삭제된 기록은 복구할 수 없습니다.');
+    if (!isConfirmed) return;
+
+    try {
+      if (log?.id) {
+        await clientApi.delete(`/api/memories/${log.id}`);
+      }
+      removeDailyLog(dateKey);
+      success('기록이 삭제되었습니다.');
+      onClose?.();
+    } catch {
+      error('삭제에 실패했습니다. 다시 시도해 주세요.');
+    }
+  };
 
   const formattedDate = date.toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -104,8 +124,19 @@ export default function DiaryPreview({
                   </div>
                 ))}
               </div>
-              <div className="pt-6 pb-10">
-                <button onClick={() => onEdit(log)} className="w-full py-4 bg-white border-2 border-main-green text-main-green font-black rounded-[20px] hover:bg-main-green hover:text-white transition-all shadow-lg flex items-center justify-center gap-2 group">기록 수정하기 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></button>
+              <div className="pt-6 pb-10 flex gap-4">
+                <button 
+                  onClick={() => onEdit(log)} 
+                  className="flex-[2] py-4 bg-white border-2 border-main-green text-main-green font-black rounded-[20px] hover:bg-main-green hover:text-white transition-all shadow-lg flex items-center justify-center gap-2 group"
+                >
+                  기록 수정하기 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+                <button 
+                  onClick={handleDelete}
+                  className="flex-1 py-4 bg-white border-2 border-red-200 text-red-500 font-black rounded-[20px] hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
               </div>
             </div>
           </div>
@@ -148,7 +179,15 @@ export default function DiaryPreview({
               <div className="space-y-12 lg:space-y-20">
                 <div className="flex items-center justify-between px-2">
                   <h3 className="text-xl lg:text-3xl font-black text-text-main flex items-center gap-4"><Clock className="w-6 h-6 lg:w-10 lg:h-10 text-main-green" /> Timeline</h3>
-                  <button onClick={() => onEdit(log)} className="px-6 py-2.5 bg-white text-main-green text-xs font-black rounded-full border-2 border-main-green/20 hover:border-main-green transition-all shadow-sm">Edit Record</button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => onEdit(log)} className="px-6 py-2.5 bg-white text-main-green text-xs font-black rounded-full border-2 border-main-green/20 hover:border-main-green transition-all shadow-sm">Edit Record</button>
+                    <button 
+                      onClick={handleDelete}
+                      className="p-2.5 bg-white text-red-500 rounded-full border-2 border-red-50 hover:bg-red-50 transition-all shadow-sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="relative space-y-12 lg:space-y-24">
                   {log.moments.map((moment, idx) => (

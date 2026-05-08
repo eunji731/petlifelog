@@ -61,7 +61,7 @@ export default function CalendarGrid({
   const days = generateDays();
 
   const getDayContent = (date: Date) => {
-    const dateKey = date.toISOString().split('T')[0];
+    const dateKey = date.toLocaleDateString('en-CA');
     const log = dailyLogs[dateKey];
     if (!log) return null;
 

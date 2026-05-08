@@ -64,6 +64,19 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
   // 저장 시 백엔드에 그대로 넘길 원본 데이터
   const [rawAiResult, setRawAiResult] = useState<RawAiResult | null>(null);
   const [storedFiles, setStoredFiles] = useState<StoredFileInfo[]>([]);
+  // AI 호출 전 EXIF 날짜 불일치 확인 모달
+  const [preAiDateModal, setPreAiDateModal] = useState<{ exifDates: string[] } | null>(null);
+  // AI 호출 전 메타데이터 누락 확인 모달
+  const [preMetaModal, setPreMetaModal] = useState<{ missingDate: boolean; missingGps: boolean } | null>(null);
+  // AI 호출 후 저장 시점 EXIF 날짜 불일치 모달 (사후 확인)
+  const [dateMismatchModal, setDateMismatchModal] = useState<{
+    exifDates: string[];
+    pendingData: DailyLog;
+  } | null>(null);
+  // AI 에러 모달
+  const [aiErrorModal, setAiErrorModal] = useState<{ title: string; message: string } | null>(null);
+  // 메타데이터 누락 경고
+  const [metaWarnings, setMetaWarnings] = useState<{ missingDate: boolean; missingLocation: boolean } | null>(null);
 
   // 서버 사용량 상태
   const [usageInfo, setUsageInfo] = useState<{
@@ -109,21 +122,72 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
     setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  // ─── EXIF 파싱 (날짜 + GPS 존재 여부) ───────────────────────────
+
+  const readExifMeta = (file: File): Promise<{ date: string | null; hasGps: boolean }> =>
+    new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const buf = e.target?.result as ArrayBuffer;
+          const view = new DataView(buf);
+          if (view.getUint16(0) !== 0xFFD8) { resolve({ date: null, hasGps: false }); return; }
+          let offset = 2;
+          while (offset < view.byteLength - 2) {
+            if (view.getUint8(offset) !== 0xFF) break;
+            const marker = view.getUint8(offset + 1);
+            const segLen = view.getUint16(offset + 2);
+            if (marker === 0xE1) {
+              const exifHeader = String.fromCharCode(
+                view.getUint8(offset + 4), view.getUint8(offset + 5),
+                view.getUint8(offset + 6), view.getUint8(offset + 7)
+              );
+              if (exifHeader === 'Exif') {
+                const tiffStart = offset + 10;
+                const littleEndian = view.getUint16(tiffStart) === 0x4949;
+                const getU16 = (o: number) => view.getUint16(tiffStart + o, littleEndian);
+                const getU32 = (o: number) => view.getUint32(tiffStart + o, littleEndian);
+                const ifd0 = getU32(4);
+                const tagCount = getU16(ifd0);
+                let exifIfdOffset = -1;
+                let hasGps = false;
+                for (let i = 0; i < tagCount; i++) {
+                  const tagOffset = ifd0 + 2 + i * 12;
+                  const tag = getU16(tagOffset);
+                  if (tag === 0x8769) { exifIfdOffset = getU32(tagOffset + 8); }
+                  if (tag === 0x8825) { hasGps = true; } // GPS IFD 태그
+                }
+                let date: string | null = null;
+                if (exifIfdOffset >= 0) {
+                  const exifTagCount = getU16(exifIfdOffset);
+                  for (let i = 0; i < exifTagCount; i++) {
+                    const tagOffset = exifIfdOffset + 2 + i * 12;
+                    if (getU16(tagOffset) === 0x9003) {
+                      const valOffset = getU32(tagOffset + 8);
+                      let dateStr = '';
+                      for (let c = 0; c < 10; c++) {
+                        dateStr += String.fromCharCode(view.getUint8(tiffStart + valOffset + c));
+                      }
+                      date = dateStr.replace(/:/g, '-').slice(0, 10);
+                      break;
+                    }
+                  }
+                }
+                resolve({ date, hasGps });
+                return;
+              }
+            }
+            offset += 2 + segLen;
+          }
+          resolve({ date: null, hasGps: false });
+        } catch { resolve({ date: null, hasGps: false }); }
+      };
+      reader.readAsArrayBuffer(file.slice(0, 65536));
+    });
+
   // ─── AI 분석 (1단계) ──────────────────────────────────────────────
 
-  const triggerBatchAIAnalysis = async () => {
-    if (photoFiles.length === 0) { warning('분석할 사진을 최소 1장 이상 등록해 주세요.'); return; }
-    if (selectedDogIds.length === 0) { warning('사진 속 주인공들을 선택해 주세요.'); return; }
-
-    if (usageInfo?.dateBlocked) {
-      warning(`${formattedDate}의 AI 일기 작성 기회(${usageInfo.dateLimit}회)를 모두 사용했습니다. 다른 날짜를 선택해 주세요.`);
-      return;
-    }
-    if (usageInfo?.dailyBlocked) {
-      warning(`오늘의 AI 일기 작성 한도(${usageInfo?.dailyLimit}회)를 모두 사용했습니다. 내일 다시 시도해 주세요.`);
-      return;
-    }
-
+  const runAIAnalysis = async () => {
     setIsAnalyzing(true);
     const remaining = usageInfo ? usageInfo.dateLimit - usageInfo.dateCount - 1 : '?';
     info(`AI가 사진들을 분석 중입니다... (이 날짜 사용 후 남은 횟수: ${remaining}회)`);
@@ -166,7 +230,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
 
       const processed: DailyLog = {
         id: Math.random().toString(36).slice(2, 9),
-        dateKey: date.toISOString().split('T')[0],
+        dateKey: date.toLocaleDateString('en-CA'),
         aiTitle: raw.aiTitle || '오늘의 일기',
         aiSummary: raw.aiSummary || '',
         representativePhotoPath: getPhotoUrl(raw.representativePhotoPath),
@@ -203,6 +267,21 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
       setStoredFiles(files);
       setAiResult(processed);
       await fetchUsage();
+
+      // 메타데이터 누락 체크
+      const hasMissingDate = files.some(f => !f.takenAt);
+      const hasMissingLocation = files.some(f => f.latitude == null);
+      setMetaWarnings(hasMissingDate || hasMissingLocation ? { missingDate: hasMissingDate, missingLocation: hasMissingLocation } : null);
+
+      // EXIF 날짜 vs 선택 날짜 불일치 체크
+      const exifDates = files
+        .map(f => f.takenAt ? f.takenAt.split('T')[0] : null)
+        .filter((d): d is string => d !== null);
+      const mismatchedDates = [...new Set(exifDates)].filter(d => d !== targetDateStr);
+      if (mismatchedDates.length > 0) {
+        setDateMismatchModal({ exifDates: mismatchedDates, pendingData: processed });
+      }
+
       success('AI가 하루를 완벽하게 정리했습니다!');
 
     } catch (err: unknown) {
@@ -221,13 +300,47 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
         }
         await fetchUsage();
       } else if (axiosErr.code === 'ECONNABORTED') {
-        error('분석 시간이 너무 오래 걸립니다. 다시 시도해 주세요.');
+        setAiErrorModal({ title: '분석 시간 초과', message: '사진 분석 시간이 너무 오래 걸렸어요.\n사진 수를 줄이거나 잠시 후 다시 시도해 주세요.' });
+      } else if (axiosErr.response?.status === 500) {
+        setAiErrorModal({ title: 'AI 분석에 실패했어요', message: '서버에서 오류가 발생했습니다.\n잠시 후 다시 시도해 주세요.\n\n문제가 반복되면 사진 수를 줄여서 시도해 보세요.' });
       } else {
-        error('AI 분석 중 오류가 발생했습니다.');
+        setAiErrorModal({ title: 'AI 분석 오류', message: 'AI 분석 중 오류가 발생했습니다.\n다시 시도해 주세요.' });
       }
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const triggerBatchAIAnalysis = async () => {
+    if (photoFiles.length === 0) { warning('분석할 사진을 최소 1장 이상 등록해 주세요.'); return; }
+    if (selectedDogIds.length === 0) { warning('사진 속 주인공들을 선택해 주세요.'); return; }
+    if (usageInfo?.dateBlocked) {
+      warning(`${formattedDate}의 AI 일기 작성 기회(${usageInfo.dateLimit}회)를 모두 사용했습니다. 다른 날짜를 선택해 주세요.`);
+      return;
+    }
+    if (usageInfo?.dailyBlocked) {
+      warning(`오늘의 AI 일기 작성 한도(${usageInfo?.dailyLimit}회)를 모두 사용했습니다. 내일 다시 시도해 주세요.`);
+      return;
+    }
+
+    // EXIF 날짜 + GPS를 API 호출 전에 클라이언트에서 먼저 체크
+    const exifResults = await Promise.all(photoFiles.map(readExifMeta));
+    const exifDates = [...new Set(exifResults.map(r => r.date).filter((d): d is string => d !== null))];
+    const mismatchedDates = exifDates.filter(d => d !== targetDateStr);
+
+    if (mismatchedDates.length > 0) {
+      setPreAiDateModal({ exifDates: mismatchedDates });
+      return;
+    }
+
+    const hasMissingDate = exifResults.some(r => !r.date);
+    const hasMissingGps = exifResults.some(r => !r.hasGps);
+    if (hasMissingDate || hasMissingGps) {
+      setPreMetaModal({ missingDate: hasMissingDate, missingGps: hasMissingGps });
+      return;
+    }
+
+    await runAIAnalysis();
   };
 
   // ─── 최종 저장 (2단계) ────────────────────────────────────────────
@@ -241,12 +354,14 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
 
     setIsSaving(true);
     try {
-      await clientApi.post('/api/ai/save', {
+      const saveResponse = await clientApi.post('/api/ai/save', {
+        targetDate: targetDateStr,
         aiResult: rawAiResult,
         storedFiles,
         petIds: selectedDogIds,
       });
-      onSave(data);
+      const memoryId: string = saveResponse.data?.data;
+      onSave(memoryId ? { ...data, id: memoryId } : data);
     } catch (err: unknown) {
       console.error('Save Error:', err);
       error('저장에 실패했습니다. 다시 시도해 주세요.');
@@ -259,12 +374,142 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
     setAiResult(null);
     setRawAiResult(null);
     setStoredFiles([]);
+    setMetaWarnings(null);
   };
 
   // ─── 렌더링 ───────────────────────────────────────────────────────
 
+  const formatKoreanDate = (dateStr: string) =>
+    new Date(dateStr + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+
   return (
     <div className="flex flex-col h-full bg-surface-green/30">
+      {/* EXIF 날짜 불일치 모달 */}
+      {dateMismatchModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
+            <div className="space-y-2">
+              <p className="text-base font-black text-text-main">사진 촬영일이 달라요</p>
+              <p className="text-sm font-medium text-text-sub leading-relaxed">
+                사진의 촬영 날짜({dateMismatchModal.exifDates.map(formatKoreanDate).join(', ')})가
+                선택한 날짜({formatKoreanDate(targetDateStr)})와 다릅니다.
+              </p>
+              <p className="text-sm font-medium text-text-sub">
+                선택한 날짜로 저장할까요?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDateMismatchModal(null)}
+                className="flex-1 py-3 bg-surface-green border border-border text-text-sub font-black rounded-2xl text-sm hover:bg-surface-green/80 transition-all"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  const pending = dateMismatchModal.pendingData;
+                  setDateMismatchModal(null);
+                  handleSave(pending);
+                }}
+                className="flex-[2] py-3 bg-main-green text-white font-black rounded-2xl text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                {formatKoreanDate(targetDateStr)}로 저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* AI 호출 전 날짜 불일치 확인 모달 */}
+      {preAiDateModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
+            <div className="space-y-2">
+              <p className="text-base font-black text-text-main">사진 촬영일이 달라요</p>
+              <p className="text-sm font-medium text-text-sub leading-relaxed">
+                사진의 촬영 날짜({preAiDateModal.exifDates.map(formatKoreanDate).join(', ')})가
+                선택한 날짜({formatKoreanDate(targetDateStr)})와 다릅니다.
+              </p>
+              <p className="text-sm font-medium text-text-sub">
+                선택한 날짜({formatKoreanDate(targetDateStr)})로 AI 분석을 진행할까요?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPreAiDateModal(null)}
+                className="flex-1 py-3 bg-surface-green border border-border text-text-sub font-black rounded-2xl text-sm hover:bg-surface-green/80 transition-all"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { setPreAiDateModal(null); runAIAnalysis(); }}
+                className="flex-[2] py-3 bg-main-green text-white font-black rounded-2xl text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                {formatKoreanDate(targetDateStr)}로 진행
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* AI 호출 전 메타데이터 누락 확인 모달 */}
+      {preMetaModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
+            <div className="space-y-3">
+              <p className="text-base font-black text-text-main">사진 정보가 부족해요</p>
+              {preMetaModal.missingDate && (
+                <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                  <Calendar className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs font-medium text-amber-700 leading-relaxed">
+                    <span className="font-black">촬영 날짜 없음</span> — 시간 순서가 부정확할 수 있고, 선택한 날짜({formattedDate})로 저장됩니다.
+                  </p>
+                </div>
+              )}
+              {preMetaModal.missingGps && (
+                <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3">
+                  <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                  <p className="text-xs font-medium text-blue-700 leading-relaxed">
+                    <span className="font-black">위치 정보 없음</span> — 해당 추억은 지도 메뉴에 표시되지 않아요.
+                  </p>
+                </div>
+              )}
+              <p className="text-sm font-medium text-text-sub">그래도 AI 분석을 진행할까요?</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPreMetaModal(null)}
+                className="flex-1 py-3 bg-surface-green border border-border text-text-sub font-black rounded-2xl text-sm hover:bg-surface-green/80 transition-all"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { setPreMetaModal(null); runAIAnalysis(); }}
+                className="flex-[2] py-3 bg-main-green text-white font-black rounded-2xl text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                그래도 진행하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* AI 에러 모달 */}
+      {aiErrorModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
+            <div className="space-y-2">
+              <p className="text-base font-black text-text-main">{aiErrorModal.title}</p>
+              <p className="text-sm font-medium text-text-sub leading-relaxed whitespace-pre-line">
+                {aiErrorModal.message}
+              </p>
+            </div>
+            <button
+              onClick={() => setAiErrorModal(null)}
+              className="w-full py-3 bg-main-green text-white font-black rounded-2xl text-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white border-b border-border p-6 shrink-0 flex justify-between items-center">
         <div className="flex items-center gap-4">
@@ -523,6 +768,37 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                   ))}
                 </div>
               </div>
+
+              {/* 메타데이터 누락 경고 배너 */}
+              {metaWarnings && (
+                <div className="space-y-3">
+                  {metaWarnings.missingDate && (
+                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+                      <Calendar className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-black text-amber-700">촬영 날짜 정보가 없어요</p>
+                        <p className="text-xs font-medium text-amber-600 leading-relaxed">
+                          일부 사진에 날짜 메타데이터가 없어 시간 순서가 부정확할 수 있어요. 선택한 날짜({formattedDate})로 저장됩니다.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {metaWarnings.missingLocation && (
+                    <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4">
+                      <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-black text-blue-700">위치 정보가 없어요</p>
+                        <p className="text-xs font-medium text-blue-600 leading-relaxed">
+                          GPS 정보가 없는 사진이 포함되어 있어요. 해당 추억은 지도 메뉴에 표시되지 않아요.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-center text-xs font-bold text-text-sub px-4">
+                    위 내용을 확인하셨나요? 그래도 저장하시려면 아래 버튼을 눌러주세요.
+                  </p>
+                </div>
+              )}
 
               {/* 하단 액션 */}
               <div className="flex gap-4 pt-6">

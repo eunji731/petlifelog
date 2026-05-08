@@ -33,7 +33,9 @@ function CalendarContent() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isTimelineMode, setIsTimelineMode] = useState(false);
   
-  const { addDailyLog } = useDiary();
+  const { addDailyLog, syncFromBackend } = useDiary();
+
+  useEffect(() => { syncFromBackend(); }, []);
   const { 
     currentDate, 
     selectedDate,
@@ -72,6 +74,7 @@ function CalendarContent() {
     setIsEditing(false);
     setShowSidePanel(false);
     setIsExpanded(false);
+    syncFromBackend();
   };
 
   const handleCancel = () => {
