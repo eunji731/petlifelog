@@ -96,7 +96,7 @@ export default function CalendarHeader({
             }`}
           >
             {isTimelineMode ? <LayoutGrid className="w-3.5 h-3.5" /> : <List className="w-3.5 h-3.5" />}
-            <span>{isTimelineMode ? '달력보기' : '모아보기'}</span>
+            <span className="hidden sm:inline">{isTimelineMode ? '달력보기' : '모아보기'}</span>
             {!isTimelineMode && (
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-text-main text-white text-[10px] lg:text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[60] shadow-xl border border-white/10">
                 선택하신 해당월의 일기를 모아보기 가능합니다.
