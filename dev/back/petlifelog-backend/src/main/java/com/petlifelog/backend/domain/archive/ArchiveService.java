@@ -23,16 +23,12 @@ public class ArchiveService {
         List<Object[]> rows = photoThemeTagRepository.findTopTags(
                 userId, petId, PageRequest.of(page, size));
 
-        return rows.stream().map(row -> {
-            String tag = (String) row[0];
-            Long count = (Long) row[1];
-            String repPhoto = photoThemeTagRepository.findRepresentativePhotoByTag(userId, tag);
-            return ThemeTabResponse.builder()
-                    .tag(tag)
-                    .count(count)
-                    .representativePhotoUrl(repPhoto)
-                    .build();
-        }).toList();
+        return rows.stream().map(row -> ThemeTabResponse.builder()
+                .tag((String) row[0])
+                .count((Long) row[1])
+                .representativePhotoUrl((String) row[2])
+                .build()
+        ).toList();
     }
 
     public List<ArchivePhotoResponse> getPhotosByTheme(UUID userId, String tag, UUID petId) {
@@ -49,24 +45,37 @@ public class ArchiveService {
         return photoThemeTagRepository.suggestTags(userId, q, petId, PageRequest.of(0, 10));
     }
 
-    public List<ThemeTabResponse> searchThemes(UUID userId, String keyword, UUID petId) {
-        List<Object[]> rows = photoThemeTagRepository.searchThemesByKeyword(userId, keyword, petId);
-        return rows.stream().map(row -> {
-            String tag = (String) row[0];
-            Long count = (Long) row[1];
-            String repPhoto = photoThemeTagRepository.findRepresentativePhotoByTag(userId, tag);
+    public ThemeTabResponse getThemeByTag(UUID userId, String tag) {
+        List<Object[]> rows = photoThemeTagRepository.findTagSummary(userId, tag);
+        if (rows.isEmpty()) {
             return ThemeTabResponse.builder()
                     .tag(tag)
-                    .count(count)
-                    .representativePhotoUrl(repPhoto)
+                    .count(0L)
+                    .representativePhotoUrl(null)
                     .build();
-        }).toList();
+        }
+        Object[] row = rows.get(0);
+        // row[0]=tag, row[1]=count, row[2]=representativePhotoUrl
+        return ThemeTabResponse.builder()
+                .tag(tag)
+                .count((Long) row[1])
+                .representativePhotoUrl((String) row[2])
+                .build();
+    }
+
+    public List<ThemeTabResponse> searchThemes(UUID userId, String keyword, UUID petId) {
+        List<Object[]> rows = photoThemeTagRepository.searchThemesByKeyword(userId, keyword, petId);
+        return rows.stream().map(row -> ThemeTabResponse.builder()
+                .tag((String) row[0])
+                .count((Long) row[1])
+                .representativePhotoUrl((String) row[2])
+                .build()
+        ).toList();
     }
 
     private List<ArchivePhotoResponse> toResponseList(List<Photo> photos) {
-        return photos.stream().map(photo -> {
-            List<String> themeTags = photoThemeTagRepository.findTagsByPhotoId(photo.getId());
-            return ArchivePhotoResponse.from(photo, themeTags);
-        }).toList();
+        return photos.stream()
+                .map(photo -> ArchivePhotoResponse.from(photo, List.of()))
+                .toList();
     }
 }

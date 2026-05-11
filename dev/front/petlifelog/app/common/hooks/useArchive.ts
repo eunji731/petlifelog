@@ -60,7 +60,12 @@ export const useArchive = () => {
         themeEssay: '',
         photos: [],
       }));
-      setArchiveThemes(prev => pageNum === 0 ? mapped : [...prev, ...mapped]);
+      setArchiveThemes(prev => {
+        const next = pageNum === 0 ? mapped : [...prev, ...mapped];
+        return next.filter((theme, idx, self) => 
+          idx === self.findIndex((t) => t.categoryName === theme.categoryName)
+        );
+      });
       setHasMore(data.length === PAGE_SIZE);
     } catch (e) {
       console.error('테마 로딩 실패:', e);
@@ -143,12 +148,33 @@ export const useArchive = () => {
     }
   };
 
+  const fetchThemeDetail = async (tag: string): Promise<ArchiveTheme | null> => {
+    try {
+      const petParam = validPetId ? `?petId=${validPetId}` : '';
+      const res = await clientApi.get(`/api/archive/themes/${encodeURIComponent(tag)}${petParam}`);
+      const item = res.data?.data;
+      if (!item) return null;
+      
+      return {
+        categoryName: item.tag,
+        representativePhoto: getImagePath(item.representativePhotoUrl),
+        photoCount: Number(item.count),
+        themeEssay: '',
+        photos: [],
+      };
+    } catch (e) {
+      console.error('테마 상세 로딩 실패:', e);
+      return null;
+    }
+  };
+
   return {
     archiveThemes,
     isLoadingThemes,
     hasMore,
     loadMoreThemes,
     getTheme: (categoryName: string) => archiveThemes.find(t => t.categoryName === categoryName),
+    fetchThemeDetail,
     syncSearch,
     searchThemes,
     suggestTags,

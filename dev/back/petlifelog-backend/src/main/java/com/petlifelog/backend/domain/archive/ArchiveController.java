@@ -62,6 +62,19 @@ public class ArchiveController {
     }
 
     /**
+     * 태그 단건 조회: 대표사진 및 사진 수
+     * GET /api/archive/themes/{tag}
+     */
+    @GetMapping("/themes/{tag}")
+    public ApiResponse<ThemeTabResponse> getThemeByTag(
+            @AuthenticationPrincipal User user,
+            @PathVariable String tag) {
+
+        return ApiResponse.success(
+                archiveService.getThemeByTag(UUID.fromString(user.getUsername()), tag));
+    }
+
+    /**
      * 검색창: 키워드 부분 일치 테마(태그) 목록
      * GET /api/archive/themes/search?q=꽃&petId=
      */

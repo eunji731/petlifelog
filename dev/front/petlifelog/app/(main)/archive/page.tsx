@@ -107,9 +107,9 @@ export default function ArchivePage() {
 
             {/* Inline Quick Themes - Centered and Fluid */}
             <nav className="hidden lg:flex items-center gap-2 flex-1 justify-center overflow-x-auto no-scrollbar">
-              {top5Themes.map((theme) => (
+              {top5Themes.map((theme, index) => (
                 <button
-                  key={theme.categoryName}
+                  key={`${theme.categoryName}-${index}`}
                   onClick={() => handleTagClick(theme.categoryName)}
                   className="px-4 py-1.5 text-[11px] font-bold text-text-sub hover:text-main-green hover:bg-main-green/5 rounded-full transition-all whitespace-nowrap"
                 >
@@ -177,7 +177,7 @@ export default function ArchivePage() {
                 <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-6 space-y-6">
                   {searchResults.map((theme, index) => (
                     <Link
-                      key={theme.categoryName}
+                      key={`${theme.categoryName}-${index}`}
                       href={`/archive/${encodeURIComponent(theme.categoryName)}`}
                       className={`group relative block overflow-hidden rounded-[24px] shadow-lg hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 ${
                         heights[index % heights.length]
@@ -219,7 +219,7 @@ export default function ArchivePage() {
               <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-6 space-y-6 animate-in fade-in duration-1000">
                 {archiveThemes.map((theme, index) => (
                   <Link
-                    key={theme.categoryName}
+                    key={`${theme.categoryName}-${index}`}
                     href={`/archive/${encodeURIComponent(theme.categoryName)}`}
                     className={`group relative block overflow-hidden rounded-[24px] shadow-lg hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 ${
                       heights[index % heights.length]

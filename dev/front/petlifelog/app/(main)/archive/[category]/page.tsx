@@ -10,9 +10,10 @@ import {
   ChevronRight,
   X,
   Share2,
-  ArrowUpRight
+  ArrowUpRight,
+  Sparkles
 } from 'lucide-react';
-import { useArchive, ArchivePhoto } from '@/app/common/hooks/useArchive';
+import { useArchive, ArchivePhoto, ArchiveTheme } from '@/app/common/hooks/useArchive';
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -22,29 +23,85 @@ export default function ThemeDetailPage({ params }: PageProps) {
   const router = useRouter();
   const { category: encodedCategory } = use(params);
   const category = decodeURIComponent(encodedCategory);
-  const { getTheme, getPhotosByTag } = useArchive();
+  const { getTheme, fetchThemeDetail, getPhotosByTag } = useArchive();
 
-  const theme = getTheme(category);
+  const [theme, setTheme] = useState<ArchiveTheme | null>(null);
   const [photos, setPhotos] = useState<ArchivePhoto[]>([]);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
-    getPhotosByTag(category).then(setPhotos);
+    const loadData = async () => {
+      setIsInitialLoading(true);
+
+      // 1. 먼저 로컬 리스트에서 찾아보고 없으면 서버에서 직접 가져옴
+      let targetTheme = getTheme(category);
+      if (!targetTheme) {
+        targetTheme = await fetchThemeDetail(category);
+      }
+
+      if (targetTheme) {
+        setTheme(targetTheme);
+        const fetchedPhotos = await getPhotosByTag(category);
+        setPhotos(fetchedPhotos);
+      }
+
+      setIsInitialLoading(false);
+    };
+
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
-  if (!theme) {
+  if (isInitialLoading) {
     return (
       <div className="p-10 flex items-center justify-center h-full text-text-sub">
         <div className="text-center">
-          <p className="text-lg font-bold mb-2">테마를 불러오는 중...</p>
+          <div className="w-12 h-12 border-4 border-main-green/20 border-t-main-green rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-lg font-bold mb-2">추억의 조각들을 모으는 중...</p>
           <p className="text-sm">잠시만 기다려 주세요.</p>
         </div>
       </div>
     );
   }
 
+  if (!theme) {
+    return (
+      <div className="p-10 flex flex-col items-center justify-center h-full text-text-sub">
+        <div className="text-center space-y-6">
+          <div className="w-20 h-20 bg-surface-green rounded-full flex items-center justify-center mx-auto">
+            <X className="w-10 h-10 text-main-green opacity-40" />
+          </div>
+          <div>
+            <p className="text-lg font-bold mb-2">해당 테마를 찾을 수 없습니다.</p>
+            <p className="text-sm">검색어나 태그를 다시 확인해 주세요.</p>
+          </div>
+          <button 
+            onClick={() => router.back()}
+            className="px-8 py-3 bg-main-green text-white font-black rounded-full shadow-lg"
+          >
+            돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const bestPhoto = photos.find(p => p.isBest) || photos[0];
+
+  // 바이브 스코어 평균 및 등급 계산
+  const avgVibeScore = photos.length > 0 
+    ? photos.reduce((acc, p) => acc + p.vibeScore, 0) / photos.length 
+    : 0;
+  
+  const getVibeGrade = (score: number) => {
+    if (score >= 90) return 'A+';
+    if (score >= 80) return 'A';
+    if (score >= 70) return 'B+';
+    if (score >= 60) return 'B';
+    return 'C';
+  };
 
   const handleNextPhoto = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -138,72 +195,89 @@ export default function ThemeDetailPage({ params }: PageProps) {
               <span className="text-6xl md:text-7xl font-black text-text-main leading-none">{theme.photoCount}</span>
             </div>
             <div className="aspect-[2/1] bg-main-yellow rounded-[40px] p-6 md:p-8 flex flex-col justify-between shadow-xl shadow-main-yellow/20">
-              <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Vibe Score</span>
-              <span className="text-6xl md:text-7xl font-black text-black leading-none">A+</span>
+              <div className="flex justify-between items-start">
+                <span className="text-[11px] font-black uppercase tracking-widest text-black/40">Vibe Score</span>
+                <span className="text-[10px] font-bold text-black/60 bg-black/5 px-2 py-0.5 rounded-full">AVG {avgVibeScore.toFixed(1)}</span>
+              </div>
+              <span className="text-6xl md:text-7xl font-black text-black leading-none">{getVibeGrade(avgVibeScore)}</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Gallery Section */}
-      <section className="px-4 md:px-8 pt-16 pb-32 bg-surface-green/30">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
-          <div className="flex items-baseline gap-4">
-            <h2 className="text-[12px] font-black text-text-main uppercase tracking-[0.5em]">Selected Fragments</h2>
-            <span className="text-main-green font-black text-xs">/ {photos.length}</span>
-          </div>
-          <div className="h-[2px] flex-1 bg-main-green/10 w-full md:w-auto" />
-          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-border">
-            <div className="w-1.5 h-1.5 rounded-full bg-main-yellow" />
-            <span className="text-[10px] font-black text-text-sub uppercase tracking-widest font-mono">Archive Edt.</span>
-          </div>
-        </div>
-
-        {photos.length === 0 ? (
-          <div className="text-center py-20 text-text-sub">
-            <p className="text-sm font-bold">사진을 불러오는 중...</p>
-          </div>
-        ) : (
-          <div className="columns-1 md:columns-3 gap-8 space-y-8">
-            {photos.map((photo, index) => (
-              <div
-                key={photo.id}
-                onClick={() => setSelectedPhotoIndex(index)}
-                className="relative bg-white p-5 rounded-[32px] shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer group border border-border break-inside-avoid-column"
-              >
-                <div className="relative overflow-hidden rounded-[24px]">
-                  <img
-                    src={photo.path}
-                    alt={`Fragment ${index}`}
-                    className="w-full h-auto transition-transform duration-1000 group-hover:scale-110"
-                  />
-                </div>
-                <div className="pt-8 flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-[10px] font-black text-main-green uppercase tracking-widest">
-                        FRAG. {(index + 1).toString().padStart(2, '0')}
-                      </span>
-                      <div className="h-[1px] w-4 bg-main-green/30" />
-                    </div>
-                    {photo.photoComment && (
-                      <p className="text-[13px] font-bold leading-relaxed text-text-main group-hover:text-main-green transition-colors uppercase tracking-tight">
-                        "{photo.photoComment}"
-                      </p>
-                    )}
-                  </div>
-                  {photo.vibeScore > 0 && (
-                    <div className="flex gap-1 mt-1.5 ml-4">
-                      {Array.from({ length: photo.vibeScore }).map((_, i) => (
-                        <div key={i} className="w-2 h-2 bg-main-yellow rounded-full shadow-sm" />
-                      ))}
-                    </div>
-                  )}
-                </div>
+      {/* Gallery Section - Editorial Gallery Style */}
+      <section className="px-4 md:px-12 py-24 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-[1px] bg-main-green" />
+                <span className="text-[10px] font-black text-main-green uppercase tracking-[0.4em]">Visual Archive</span>
               </div>
-            ))}
+              <h2 className="text-4xl md:text-5xl font-black text-text-main uppercase tracking-tighter leading-none">Selected <br/>Fragments.</h2>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-black text-text-sub/40 uppercase tracking-widest">Collection Size</span>
+                <span className="text-2xl font-black text-text-main tracking-tighter">{photos.length.toString().padStart(2, '0')}</span>
+              </div>
+              <div className="w-[1px] h-12 bg-border" />
+              <div className="bg-surface-green/30 px-5 py-2.5 rounded-full border border-main-green/5">
+                <span className="text-[10px] font-black text-main-green uppercase tracking-widest font-mono">Curated by AI</span>
+              </div>
+            </div>
           </div>
-        )}
+
+          {photos.length === 0 ? (
+            <div className="text-center py-20 text-text-sub">
+              <p className="text-sm font-bold">사진을 불러오는 중...</p>
+            </div>
+          ) : (
+            <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-6 space-y-6">
+              {photos.map((photo, index) => (
+                <div 
+                  key={photo.id}
+                  onClick={() => setSelectedPhotoIndex(index)}
+                  className="relative group cursor-pointer break-inside-avoid-column"
+                >
+                  <div className="relative overflow-hidden rounded-[32px] bg-surface-green/10 shadow-sm transition-all duration-700 group-hover:shadow-2xl">
+                    <img 
+                      src={photo.path} 
+                      alt={`Fragment ${index}`}
+                      className="w-full h-auto transition-transform duration-1000 group-hover:scale-110"
+                    />
+
+                  {/* Polished Information Overlay */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col items-center justify-center p-4 text-center">
+                    <div className="space-y-4 translate-y-2 group-hover:translate-y-0 transition-transform duration-500 w-full">
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-[8px] font-black text-main-green uppercase tracking-[0.4em] border border-main-green/30 px-2 py-0.5 rounded">
+                          Fragment {index + 1}
+                        </span>
+                        {photo.vibeScore > 0 && (
+                          <div className="flex items-center gap-1 bg-main-yellow/90 px-2 py-0.5 rounded text-[8px] font-black text-black">
+                            <Sparkles className="w-2 h-2" /> VIBE {photo.vibeScore.toFixed(1)}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {photo.photoComment && (
+                        <p className="text-sm font-bold leading-tight text-white uppercase tracking-tight line-clamp-3 px-2">
+                          &quot;{photo.photoComment}&quot;
+                        </p>
+                      )}
+                      
+                      <div className="pt-3 flex flex-col items-center gap-1 border-t border-white/10 mx-4">
+                        <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">{photo.date}</span>
+                        <span className="text-[8px] font-black text-white/40 uppercase tracking-widest truncate max-w-full">@ {photo.locationName}</span>
+                      </div>
+                    </div>
+                  </div>
+                  </div>
+                </div>
+              ))}
+            </div>          )}
+        </div>
       </section>
 
       {/* Share Modal */}
