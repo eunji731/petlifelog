@@ -95,4 +95,24 @@ public interface PhotoThemeTagRepository extends JpaRepository<PhotoThemeTag, UU
             @Param("petId") UUID petId,
             Pageable pageable
     );
+
+    // 키워드로 태그 부분 검색 → 테마(태그) 목록 (count 포함)
+    @Query("""
+            SELECT pt.tag, COUNT(pt) as cnt
+            FROM PhotoThemeTag pt
+            JOIN pt.photo p
+            JOIN p.memory m
+            WHERE m.user.id = :userId
+              AND LOWER(pt.tag) LIKE LOWER(CONCAT('%', :keyword, '%'))
+              AND (:petId IS NULL OR EXISTS (
+                    SELECT md FROM MemoryDog md WHERE md.memory = m AND md.dog.id = :petId
+              ))
+            GROUP BY pt.tag
+            ORDER BY cnt DESC
+            """)
+    List<Object[]> searchThemesByKeyword(
+            @Param("userId") UUID userId,
+            @Param("keyword") String keyword,
+            @Param("petId") UUID petId
+    );
 }

@@ -19,9 +19,9 @@ public class ArchiveService {
 
     private final PhotoThemeTagRepository photoThemeTagRepository;
 
-    public List<ThemeTabResponse> getTopThemes(UUID userId, UUID petId, int limit) {
+    public List<ThemeTabResponse> getTopThemes(UUID userId, UUID petId, int page, int size) {
         List<Object[]> rows = photoThemeTagRepository.findTopTags(
-                userId, petId, PageRequest.of(0, limit));
+                userId, petId, PageRequest.of(page, size));
 
         return rows.stream().map(row -> {
             String tag = (String) row[0];
@@ -47,6 +47,20 @@ public class ArchiveService {
 
     public List<String> suggestTags(UUID userId, String q, UUID petId) {
         return photoThemeTagRepository.suggestTags(userId, q, petId, PageRequest.of(0, 10));
+    }
+
+    public List<ThemeTabResponse> searchThemes(UUID userId, String keyword, UUID petId) {
+        List<Object[]> rows = photoThemeTagRepository.searchThemesByKeyword(userId, keyword, petId);
+        return rows.stream().map(row -> {
+            String tag = (String) row[0];
+            Long count = (Long) row[1];
+            String repPhoto = photoThemeTagRepository.findRepresentativePhotoByTag(userId, tag);
+            return ThemeTabResponse.builder()
+                    .tag(tag)
+                    .count(count)
+                    .representativePhotoUrl(repPhoto)
+                    .build();
+        }).toList();
     }
 
     private List<ArchivePhotoResponse> toResponseList(List<Photo> photos) {

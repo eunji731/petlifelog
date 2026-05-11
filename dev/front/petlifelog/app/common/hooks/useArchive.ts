@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePetStore, ALL_PETS_ID } from './usePet';
 import clientApi, { getImagePath } from '@/app/common/lib/clientApi';
 
@@ -23,6 +23,8 @@ export interface ArchiveTheme {
   photos: ArchivePhoto[];
 }
 
+const PAGE_SIZE = 10;
+
 function mapPhoto(raw: any): ArchivePhoto {
   const date = raw.memoryDate ? String(raw.memoryDate).replaceAll('-', '.') : '';
   return {
@@ -39,28 +41,54 @@ function mapPhoto(raw: any): ArchivePhoto {
 
 export const useArchive = () => {
   const [archiveThemes, setArchiveThemes] = useState<ArchiveTheme[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingThemes, setIsLoadingThemes] = useState(false);
   const { selectedPetId } = usePetStore();
+  const prevPetId = useRef(selectedPetId);
+
+  const fetchThemePage = useCallback(async (pageNum: number, petId: string | null) => {
+    setIsLoadingThemes(true);
+    try {
+      const petParam = petId ? `&petId=${petId}` : '';
+      const res = await clientApi.get(`/api/archive/themes?page=${pageNum}&size=${PAGE_SIZE}${petParam}`);
+      const data: any[] = res.data?.data || [];
+      const mapped: ArchiveTheme[] = data.map(item => ({
+        categoryName: item.tag,
+        representativePhoto: getImagePath(item.representativePhotoUrl),
+        photoCount: Number(item.count),
+        themeEssay: '',
+        photos: [],
+      }));
+      setArchiveThemes(prev => pageNum === 0 ? mapped : [...prev, ...mapped]);
+      setHasMore(data.length === PAGE_SIZE);
+    } catch (e) {
+      console.error('테마 로딩 실패:', e);
+    } finally {
+      setIsLoadingThemes(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchThemes = async () => {
-      try {
-        const validPetId = selectedPetId && selectedPetId !== ALL_PETS_ID ? selectedPetId : null;
-        const petParam = validPetId ? `?petId=${validPetId}` : '';
-        const res = await clientApi.get(`/api/archive/themes${petParam}`);
-        const data: any[] = res.data?.data || [];
-        setArchiveThemes(data.map(item => ({
-          categoryName: item.tag,
-          representativePhoto: getImagePath(item.representativePhotoUrl),
-          photoCount: Number(item.count),
-          themeEssay: '',
-          photos: [],
-        })));
-      } catch (e) {
-        console.error('테마 로딩 실패:', e);
-      }
-    };
-    fetchThemes();
-  }, [selectedPetId]);
+    const validPetId = selectedPetId && selectedPetId !== ALL_PETS_ID ? selectedPetId : null;
+
+    if (prevPetId.current !== selectedPetId) {
+      prevPetId.current = selectedPetId;
+      setPage(0);
+      setHasMore(true);
+      fetchThemePage(0, validPetId);
+    } else {
+      fetchThemePage(0, validPetId);
+    }
+  }, [selectedPetId, fetchThemePage]);
+
+  const loadMoreThemes = useCallback(() => {
+    if (isLoadingThemes || !hasMore) return;
+    const validPetId = selectedPetId && selectedPetId !== ALL_PETS_ID ? selectedPetId : null;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchThemePage(nextPage, validPetId);
+  }, [isLoadingThemes, hasMore, selectedPetId, page, fetchThemePage]);
 
   const validPetId = selectedPetId && selectedPetId !== ALL_PETS_ID ? selectedPetId : null;
 
@@ -71,6 +99,24 @@ export const useArchive = () => {
       return (res.data?.data || []).map(mapPhoto);
     } catch (e) {
       console.error('검색 실패:', e);
+      return [];
+    }
+  };
+
+  const searchThemes = async (query: string): Promise<ArchiveTheme[]> => {
+    try {
+      const petParam = validPetId ? `&petId=${validPetId}` : '';
+      const res = await clientApi.get(`/api/archive/themes/search?q=${encodeURIComponent(query)}${petParam}`);
+      const data: any[] = res.data?.data || [];
+      return data.map(item => ({
+        categoryName: item.tag,
+        representativePhoto: getImagePath(item.representativePhotoUrl),
+        photoCount: Number(item.count),
+        themeEssay: '',
+        photos: [],
+      }));
+    } catch (e) {
+      console.error('테마 검색 실패:', e);
       return [];
     }
   };
@@ -99,8 +145,12 @@ export const useArchive = () => {
 
   return {
     archiveThemes,
+    isLoadingThemes,
+    hasMore,
+    loadMoreThemes,
     getTheme: (categoryName: string) => archiveThemes.find(t => t.categoryName === categoryName),
     syncSearch,
+    searchThemes,
     suggestTags,
     getPhotosByTag,
   };

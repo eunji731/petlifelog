@@ -19,17 +19,18 @@ public class ArchiveController {
     private final ArchiveService archiveService;
 
     /**
-     * 도감 탭 목록: 데이터 많은 순 Top N 테마
-     * GET /api/archive/themes?petId=&limit=10
+     * 도감 탭 목록: 데이터 많은 순 테마 (페이지네이션)
+     * GET /api/archive/themes?petId=&page=0&size=10
      */
     @GetMapping("/themes")
     public ApiResponse<List<ThemeTabResponse>> getTopThemes(
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) UUID petId,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
         return ApiResponse.success(
-                archiveService.getTopThemes(UUID.fromString(user.getUsername()), petId, limit));
+                archiveService.getTopThemes(UUID.fromString(user.getUsername()), petId, page, size));
     }
 
     /**
@@ -58,6 +59,20 @@ public class ArchiveController {
 
         return ApiResponse.success(
                 archiveService.searchPhotos(UUID.fromString(user.getUsername()), q, petId));
+    }
+
+    /**
+     * 검색창: 키워드 부분 일치 테마(태그) 목록
+     * GET /api/archive/themes/search?q=꽃&petId=
+     */
+    @GetMapping("/themes/search")
+    public ApiResponse<List<ThemeTabResponse>> searchThemes(
+            @AuthenticationPrincipal User user,
+            @RequestParam String q,
+            @RequestParam(required = false) UUID petId) {
+
+        return ApiResponse.success(
+                archiveService.searchThemes(UUID.fromString(user.getUsername()), q, petId));
     }
 
     /**
