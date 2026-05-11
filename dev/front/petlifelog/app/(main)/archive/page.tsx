@@ -83,6 +83,14 @@ export default function ArchivePage() {
     setSuggestions([]);
   };
 
+  // Re-trigger search when pet changes
+  useEffect(() => {
+    if (isSearching && searchQuery.trim()) {
+      handleSearch(searchQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPetId]);
+
   const top5Themes = archiveThemes.slice(0, 5);
 
   // Dynamic heights for masonry
@@ -170,8 +178,20 @@ export default function ArchivePage() {
               </div>
 
               {searchResults.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-24 gap-4 opacity-40">
-                  <span className="text-[13px] font-black text-text-sub uppercase tracking-widest">No Archives Found</span>
+                <div className="flex flex-col items-center justify-center py-40 gap-6 animate-in fade-in zoom-in duration-700">
+                  <div className="w-20 h-20 bg-surface-green/50 rounded-full flex items-center justify-center">
+                    <Search className="w-8 h-8 text-main-green/20" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-lg font-black text-text-main">검색 결과가 없어요</p>
+                    <p className="text-xs font-bold text-text-sub uppercase tracking-widest">No Archives Found for &quot;{searchQuery}&quot;</p>
+                  </div>
+                  <button 
+                    onClick={clearSearch}
+                    className="px-6 py-2.5 border border-main-green/30 text-main-green text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-main-green hover:text-white transition-all"
+                  >
+                    전체 보기로 돌아가기
+                  </button>
                 </div>
               ) : (
                 <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-6 space-y-6">
@@ -216,47 +236,71 @@ export default function ArchivePage() {
             </div>
           ) : (
             <>
-              <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-6 space-y-6 animate-in fade-in duration-1000">
-                {archiveThemes.map((theme, index) => (
-                  <Link
-                    key={`${theme.categoryName}-${index}`}
-                    href={`/archive/${encodeURIComponent(theme.categoryName)}`}
-                    className={`group relative block overflow-hidden rounded-[24px] shadow-lg hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 ${
-                      heights[index % heights.length]
-                    }`}
+              {archiveThemes.length === 0 && !isLoadingThemes ? (
+                <div className="flex flex-col items-center justify-center py-40 gap-8 animate-in fade-in zoom-in duration-700">
+                  <div className="relative">
+                    <div className="w-24 h-24 bg-surface-green/50 rounded-[32px] rotate-12 absolute -inset-2" />
+                    <div className="w-24 h-24 bg-white border border-border rounded-[32px] flex items-center justify-center relative shadow-sm">
+                      <Sparkles className="w-10 h-10 text-main-green/20" />
+                    </div>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-2xl font-black text-text-main">아직 보관된 추억이 없어요</h3>
+                    <p className="text-sm font-bold text-text-sub leading-relaxed">
+                      일기를 작성하고 사진을 등록하면<br />
+                      AI가 테마별로 소중한 순간들을 모아드려요.
+                    </p>
+                  </div>
+                  <Link 
+                    href="/calendar" 
+                    className="px-10 py-4 bg-main-green text-white text-sm font-black rounded-2xl shadow-xl shadow-main-green/20 hover:scale-105 active:scale-95 transition-all"
                   >
-                    <Image
-                      src={theme.representativePhoto}
-                      alt={theme.categoryName}
-                      fill
-                      className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                    />
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-70 group-hover:opacity-100 transition-opacity" />
-
-                    <div className="absolute inset-0 p-8 flex flex-col justify-end">
-                      <div className="mb-3">
-                        <span className="text-[9px] font-black text-main-yellow uppercase tracking-[0.4em] bg-black/30 backdrop-blur-md px-3 py-1 rounded-full inline-block border border-white/10">
-                          EDITION {(index + 1).toString().padStart(2, '0')}
-                        </span>
-                      </div>
-                      <h2 className="text-3xl font-black text-white tracking-tighter uppercase group-hover:text-main-green transition-colors drop-shadow-md leading-none">
-                        {theme.categoryName}
-                      </h2>
-                      <div className="flex items-center gap-3 mt-3">
-                        <div className="h-[2px] w-6 bg-main-green/50 group-hover:w-10 transition-all duration-500" />
-                        <span className="text-[10px] font-black text-white/50 tracking-[0.2em] uppercase">
-                          {theme.photoCount} Captures
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="absolute top-6 right-6 w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 opacity-0 group-hover:opacity-100 transition-all duration-700 scale-75 group-hover:scale-100">
-                      <ArrowUpRight className="w-6 h-6 text-white" />
-                    </div>
+                    일기 작성하고 추억 쌓기
                   </Link>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-6 space-y-6 animate-in fade-in duration-1000">
+                  {archiveThemes.map((theme, index) => (
+                    <Link
+                      key={`${theme.categoryName}-${index}`}
+                      href={`/archive/${encodeURIComponent(theme.categoryName)}`}
+                      className={`group relative block overflow-hidden rounded-[24px] shadow-lg hover:shadow-2xl transition-all duration-700 hover:-translate-y-2 ${
+                        heights[index % heights.length]
+                      }`}
+                    >
+                      <Image
+                        src={theme.representativePhoto}
+                        alt={theme.categoryName}
+                        fill
+                        className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                      />
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-70 group-hover:opacity-100 transition-opacity" />
+
+                      <div className="absolute inset-0 p-8 flex flex-col justify-end">
+                        <div className="mb-3">
+                          <span className="text-[9px] font-black text-main-yellow uppercase tracking-[0.4em] bg-black/30 backdrop-blur-md px-3 py-1 rounded-full inline-block border border-white/10">
+                            EDITION {(index + 1).toString().padStart(2, '0')}
+                          </span>
+                        </div>
+                        <h2 className="text-3xl font-black text-white tracking-tighter uppercase group-hover:text-main-green transition-colors drop-shadow-md leading-none">
+                          {theme.categoryName}
+                        </h2>
+                        <div className="flex items-center gap-3 mt-3">
+                          <div className="h-[2px] w-6 bg-main-green/50 group-hover:w-10 transition-all duration-500" />
+                          <span className="text-[10px] font-black text-white/50 tracking-[0.2em] uppercase">
+                            {theme.photoCount} Captures
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="absolute top-6 right-6 w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 opacity-0 group-hover:opacity-100 transition-all duration-700 scale-75 group-hover:scale-100">
+                        <ArrowUpRight className="w-6 h-6 text-white" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
 
               {/* Infinite scroll sentinel */}
               <div ref={sentinelRef} className="h-16 flex items-center justify-center mt-4">
