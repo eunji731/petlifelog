@@ -62,16 +62,14 @@ export default function CalendarGrid({
 
   const getDayContent = (date: Date) => {
     const dateKey = date.toLocaleDateString('en-CA');
-    const log = dailyLogs[dateKey];
-    if (!log) return null;
-
+    const logs = dailyLogs[dateKey] || [];
+    
     // 필터링된 결과 확인
     if (selectedPetId !== ALL_PETS_ID) {
-      const hasPet = log.moments.some(m => m.dogIds.includes(selectedPetId || ''));
-      if (!hasPet) return null;
+      return logs.filter(log => log.moments.some(m => m.dogIds.includes(selectedPetId || '')));
     }
     
-    return log;
+    return logs;
   };
 
   return (
@@ -84,7 +82,8 @@ export default function CalendarGrid({
         ))}
         
         {days.map((day, i) => {
-          const log = getDayContent(day.date);
+          const logs = getDayContent(day.date);
+          const hasLogs = logs.length > 0;
           const isSelected = selectedDate.toDateString() === day.date.toDateString();
           const isToday = new Date().toDateString() === day.date.toDateString();
 
@@ -113,28 +112,43 @@ export default function CalendarGrid({
                 {isToday && <div className="w-1 h-1 rounded-full bg-main-green" />}
               </div>
 
-              {/* Log Indicator - Minimalist Style (Small Dot or Tiny Image) */}
-              <div className="mt-auto mb-1 lg:mb-2 flex flex-col items-center gap-1">
-                {log ? (
+              {/* Log Indicator - Stacked Thumbnails */}
+              <div className="mt-auto mb-1 lg:mb-2 flex flex-col items-center">
+                {hasLogs ? (
                   <div className="flex flex-col items-center gap-1">
-                    {/* Tiny Thumbnail - strictly sized */}
-                    <div className="relative w-6 h-6 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-main-green/20">
-                      <Image
-                        src={getImagePath(log.representativePhotoPath)}
-                        alt="Log"
-                        fill
-                        className="object-cover"
-                      />
+                    <div className="relative flex items-center justify-center h-6 lg:h-10">
+                      {logs.slice(0, 3).reverse().map((log, idx, arr) => (
+                        <div 
+                          key={log.id} 
+                          className="relative w-6 h-6 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-main-green/20"
+                          style={{
+                            marginLeft: idx === 0 ? 0 : '-12px',
+                            zIndex: idx
+                          }}
+                        >
+                          <Image
+                            src={getImagePath(log.representativePhotoPath)}
+                            alt="Log"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                      {logs.length > 3 && (
+                        <div className="absolute -right-2 -top-1 bg-main-green text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white z-10">
+                          +{logs.length - 3}
+                        </div>
+                      )}
                     </div>
-                    {/* Count Dot */}
-                    <div className="flex gap-0.5">
-                      {Array.from({ length: Math.min(log.moments.length, 3) }).map((_, idx) => (
-                        <div key={idx} className="w-1 h-1 rounded-full bg-main-green/60" />
+                    {/* Count Dots for all logs */}
+                    <div className="flex gap-0.5 mt-1">
+                      {logs.map((log) => (
+                        <div key={log.id} className="w-1 h-1 rounded-full bg-main-green/60" />
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="w-1 h-1 rounded-full bg-transparent" /> /* Placeholder to maintain layout */
+                  <div className="h-6 lg:h-10 w-1 bg-transparent" />
                 )}
               </div>
             </div>

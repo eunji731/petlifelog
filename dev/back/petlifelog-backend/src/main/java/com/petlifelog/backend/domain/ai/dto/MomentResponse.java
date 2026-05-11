@@ -24,4 +24,7 @@ public class MomentResponse {
 
     /** 이 모멘트를 대표하는 사진 파일명 (photoFileNames 중 1개) */
     private String representativePhotoPath;
+
+    /** 사진별 AI 분석 결과 (테마 도감용) */
+    private List<PhotoDetailResponse> photoDetails = new ArrayList<>();
 }

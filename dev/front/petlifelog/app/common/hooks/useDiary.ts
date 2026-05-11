@@ -39,11 +39,11 @@ export interface DailyLog {
 }
 
 interface DiaryState {
-  dailyLogs: Record<string, DailyLog>;
+  dailyLogs: Record<string, DailyLog[]>;
   addDailyLog: (log: DailyLog) => void;
-  removeDailyLog: (dateKey: string) => void;
-  getDailyLog: (dateKey: string) => DailyLog | undefined;
-  setDailyLogs: (logs: Record<string, DailyLog>) => void;
+  removeDailyLog: (id: string, dateKey: string) => void;
+  getDailyLogsForDate: (dateKey: string) => DailyLog[];
+  setDailyLogs: (logs: Record<string, DailyLog[]>) => void;
 }
 
 export const useDiaryStore = create<DiaryState>()(
@@ -51,18 +51,30 @@ export const useDiaryStore = create<DiaryState>()(
     (set, get) => ({
       dailyLogs: {},
       addDailyLog: (log) => {
-        set((state) => ({
-          dailyLogs: { ...state.dailyLogs, [log.dateKey]: log }
-        }));
-      },
-      removeDailyLog: (dateKey) => {
         set((state) => {
-          const newLogs = { ...state.dailyLogs };
-          delete newLogs[dateKey];
-          return { dailyLogs: newLogs };
+          const currentLogs = state.dailyLogs[log.dateKey] || [];
+          // Prevent duplicates by ID
+          const updatedLogs = currentLogs.filter(l => l.id !== log.id).concat(log);
+          return {
+            dailyLogs: { ...state.dailyLogs, [log.dateKey]: updatedLogs }
+          };
         });
       },
-      getDailyLog: (dateKey) => get().dailyLogs[dateKey],
+      removeDailyLog: (id, dateKey) => {
+        set((state) => {
+          const currentLogs = state.dailyLogs[dateKey];
+          if (!currentLogs) return state;
+          const updatedLogs = currentLogs.filter(l => l.id !== id);
+          const newDailyLogs = { ...state.dailyLogs };
+          if (updatedLogs.length === 0) {
+            delete newDailyLogs[dateKey];
+          } else {
+            newDailyLogs[dateKey] = updatedLogs;
+          }
+          return { dailyLogs: newDailyLogs };
+        });
+      },
+      getDailyLogsForDate: (dateKey) => get().dailyLogs[dateKey] || [],
       setDailyLogs: (logs) => set({ dailyLogs: logs }),
     }),
     {
@@ -98,10 +110,10 @@ interface MemoryApiItem {
 }
 
 export const useDiary = () => {
-  const { dailyLogs, addDailyLog, removeDailyLog, getDailyLog, setDailyLogs } = useDiaryStore();
+  const { dailyLogs, addDailyLog, removeDailyLog, getDailyLogsForDate, setDailyLogs } = useDiaryStore();
   const { selectedPetId } = usePetStore();
 
-  const allLogs = Object.values(dailyLogs).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  const allLogs = Object.values(dailyLogs).flat().sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 
   const filteredLogs = selectedPetId === ALL_PETS_ID
     ? allLogs
@@ -118,7 +130,7 @@ export const useDiary = () => {
       const res = await clientApi.get(`/api/memories${queryString}`);
       const memories: MemoryApiItem[] = res.data?.data ?? [];
 
-      const logs: Record<string, DailyLog> = {};
+      const logs: Record<string, DailyLog[]> = {};
       for (const m of memories) {
         const parseTags = (tagsJson?: string): string[] => {
           try { return tagsJson ? JSON.parse(tagsJson) : []; } catch { return []; }
@@ -148,7 +160,7 @@ export const useDiary = () => {
               dogIds: m.petIds || [],
             }];
 
-        logs[m.dateKey] = {
+        const log: DailyLog = {
           id: m.id,
           dateKey: m.dateKey,
           aiTitle: m.aiTitle || '기록',
@@ -156,6 +168,11 @@ export const useDiary = () => {
           representativePhotoPath: m.representativePhotoPath || undefined,
           moments,
         };
+
+        if (!logs[m.dateKey]) {
+          logs[m.dateKey] = [];
+        }
+        logs[m.dateKey].push(log);
       }
       setDailyLogs(logs);
     } catch (e) {
@@ -167,7 +184,7 @@ export const useDiary = () => {
     dailyLogs,
     addDailyLog,
     removeDailyLog,
-    getDailyLog,
+    getDailyLogsForDate,
     allLogs: filteredLogs,
     syncFromBackend,
   };

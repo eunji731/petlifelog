@@ -16,6 +16,7 @@ import com.petlifelog.backend.common.file.service.FileStorageService;
 import com.petlifelog.backend.domain.ai.dto.*;
 import com.petlifelog.backend.domain.member.Member;
 import com.petlifelog.backend.domain.member.MemberRepository;
+import com.petlifelog.backend.domain.ai.dto.PhotoDetailResponse;
 import com.petlifelog.backend.domain.memory.*;
 import com.petlifelog.backend.domain.pet.Pet;
 import com.petlifelog.backend.domain.pet.PetRepository;
@@ -57,6 +58,7 @@ public class AiDiaryService {
     private final FileStorageService fileStorageService;
     private final AttachedFileService attachedFileService;
     private final AiDiaryUsageRepository aiDiaryUsageRepository;
+    private final PhotoThemeTagRepository photoThemeTagRepository;
 
     // ─────────────────────────────────────────────────────────────────
     // 1단계: 이미지 분석
@@ -254,7 +256,28 @@ public class AiDiaryService {
             }
         }
 
-        // 5. 대표 사진 설정
+        // 5. 사진별 AI 분석 데이터 저장 (테마 도감)
+        for (MomentResponse mr : moments) {
+            if (mr.getPhotoDetails() == null) continue;
+            for (PhotoDetailResponse detail : mr.getPhotoDetails()) {
+                Integer idx = nameToIndex.get(detail.getFileName());
+                if (idx == null || idx >= savedPhotos.size()) continue;
+                Photo photo = savedPhotos.get(idx);
+                photo.updateAiData(detail.getPhotoComment(), detail.getVibeScore(), detail.getIsBest());
+                if (detail.getThemeTags() != null) {
+                    for (String tag : detail.getThemeTags()) {
+                        if (tag != null && !tag.isBlank()) {
+                            photoThemeTagRepository.save(PhotoThemeTag.builder()
+                                    .photo(photo)
+                                    .tag(tag.trim())
+                                    .build());
+                        }
+                    }
+                }
+            }
+        }
+
+        // 6. 대표 사진 설정
         if (representativePhoto == null && !savedPhotos.isEmpty()) {
             representativePhoto = savedPhotos.get(0);
         }
@@ -262,7 +285,7 @@ public class AiDiaryService {
             memory.setRepresentativePhoto(representativePhoto);
         }
 
-        // 6. MemoryDog 매핑
+        // 7. MemoryDog 매핑
         for (String petId : petIds) {
             Pet pet = petRepository.findById(UUID.fromString(petId))
                     .orElseThrow(() -> new IllegalArgumentException("반려동물을 찾을 수 없습니다."));
@@ -370,8 +393,19 @@ public class AiDiaryService {
                         + "1. 사진 1장 = 모멘트 1개가 되어서는 절대 안 된다.\n"
                         + "2. 장소가 같거나 연속된 시간대·같은 활동의 사진들은 반드시 하나의 모멘트로 묶어라.\n"
                         + "   예) 공원 사진 3장 → 모멘트 1개 / 카페 사진 1장 → 모멘트 1개 / 집 사진 1장 → 모멘트 1개 = 총 3개\n"
-                        + "3. 모든 사진은 반드시 어느 한 모멘트의 photoFileNames 에 배정되어야 한다.\n"
+                        + "3. 모든 사진은 반드시 어느 한 모멘트의 photoFileNames 와 photoDetails 양쪽에 모두 배정되어야 한다.\n"
                         + "4. 메타데이터의 촬영 시간을 최우선으로 참고하여 시간 순서를 판단해라.\n\n"
+                        + "【photoDetails 작성 규칙】\n"
+                        + "- themeTags: 아래 카테고리별로 최대 1개씩, 총 3개 이내. 반드시 겹침 없이 선택.\n"
+                        + "  • 장소: 카페, 공원, 집, 산, 해변, 동물병원 등 구체적 장소 (있을 경우 1개)\n"
+                        + "  • 활동: 산책, 휴식, 낮잠, 식사, 목욕, 놀이, 외출 등 (1개)\n"
+                        + "  • 분위기·계절: 봄, 여름, 가을, 겨울, 밤, 비, 눈 등 (있을 경우 1개)\n"
+                        + "  ※ 구체적 장소가 있으면 야외/실내 같은 추상 태그는 제외\n"
+                        + "  ※ 인물(언니, 아빠 등 사람 이름·호칭)은 themeTags에 포함하지 않음\n"
+                        + "  예) 카페 사진 → [\"카페\", \"휴식\"] / 서울숲 사진 → [\"서울숲\", \"산책\", \"봄\"]\n"
+                        + "- photoComment: 이 사진 한 장을 보고 느낀 점을 반려동물 시점 한 줄 (20자 이내)\n"
+                        + "- vibeScore: 1~100점. 사진의 선명도·구도·표정·감성을 종합 평가\n"
+                        + "- isBest: 이 모멘트 내에서 가장 잘 나온 사진 1장만 true, 나머지는 false\n\n"
                         + "반려동물 정보:\n%s\n"
                         + "사진 메타데이터 (파일명 정확히 사용할 것):\n%s\n"
                         + "사용자 키워드: %s\n\n"
@@ -389,12 +423,21 @@ public class AiDiaryService {
                         + "      \"aiContent\": \"모멘트 내용 (반려동물 1인칭 말투로 2~4문장)\",\n"
                         + "      \"energyLevel\": 3,\n"
                         + "      \"locationName\": \"장소 명칭\",\n"
-                        + "      \"tags\": [\"태그1\", \"태그2\"],\n"
-                        + "      \"targetPetIds\": [\"반려동물 ID\"]\n"
+                        + "      \"tags\": [\"모멘트 전체 태그1\", \"태그2\"],\n"
+                        + "      \"targetPetIds\": [\"반려동물 ID\"],\n"
+                        + "      \"photoDetails\": [\n"
+                        + "        {\n"
+                        + "          \"fileName\": \"photo_01.jpg\",\n"
+                        + "          \"themeTags\": [\"봄\", \"꽃\", \"공원\"],\n"
+                        + "          \"photoComment\": \"분홍 꽃잎 사이로 내 코가 보인다냥\",\n"
+                        + "          \"vibeScore\": 92,\n"
+                        + "          \"isBest\": true\n"
+                        + "        }\n"
+                        + "      ]\n"
                         + "    }\n"
                         + "  ]\n"
                         + "}\n"
-                        + "주의: moments는 시간 순서 정렬 / photoFileNames 는 메타데이터에 있는 파일명만 사용",
+                        + "주의: moments는 시간 순서 정렬 / photoFileNames와 photoDetails의 fileName은 메타데이터에 있는 파일명만 사용 / 각 모멘트 내 isBest는 반드시 1개만 true",
                 petContext,
                 metadataContext,
                 String.join(", ", userTags != null ? userTags : List.of()));

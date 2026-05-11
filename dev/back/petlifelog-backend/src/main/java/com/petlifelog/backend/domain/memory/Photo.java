@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -62,6 +64,18 @@ public class Photo extends BaseTimeEntity {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
 
+    @Column(name = "ai_comment")
+    private String aiComment;
+
+    @Column(name = "vibe_score")
+    private Integer vibeScore;
+
+    @Column(name = "is_best", columnDefinition = "BOOLEAN NOT NULL DEFAULT false")
+    private Boolean isBest = false;
+
+    @OneToMany(mappedBy = "photo", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PhotoThemeTag> themeTags = new ArrayList<>();
+
     @Builder
     public Photo(Memory memory, MemoryMoment moment, String pathOrigin, LocalDateTime takenAt, Double gpsLat, Double gpsLng, String gpsSource, Integer sortOrder) {
         this.memory = memory;
@@ -72,9 +86,16 @@ public class Photo extends BaseTimeEntity {
         this.gpsLng = gpsLng;
         this.gpsSource = gpsSource != null ? gpsSource : "NONE";
         this.sortOrder = sortOrder != null ? sortOrder : 0;
+        this.isBest = false;
     }
 
     public void assignMoment(MemoryMoment moment) {
         this.moment = moment;
+    }
+
+    public void updateAiData(String aiComment, Integer vibeScore, Boolean isBest) {
+        this.aiComment = aiComment;
+        this.vibeScore = vibeScore;
+        this.isBest = isBest != null && isBest;
     }
 }

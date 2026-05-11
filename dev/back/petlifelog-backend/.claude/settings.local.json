@@ -32,7 +32,8 @@
       "Bash(Select-String \"exif\")",
       "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")",
       "Bash(node_modules/.bin/tsc --noEmit)",
-      "Bash(cmd *)"
+      "Bash(cmd *)",
+      "Bash(Remove-Item *)"
     ]
   }
 }

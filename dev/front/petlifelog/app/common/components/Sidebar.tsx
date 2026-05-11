@@ -25,6 +25,7 @@ import clientApi, { getImagePath } from '../lib/clientApi';
 const navItems = [
   { name: '대시보드', href: '/dashboard', icon: Book },
   { name: '캘린더', href: '/calendar', icon: Calendar },
+  { name: '아카이브', href: '/archive', icon: ImageIcon },
   { name: '가족 관리', href: '/family', icon: Users },
   { name: '지도', href: '/map', icon: MapPin },
   { name: '도감', href: '/inventory', icon: Book },
@@ -73,11 +74,11 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
                 isActive 
                   ? 'bg-main-green text-white shadow-lg shadow-main-green/20 font-bold' 
-                  : 'text-text-main/70 hover:bg-main-yellow/30 hover:text-text-main'
+                  : 'text-text-main/70 hover:bg-main-green/5 hover:text-main-green'
               }`}
             >
-              <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'group-hover:text-main-green'}`} />
-              <span className="text-[15px] font-bold tracking-tight">{item.name}</span>
+              <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'group-hover:text-main-green transition-colors'}`} />
+              <span className={`text-[15px] font-bold tracking-tight ${isActive ? 'text-white' : 'group-hover:text-main-green'}`}>{item.name}</span>
             </Link>
           );
         })}
