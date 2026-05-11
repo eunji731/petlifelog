@@ -336,58 +336,133 @@ export default function ThemeDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Expanded View Modal */}
+      {/* Expanded View Modal - Redesigned to Premium Gallery Style */}
       {selectedPhotoIndex !== null && (
         <div
-          className="fixed inset-0 z-[200] bg-black/98 backdrop-blur-xl flex flex-col items-center justify-center transition-all animate-in fade-in duration-300"
+          className="fixed inset-0 z-[200] bg-white/90 backdrop-blur-3xl flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-500"
           onClick={() => setSelectedPhotoIndex(null)}
         >
-          <div className="absolute top-0 left-0 right-0 p-8 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-main-green" />
-              <span className="text-[11px] font-black tracking-[0.5em] uppercase text-white/40">Fragment {selectedPhotoIndex + 1} / {photos.length}</span>
+          {/* Close Button */}
+          <button 
+            onClick={() => setSelectedPhotoIndex(null)}
+            className="absolute top-6 right-6 md:top-10 md:right-10 w-12 h-12 rounded-full bg-black/5 flex items-center justify-center text-black/40 hover:text-black hover:bg-black/10 transition-all z-10"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div 
+            className="w-full max-w-7xl h-full md:h-[80vh] bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 duration-500"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Left Side: Photo Gallery - Immersive Full View */}
+            <div className="relative flex-[1.2] bg-stone-200 flex items-center justify-center group overflow-hidden">
+              <Image
+                src={photos[selectedPhotoIndex].path}
+                alt="Expanded"
+                fill
+                className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                priority
+              />
+              
+              {/* Subtle Overlay for better text/button readability */}
+              <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors duration-500" />
+
+              {/* Fragment Index Indicator - Overlaid on top */}
+              <div className="absolute top-8 left-8 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full border border-white/30 z-10">
+                <span className="text-[10px] font-black tracking-[0.3em] uppercase text-white drop-shadow-sm">
+                  Fragment {selectedPhotoIndex + 1} / {photos.length}
+                </span>
+              </div>
+
+              {/* Navigation Controls */}
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-4 md:px-8 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+                <button 
+                  onClick={handlePrevPhoto} 
+                  className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center text-white hover:bg-main-green hover:border-main-green transition-all pointer-events-auto active:scale-90"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button 
+                  onClick={handleNextPhoto} 
+                  className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center text-white hover:bg-main-green hover:border-main-green transition-all pointer-events-auto active:scale-90"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              </div>
             </div>
-            <button onClick={() => setSelectedPhotoIndex(null)} className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/20 transition-all">
-              <X className="w-6 h-6" />
-            </button>
-          </div>
 
-          <div className="relative w-full h-[60vh] flex items-center justify-center px-4">
-            <Image
-              src={photos[selectedPhotoIndex].path}
-              alt="Expanded"
-              fill
-              className="object-contain"
-            />
+            {/* Right Side: Content & Story */}
+            <div className="flex-1 p-8 md:p-16 flex flex-col justify-between bg-white border-l border-stone-100">
+              <div className="space-y-12">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-main-green" />
+                      <span className="text-[10px] font-black text-main-green uppercase tracking-[0.4em]">Memory Fragment</span>
+                    </div>
+                    <h3 className="text-3xl font-black text-text-main uppercase tracking-tighter">
+                      {theme.categoryName}
+                    </h3>
+                  </div>
+                  {photos[selectedPhotoIndex].vibeScore > 0 && (
+                    <div className="flex flex-col items-end">
+                      <span className="text-[9px] font-black text-text-sub uppercase tracking-widest mb-1">Vibe Score</span>
+                      <div className="bg-main-yellow px-3 py-1 rounded-lg text-sm font-black text-black flex items-center gap-1.5 shadow-lg shadow-main-yellow/20">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {photos[selectedPhotoIndex].vibeScore.toFixed(1)}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-            <button onClick={handlePrevPhoto} className="absolute left-8 w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-white hover:bg-main-green transition-all group">
-              <ChevronLeft className="w-8 h-8 transition-transform group-hover:-translate-x-1" />
-            </button>
-            <button onClick={handleNextPhoto} className="absolute right-8 w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-white hover:bg-main-green transition-all group">
-              <ChevronRight className="w-8 h-8 transition-transform group-hover:translate-x-1" />
-            </button>
-          </div>
+                <div className="space-y-8">
+                  <div className="flex items-center gap-4">
+                    <div className="h-[1px] flex-1 bg-stone-100" />
+                    <span className="text-[10px] font-black text-stone-300 uppercase tracking-[0.4em]">AI Analysis</span>
+                    <div className="h-[1px] flex-1 bg-stone-100" />
+                  </div>
 
-          <div className="w-full max-w-3xl mt-16 px-8 flex flex-col items-center text-center" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-4 mb-8">
-              <div className="h-[1px] w-12 bg-main-yellow/30" />
-              <span className="text-[10px] font-black text-main-yellow uppercase tracking-[0.4em]">AI Analysis</span>
-              <div className="h-[1px] w-12 bg-main-yellow/30" />
+                  {photos[selectedPhotoIndex].photoComment ? (
+                    <blockquote className="relative">
+                      <span className="absolute -top-6 -left-4 text-6xl text-main-green/10 font-serif leading-none">&ldquo;</span>
+                      <p className="text-2xl md:text-3xl font-black text-text-main leading-[1.3] tracking-tight relative z-10">
+                        {photos[selectedPhotoIndex].photoComment}
+                      </p>
+                      <span className="absolute -bottom-10 -right-2 text-6xl text-main-green/10 font-serif leading-none transform rotate-180">&ldquo;</span>
+                    </blockquote>
+                  ) : (
+                    <p className="text-text-sub italic text-sm">기록된 코멘트가 없습니다.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-8 mt-12 md:mt-0">
+                <div className="flex items-center justify-between py-6 border-y border-stone-100">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] font-black text-text-sub uppercase tracking-widest">Date Captured</span>
+                    <span className="text-sm font-bold text-text-main">{photos[selectedPhotoIndex].date}</span>
+                  </div>
+                  {photos[selectedPhotoIndex].locationName && (
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-[9px] font-black text-text-sub uppercase tracking-widest">Location</span>
+                      <span className="text-sm font-bold text-text-main truncate max-w-[150px]">
+                        {photos[selectedPhotoIndex].locationName}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => router.push(`/timeline?date=${photos[selectedPhotoIndex].diaryDateKey}`)}
+                  className="w-full group flex items-center justify-between px-8 py-5 bg-text-main text-white rounded-2xl transition-all hover:bg-main-green hover:shadow-2xl hover:shadow-main-green/20"
+                >
+                  <span className="text-[12px] font-black uppercase tracking-[0.2em]">View Full Context</span>
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center transition-transform group-hover:rotate-45">
+                    <ArrowUpRight className="w-4 h-4 text-white" />
+                  </div>
+                </button>
+              </div>
             </div>
-
-            {photos[selectedPhotoIndex].photoComment && (
-              <p className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase leading-[1.1] mb-12">
-                "{photos[selectedPhotoIndex].photoComment}"
-              </p>
-            )}
-
-            <button
-              onClick={() => router.push(`/timeline?date=${photos[selectedPhotoIndex].diaryDateKey}`)}
-              className="group flex items-center gap-4 px-12 py-6 bg-main-green text-white text-[12px] font-black uppercase tracking-[0.3em] rounded-full shadow-2xl shadow-main-green/30 transition-all hover:scale-105 active:scale-95"
-            >
-              Discover Full Story
-              <ArrowUpRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-            </button>
           </div>
         </div>
       )}
