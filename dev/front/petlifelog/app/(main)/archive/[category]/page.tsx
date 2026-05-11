@@ -140,12 +140,12 @@ export default function ThemeDetailPage({ params }: PageProps) {
             </div>
             <span className="text-[11px] font-black uppercase tracking-[0.3em]">Go Back</span>
           </button>
-          <button
+          {/* <button
             onClick={() => setIsShareModalOpen(true)}
             className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 hover:bg-main-yellow hover:text-black hover:border-main-yellow transition-all"
           >
             <Share2 className="w-5 h-5" />
-          </button>
+          </button> */}
         </div>
 
         {/* Hero Content */}
