@@ -28,7 +28,7 @@ const navItems = [
   { name: '아카이브', href: '/archive', icon: ImageIcon },
   { name: '가족 관리', href: '/family', icon: Users },
   { name: '지도', href: '/map', icon: MapPin },
-  { name: '기록', href: '/record', icon: FileText },
+  // { name: '기록', href: '/record', icon: FileText },
   { name: '설정', href: '/settings', icon: Settings },
 ];
 
