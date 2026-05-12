@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "햇살처럼 따뜻하게 기록하는 우리 아이와의 소중한 일상",
 };
 
+import { ThemeProvider } from "./common/components/ThemeProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,12 +29,15 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        {children}
-        <ToastContainer />
-        <ConfirmContainer />
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+          <ToastContainer />
+          <ConfirmContainer />
+        </ThemeProvider>
       </body>
     </html>
   );
