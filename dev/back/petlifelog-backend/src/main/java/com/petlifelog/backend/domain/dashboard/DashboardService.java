@@ -30,11 +30,10 @@ public class DashboardService {
     private final MemoryMomentRepository memoryMomentRepository;
     private final PhotoRepository photoRepository;
 
-    public DashboardSummaryResponse getSummary(UUID userId, UUID petId) {
+    public DashboardSummaryResponse getSummary(UUID userId, UUID petId, YearMonth yearMonth) {
         LocalDate today = LocalDate.now();
-        YearMonth currentMonth = YearMonth.of(today.getYear(), today.getMonth());
-        LocalDate monthStart = currentMonth.atDay(1);
-        LocalDate monthEnd = currentMonth.atEndOfMonth();
+        LocalDate monthStart = yearMonth.atDay(1);
+        LocalDate monthEnd = yearMonth.atEndOfMonth();
 
         PetInfo petInfo = buildPetInfo(petId);
         MonthlyStats monthlyStats = buildMonthlyStats(userId, petId, monthStart, monthEnd);
@@ -68,7 +67,7 @@ public class DashboardService {
     }
 
     private MonthlyStats buildMonthlyStats(UUID userId, UUID petId, LocalDate start, LocalDate end) {
-        long recordedDays = memoryRepository.countByUser_IdAndMemoryDateBetween(userId, start, end);
+        long recordedDays = memoryRepository.countByUserAndDateRangeAndPet(userId, start, end, petId);
         long visitedPlaces = memoryMomentRepository.countDistinctVisitedPlaces(userId, petId, start, end);
         long bestPhotosCount = photoRepository.countBestPhotos(userId, petId, start, end);
 

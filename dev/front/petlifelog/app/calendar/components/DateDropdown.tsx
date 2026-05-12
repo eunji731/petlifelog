@@ -7,9 +7,10 @@ interface DateDropdownProps {
   currentDate: Date;
   onSelect: (year: number, month: number) => void;
   onClose: () => void;
+  align?: 'left' | 'right';
 }
 
-export default function DateDropdown({ currentDate, onSelect, onClose }: DateDropdownProps) {
+export default function DateDropdown({ currentDate, onSelect, onClose, align = 'left' }: DateDropdownProps) {
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const years = Array.from({ length: 21 }, (_, i) => 2015 + i); // 2015 to 2035
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -140,7 +141,9 @@ export default function DateDropdown({ currentDate, onSelect, onClose }: DateDro
       {/* DESKTOP VERSION */}
       <div 
         ref={containerRef}
-        className="hidden lg:flex absolute top-full left-0 mt-2 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-[32px] border border-border p-4 z-[200] animate-in zoom-in-95 duration-200 origin-top-left"
+        className={`hidden lg:flex absolute top-full mt-2 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-[32px] border border-border p-4 z-[200] animate-in zoom-in-95 duration-200 ${
+          align === 'left' ? 'left-0 origin-top-left' : 'right-0 origin-top-right'
+        }`}
       >
         <div className="flex flex-col border-r border-border pr-3">
           <span className="text-[10px] font-black text-text-sub/50 tracking-widest uppercase px-3 mb-2">Year</span>

@@ -17,6 +17,20 @@ public interface MemoryRepository extends JpaRepository<Memory, UUID> {
 
     long countByUser_IdAndMemoryDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
 
+    @Query("""
+            SELECT COUNT(m) FROM Memory m
+            WHERE m.user.id = :userId
+              AND m.memoryDate BETWEEN :start AND :end
+              AND (:petId IS NULL OR EXISTS (
+                    SELECT md FROM MemoryDog md WHERE md.memory = m AND md.dog.id = :petId
+              ))
+            """)
+    long countByUserAndDateRangeAndPet(
+            @Param("userId") UUID userId,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end,
+            @Param("petId") UUID petId);
+
     @Query("SELECT m.memoryDate FROM Memory m WHERE m.user.id = :userId ORDER BY m.memoryDate DESC")
     List<LocalDate> findAllMemoryDatesByUserIdOrderByDesc(@Param("userId") UUID userId);
 

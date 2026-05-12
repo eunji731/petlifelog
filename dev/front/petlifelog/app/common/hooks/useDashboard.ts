@@ -56,6 +56,8 @@ export interface AiReport {
   reportYearMonth: string;
   generatedAt: string | null;
   hasData: boolean;
+  recordCount: number | null;
+  remainingRefreshCount: number | null;
   monthlyReport: {
     headline: string;
     narrative: string;
@@ -88,16 +90,56 @@ export interface AiReport {
   nextSuggestion: string | null;
 }
 
+function buildQuery(petId: string | null, year: number, month: number): string {
+  const params = new URLSearchParams();
+  if (petId) params.set('petId', petId);
+  params.set('year', String(year));
+  params.set('month', String(month));
+  return `?${params.toString()}`;
+}
+
 export function useDashboard() {
   const { selectedPetId } = usePetStore();
+  const petId = selectedPetId === ALL_PETS_ID ? null : selectedPetId;
+
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [aiReport, setAiReport] = useState<AiReport | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(true);
   const [aiRefreshing, setAiRefreshing] = useState(false);
 
-  const petId = selectedPetId === ALL_PETS_ID ? null : selectedPetId;
-  const query = petId ? `?petId=${petId}` : '';
+  const isCurrentMonth =
+    selectedYear === now.getFullYear() && selectedMonth === now.getMonth() + 1;
+
+  const goToPrevMonth = useCallback(() => {
+    setSelectedMonth(m => {
+      if (m === 1) { setSelectedYear(y => y - 1); return 12; }
+      return m - 1;
+    });
+  }, []);
+
+  const goToNextMonth = useCallback(() => {
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
+    setSelectedMonth(m => {
+      const nextM = m === 12 ? 1 : m + 1;
+      const nextY = m === 12 ? selectedYear + 1 : selectedYear;
+      if (nextY > curYear || (nextY === curYear && nextM > curMonth)) return m;
+      if (m === 12) setSelectedYear(y => y + 1);
+      return nextM;
+    });
+  }, [selectedYear, now]);
+
+  const goToDate = useCallback((year: number, month: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(month + 1); // 0-indexed month from DateDropdown
+  }, []);
+
+  const query = buildQuery(petId, selectedYear, selectedMonth);
 
   const fetchSummary = useCallback(async () => {
     setSummaryLoading(true);
@@ -123,13 +165,18 @@ export function useDashboard() {
     }
   }, [query]);
 
-  const refreshAiReport = async () => {
+  const refreshAiReport = async (): Promise<'ok' | 'limit'> => {
     setAiRefreshing(true);
     try {
       const res = await clientApi.post(`/api/dashboard/ai-report/refresh${query}`);
       setAiReport(res.data.data);
-    } catch (e) {
+      return 'ok';
+    } catch (e: any) {
+      if (e?.response?.data?.errorCode === 'AI_DASHBOARD_REFRESH_LIMIT_EXCEEDED') {
+        return 'limit';
+      }
       console.error('AI 리포트 재생성 실패:', e);
+      return 'ok';
     } finally {
       setAiRefreshing(false);
     }
@@ -140,5 +187,18 @@ export function useDashboard() {
     fetchAiReport();
   }, [fetchSummary, fetchAiReport]);
 
-  return { summary, aiReport, summaryLoading, aiLoading, aiRefreshing, refreshAiReport };
+  return {
+    summary,
+    aiReport,
+    summaryLoading,
+    aiLoading,
+    aiRefreshing,
+    refreshAiReport,
+    selectedYear,
+    selectedMonth,
+    isCurrentMonth,
+    goToPrevMonth,
+    goToNextMonth,
+    goToDate,
+  };
 }

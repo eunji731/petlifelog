@@ -8,6 +8,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -31,41 +33,54 @@ public class DashboardController {
     @GetMapping("/summary")
     public ApiResponse<DashboardSummaryResponse> getSummary(
             @AuthenticationPrincipal User user,
-            @RequestParam(required = false) UUID petId) {
+            @RequestParam(required = false) UUID petId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
 
+        YearMonth ym = (year != null && month != null) ? YearMonth.of(year, month) : YearMonth.now();
         DashboardSummaryResponse summary = dashboardService.getSummary(
-                UUID.fromString(user.getUsername()), petId);
+                UUID.fromString(user.getUsername()), petId, ym);
         return ApiResponse.success(summary);
     }
 
     /**
-     * AI 월간 리포트 + 에너지 알림
-     * - 이번 달 기록이 3개 이상일 때만 생성 (미만이면 hasData: false)
-     * - 이번 달 캐시가 있으면 캐시 반환, 없으면 Gemini 호출 후 저장
-     *
-     * @param petId 특정 반려동물 UUID (없으면 전체 기준)
+     * AI 월간 리포트
+     * - 이번 달: 기록 3개 이상이면 자동 생성 및 캐시
+     * - 이전 달: 캐시 있으면 반환, 없으면 hasData: false (수동 새로고침 필요)
      */
     @GetMapping("/ai-report")
     public ApiResponse<AiReportResponse> getAiReport(
             @AuthenticationPrincipal User user,
-            @RequestParam(required = false) UUID petId) {
+            @RequestParam(required = false) UUID petId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
 
+        String yearMonth = resolveYearMonth(year, month);
         AiReportResponse report = aiDashboardService.getOrGenerateReport(
-                UUID.fromString(user.getUsername()), petId);
+                UUID.fromString(user.getUsername()), petId, yearMonth);
         return ApiResponse.success(report);
     }
 
     /**
-     * AI 리포트 강제 재생성
-     * - 이미 캐시된 이번 달 리포트를 삭제하고 새로 생성
+     * AI 리포트 수동 새로고침 (하루 3회 제한, 이번 달/이전 달 모두 가능)
      */
     @PostMapping("/ai-report/refresh")
     public ApiResponse<AiReportResponse> refreshAiReport(
             @AuthenticationPrincipal User user,
-            @RequestParam(required = false) UUID petId) {
+            @RequestParam(required = false) UUID petId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
 
+        String yearMonth = resolveYearMonth(year, month);
         AiReportResponse report = aiDashboardService.refreshReport(
-                UUID.fromString(user.getUsername()), petId);
+                UUID.fromString(user.getUsername()), petId, yearMonth);
         return ApiResponse.success(report);
+    }
+
+    private String resolveYearMonth(Integer year, Integer month) {
+        if (year != null && month != null) {
+            return String.format("%d-%02d", year, month);
+        }
+        return YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
     }
 }

@@ -13,6 +13,8 @@ public class AiReportResponse {
     private String reportYearMonth;
     private LocalDateTime generatedAt;
     private boolean hasData;
+    private Integer recordCount;
+    private Integer remainingRefreshCount;
 
     private MonthlyReportSection monthlyReport;
     private PersonalityInsightSection personalityInsight;

@@ -1,16 +1,26 @@
 'use client';
 
-import React from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
   Calendar, Heart, Sparkles, Zap, Plus,
   TrendingUp, MapPin, Flame, RefreshCw,
-  ArrowUp, ArrowDown, Minus, PartyPopper, Trophy
+  ArrowUp, ArrowDown, Minus, PartyPopper, Trophy,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { usePet, ALL_PETS_ID } from '@/app/common/hooks/usePet';
 import { useDashboard } from '@/app/common/hooks/useDashboard';
 import { getImagePath } from '@/app/common/lib/clientApi';
+import DateDropdown from '@/app/calendar/components/DateDropdown';
+
+type DashboardCtxType = ReturnType<typeof useDashboard>;
+const DashboardCtx = createContext<DashboardCtxType | null>(null);
+function useDash() {
+  const ctx = useContext(DashboardCtx);
+  if (!ctx) throw new Error('DashboardCtx not provided');
+  return ctx;
+}
 
 // ─── 스켈레톤 ───────────────────────────────────────────────────────────────
 
@@ -18,12 +28,64 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse bg-gray-200 rounded-xl ${className}`} />;
 }
 
+// ─── 월 네비게이터 ──────────────────────────────────────────────────────────
+
+function MonthNavigator() {
+  const { selectedYear, selectedMonth, isCurrentMonth, goToPrevMonth, goToNextMonth, goToDate } = useDash();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  const label = `${selectedYear}년 ${selectedMonth}월`;
+  const currentDate = new Date(selectedYear, selectedMonth - 1);
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={goToPrevMonth}
+        className="w-7 h-7 rounded-full bg-white border border-border flex items-center justify-center hover:bg-surface-green transition-colors shadow-sm active:scale-90"
+      >
+        <ChevronLeft className="w-4 h-4 text-text-sub" />
+      </button>
+      
+      <div className="relative">
+        <button 
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className={`px-3 py-1 rounded-xl transition-all active:scale-95 ${
+            isDropdownOpen ? 'bg-main-green/10 text-main-green' : 'hover:bg-main-green/5'
+          }`}
+        >
+          <span className="text-sm font-black text-text-main min-w-[80px] text-center">{label}</span>
+        </button>
+
+        {isDropdownOpen && (
+          <DateDropdown 
+            currentDate={currentDate}
+            onSelect={(y, m) => {
+              goToDate(y, m);
+              setIsDropdownOpen(false);
+            }}
+            onClose={() => setIsDropdownOpen(false)}
+            align="right"
+          />
+        )}
+      </div>
+
+      <button
+        onClick={goToNextMonth}
+        disabled={isCurrentMonth}
+        className="w-7 h-7 rounded-full bg-white border border-border flex items-center justify-center hover:bg-surface-green transition-colors shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-90"
+      >
+        <ChevronRight className="w-4 h-4 text-text-sub" />
+      </button>
+    </div>
+  );
+}
+
 // ─── 상단 카드 컴포넌트 ────────────────────────────────────────────────────────
 
 // 1. 펫 프로필 카드
 function PetProfileCard() {
   const { pets, selectedPetId } = usePet();
-  const { summary, summaryLoading } = useDashboard();
+  const { summary, summaryLoading } = useDash();
   
   const petInfo = summary?.pet;
   const isAll = selectedPetId === ALL_PETS_ID;
@@ -124,8 +186,9 @@ function PetProfileCard() {
 
 // 2. 활동 요약 카드
 function ActivityStatsCard() {
-  const { summary, summaryLoading } = useDashboard();
+  const { summary, summaryLoading, selectedYear, selectedMonth, isCurrentMonth } = useDash();
   const stats = summary?.monthlyStats;
+  const monthLabel = isCurrentMonth ? '이달의 활동' : `${selectedMonth}월 활동`;
 
   const items = [
     { label: '기록', value: stats?.recordedDays ?? 0, unit: '일', icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-50' },
@@ -149,7 +212,7 @@ function ActivityStatsCard() {
   return (
     <div className="bg-white rounded-[32px] border border-border shadow-sm p-5 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-black text-text-main">이달의 활동</h3>
+        <h3 className="text-sm font-black text-text-main">{monthLabel}</h3>
         <span className="text-[10px] font-black text-text-sub opacity-60">전체 통계</span>
       </div>
       <div className="grid grid-cols-3 gap-3 flex-1">
@@ -171,7 +234,7 @@ function ActivityStatsCard() {
 
 // 3. 퀵 액션 카드 (기록하기 + 스트릭)
 function QuickActionCard() {
-  const { summary, summaryLoading } = useDashboard();
+  const { summary, summaryLoading } = useDash();
   const streak = summary?.streak;
 
   if (summaryLoading) {
@@ -210,7 +273,7 @@ function QuickActionCard() {
 // ─── 베스트 포토 ───────────────────────────────────────────────────────────
 
 function BestPhotosStrip() {
-  const { summary, summaryLoading } = useDashboard();
+  const { summary, summaryLoading } = useDash();
   const photos = (summary?.bestPhotos ?? []).slice(0, 4);
 
   if (summaryLoading) {
@@ -267,7 +330,7 @@ function BestPhotosStrip() {
 // ─── 자주 가는 곳 ──────────────────────────────────────────────────────────
 
 function FavoritePlacesCard() {
-  const { summary, summaryLoading } = useDashboard();
+  const { summary, summaryLoading } = useDash();
   const places = summary?.favoritePlaces ?? [];
 
   return (
@@ -305,9 +368,36 @@ function FavoritePlacesCard() {
 
 // ─── AI 섹션 ─────────────────────────────────────────────────────────────────
 
-function AiEmptyState() {
-  const now = new Date();
-  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+function AiEmptyState({ onRefresh, refreshing, remainingRefreshCount, recordCount }: {
+  onRefresh: () => void;
+  refreshing: boolean;
+  remainingRefreshCount: number | null;
+  recordCount: number | null;
+}) {
+  const { selectedYear, selectedMonth, isCurrentMonth } = useDash();
+  const yearMonth = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+  const count = recordCount ?? 0;
+  const hasEnoughRecords = count >= 3;
+
+  const RefreshButton = () => (
+    <div className="space-y-2">
+      <button
+        onClick={onRefresh}
+        disabled={refreshing || remainingRefreshCount === 0}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 hover:bg-white/25 disabled:opacity-40 disabled:cursor-not-allowed rounded-full text-sm font-black transition-colors"
+      >
+        <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+        {refreshing ? '생성 중...' : '리포트 생성'}
+        {remainingRefreshCount !== null && !refreshing && (
+          <span className="opacity-70">· 오늘 {remainingRefreshCount}회 남음</span>
+        )}
+      </button>
+      {remainingRefreshCount === 0 && (
+        <p className="text-xs font-bold opacity-50">오늘 새로고침 횟수를 모두 사용했어요</p>
+      )}
+    </div>
+  );
+
   return (
     <div className="bg-deep-green rounded-[40px] p-10 text-white relative overflow-hidden h-full">
       <div className="relative z-10 text-center space-y-4 py-4">
@@ -315,9 +405,42 @@ function AiEmptyState() {
           <Sparkles className="w-7 h-7 text-main-yellow fill-main-yellow" />
         </div>
         <p className="font-black text-lg">{yearMonth} 리포트</p>
-        <p className="text-sm font-bold opacity-70 leading-relaxed">
-          이번 달 기록이 3개 이상 쌓이면<br />AI가 월간 리포트를 작성해 드려요!
-        </p>
+
+        {isCurrentMonth && !hasEnoughRecords && (
+          /* 이번 달, 기록 부족 */
+          <p className="text-sm font-bold opacity-70 leading-relaxed">
+            이번 달 기록이 3개 이상 쌓이면<br />AI가 자동으로 월간 리포트를 작성해 드려요!
+          </p>
+        )}
+
+        {isCurrentMonth && hasEnoughRecords && (
+          /* 이번 달, 기록 충분 → Gemini 실패 케이스 */
+          <>
+            <p className="text-sm font-bold opacity-70 leading-relaxed">
+              리포트 생성 중 오류가 발생했어요.<br />새로고침 버튼을 눌러 다시 시도해 주세요.
+            </p>
+            <RefreshButton />
+          </>
+        )}
+
+        {!isCurrentMonth && !hasEnoughRecords && (
+          /* 이전 달, 기록 부족 */
+          <p className="text-sm font-bold opacity-70 leading-relaxed">
+            {selectedMonth}월 기록이 {count}개예요.<br />
+            리포트 생성은 3개 이상의 기록이 필요해요.
+          </p>
+        )}
+
+        {!isCurrentMonth && hasEnoughRecords && (
+          /* 이전 달, 기록 충분 → 수동 생성 안내 */
+          <>
+            <p className="text-sm font-bold opacity-70 leading-relaxed">
+              이전 달 리포트는 자동으로 생성되지 않아요.<br />
+              새로고침 버튼을 눌러 직접 생성할 수 있어요.
+            </p>
+            <RefreshButton />
+          </>
+        )}
       </div>
       <div className="absolute -right-16 -top-16 w-56 h-56 bg-white/5 rounded-full blur-3xl" />
     </div>
@@ -326,7 +449,7 @@ function AiEmptyState() {
 
 // 월간 리포트 (헤더 카드)
 function AiMonthlyReportCard({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
-  const { aiReport } = useDashboard();
+  const { aiReport, isCurrentMonth } = useDash();
 
   if (!aiReport?.monthlyReport) return null;
 
@@ -345,10 +468,19 @@ function AiMonthlyReportCard({ onRefresh, refreshing }: { onRefresh: () => void;
             </div>
             <h3 className="text-xl font-black leading-tight">{report.headline}</h3>
           </div>
-          {/* <button onClick={onRefresh} disabled={refreshing}
-            className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all shrink-0 disabled:opacity-40">
+          <button
+            onClick={onRefresh}
+            disabled={refreshing || (aiReport?.remainingRefreshCount ?? 1) === 0}
+            title={`오늘 ${aiReport?.remainingRefreshCount ?? 0}회 남음`}
+            className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed relative group"
+          >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </button> */}
+            {(aiReport?.remainingRefreshCount ?? 0) > 0 && !refreshing && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-main-yellow rounded-full text-[9px] font-black text-white flex items-center justify-center">
+                {aiReport?.remainingRefreshCount}
+              </span>
+            )}
+          </button>
         </div>
 
         <p className="text-sm font-bold opacity-80 leading-relaxed">{report.narrative}</p>
@@ -401,7 +533,7 @@ function AiMonthlyReportCard({ onRefresh, refreshing }: { onRefresh: () => void;
 
 // 활동 에너지 카드
 function AiActivityCard() {
-  const { aiReport } = useDashboard();
+  const { aiReport } = useDash();
 
   if (!aiReport?.activityInsight) return null;
 
@@ -470,7 +602,7 @@ function AiActivityCard() {
 
 // 장소 흐름 카드
 function AiLocationCard() {
-  const { aiReport } = useDashboard();
+  const { aiReport } = useDash();
 
   if (!aiReport?.locationInsight) return null;
 
@@ -533,10 +665,26 @@ function AiLocationCard() {
 // ─── 메인 페이지 ─────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { aiReport, aiLoading, aiRefreshing, refreshAiReport } = useDashboard();
+  const dashboard = useDashboard();
+  const { aiReport, aiLoading, aiRefreshing, refreshAiReport } = dashboard;
+  const [refreshLimitToast, setRefreshLimitToast] = useState(false);
+
+  const handleRefresh = async () => {
+    const result = await refreshAiReport();
+    if (result === 'limit') {
+      setRefreshLimitToast(true);
+      setTimeout(() => setRefreshLimitToast(false), 3000);
+    }
+  };
 
   return (
+    <DashboardCtx.Provider value={dashboard}>
     <div className="flex-1 flex flex-col min-h-0 bg-surface-green/30 overflow-y-auto no-scrollbar p-4 lg:p-8">
+      {refreshLimitToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-sm font-bold px-5 py-3 rounded-2xl shadow-xl">
+          오늘 새로고침 횟수(3회)를 모두 사용했어요
+        </div>
+      )}
       <div className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 lg:gap-6">
 
         {/* 1. 상단 레이아웃 (프로필, 활동 요약, 퀵 액션) */}
@@ -550,11 +698,14 @@ export default function DashboardPage() {
           <QuickActionCard />
         </div>
 
-        {/* AI 섹션 타이틀 */}
+        {/* AI 섹션 타이틀 + 월 네비게이터 */}
         <div className="md:col-span-6 lg:col-span-12">
-          <h2 className="text-xl font-black text-text-main flex items-center gap-2 px-1 mt-4">
-            <Sparkles className="w-5 h-5 text-main-yellow fill-main-yellow" /> AI 분석
-          </h2>
+          <div className="flex items-center justify-between px-1 mt-4">
+            <h2 className="text-xl font-black text-text-main flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-main-yellow fill-main-yellow" /> AI 분석
+            </h2>
+            <MonthNavigator />
+          </div>
         </div>
 
         {aiLoading ? (
@@ -591,13 +742,18 @@ export default function DashboardPage() {
           </>
         ) : !aiReport?.hasData ? (
           <div className="md:col-span-6 lg:col-span-12">
-            <AiEmptyState />
+            <AiEmptyState
+              onRefresh={handleRefresh}
+              refreshing={aiRefreshing}
+              remainingRefreshCount={aiReport?.remainingRefreshCount ?? null}
+              recordCount={aiReport?.recordCount ?? null}
+            />
           </div>
         ) : (
           <>
             {/* AI 리포트 메인 */}
             <div className="md:col-span-6 lg:col-span-12">
-              <AiMonthlyReportCard onRefresh={refreshAiReport} refreshing={aiRefreshing} />
+              <AiMonthlyReportCard onRefresh={handleRefresh} refreshing={aiRefreshing} />
             </div>
 
             {/* 좌측 콘텐츠 (활동 + 장소 흐름) */}
@@ -615,5 +771,6 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+    </DashboardCtx.Provider>
   );
 }

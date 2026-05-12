@@ -3,6 +3,9 @@ package com.petlifelog.backend.domain.dashboard;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.petlifelog.backend.common.ai.GeminiClient;
+import com.petlifelog.backend.common.exception.AiRateLimitException;
+import com.petlifelog.backend.domain.ai.AiDiaryUsage;
+import com.petlifelog.backend.domain.ai.AiDiaryUsageRepository;
 import com.petlifelog.backend.domain.dashboard.dto.AiReportResponse;
 import com.petlifelog.backend.domain.dashboard.dto.AiReportResponse.*;
 import com.petlifelog.backend.domain.member.Member;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -29,6 +33,8 @@ import java.util.stream.Collectors;
 public class AiDashboardService {
 
     private static final int MIN_MEMORIES_REQUIRED = 3;
+    private static final int DASHBOARD_REFRESH_LIMIT = 3;
+    private static final String USAGE_TYPE_DASHBOARD = "DASHBOARD_REFRESH";
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
     private final GeminiClient geminiClient;
@@ -37,33 +43,59 @@ public class AiDashboardService {
     private final MemoryRepository memoryRepository;
     private final MemoryMomentRepository memoryMomentRepository;
     private final DashboardReportRepository dashboardReportRepository;
+    private final AiDiaryUsageRepository aiDiaryUsageRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public AiReportResponse getOrGenerateReport(UUID userId, UUID petId) {
-        String yearMonth = YearMonth.now().format(MONTH_FORMATTER);
+    public AiReportResponse getOrGenerateReport(UUID userId, UUID petId, String yearMonth) {
+        String currentYearMonth = YearMonth.now().format(MONTH_FORMATTER);
+        boolean isPreviousMonth = !yearMonth.equals(currentYearMonth);
+
         Optional<DashboardReport> cached = findCached(userId, petId, yearMonth);
         if (cached.isPresent()) {
-            // 구버전 캐시(새 필드 null)면 삭제 후 재생성
-            if (!isCurrentSchema(cached.get())) {
-                dashboardReportRepository.delete(cached.get());
-            } else {
-                return toResponse(cached.get());
-            }
+            return toResponse(cached.get(), remainingRefreshCount(userId));
         }
-        return generateAndSave(userId, petId, yearMonth);
-    }
 
-    private boolean isCurrentSchema(DashboardReport report) {
-        // activityTrend와 locationVerdict 중 하나라도 있으면 현재 스키마
-        return report.getActivityTrend() != null || report.getLocationVerdict() != null;
+        // 이전 달은 자동 생성하지 않음 — 기록 수 확인 후 안내만 반환
+        if (isPreviousMonth) {
+            YearMonth ym = YearMonth.parse(yearMonth, MONTH_FORMATTER);
+            List<Memory> memories = memoryRepository.findWithMomentsByUserAndDateRange(
+                    userId, ym.atDay(1), ym.atEndOfMonth(), petId);
+            return AiReportResponse.builder()
+                    .reportYearMonth(yearMonth)
+                    .hasData(false)
+                    .recordCount(memories.size())
+                    .remainingRefreshCount(remainingRefreshCount(userId))
+                    .build();
+        }
+
+        return generateAndSave(userId, petId, yearMonth);
     }
 
     @Transactional
-    public AiReportResponse refreshReport(UUID userId, UUID petId) {
-        String yearMonth = YearMonth.now().format(MONTH_FORMATTER);
+    public AiReportResponse refreshReport(UUID userId, UUID petId, String yearMonth) {
+        int remaining = remainingRefreshCount(userId);
+        if (remaining <= 0) {
+            throw AiRateLimitException.dashboardRefreshLimitExceeded();
+        }
+
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        aiDiaryUsageRepository.save(AiDiaryUsage.builder()
+                .member(member)
+                .targetDate(LocalDate.now())
+                .calledAt(LocalDateTime.now())
+                .usageType(USAGE_TYPE_DASHBOARD)
+                .build());
+
         findCached(userId, petId, yearMonth).ifPresent(dashboardReportRepository::delete);
         return generateAndSave(userId, petId, yearMonth);
+    }
+
+    private int remainingRefreshCount(UUID userId) {
+        long used = aiDiaryUsageRepository.countByMember_IdAndUsageTypeAndTargetDate(
+                userId, USAGE_TYPE_DASHBOARD, LocalDate.now());
+        return (int) Math.max(0, DASHBOARD_REFRESH_LIMIT - used);
     }
 
     private Optional<DashboardReport> findCached(UUID userId, UUID petId, String yearMonth) {
@@ -85,7 +117,12 @@ public class AiDashboardService {
                 userId, monthStart, monthEnd, petId);
 
         if (memories.size() < MIN_MEMORIES_REQUIRED) {
-            return AiReportResponse.builder().reportYearMonth(yearMonth).hasData(false).build();
+            return AiReportResponse.builder()
+                    .reportYearMonth(yearMonth)
+                    .hasData(false)
+                    .recordCount(memories.size())
+                    .remainingRefreshCount(remainingRefreshCount(userId))
+                    .build();
         }
 
         // ── 1. 장소 통계 계산 (이번 달 데이터만) ─────────────────────────────
@@ -119,10 +156,11 @@ public class AiDashboardService {
             String jsonResponse = geminiClient.generateText(prompt);
             Map<String, Object> parsed = objectMapper.readValue(jsonResponse, new TypeReference<>() {});
             DashboardReport report = saveReport(userId, petId, yearMonth, parsed, activityCalc, locationCalc);
-            return toResponse(report);
+            return toResponse(report, remainingRefreshCount(userId));
         } catch (Exception e) {
             log.error("AI 대시보드 리포트 생성 실패", e);
-            return AiReportResponse.builder().reportYearMonth(yearMonth).hasData(false).build();
+            return AiReportResponse.builder().reportYearMonth(yearMonth).hasData(false)
+                    .remainingRefreshCount(remainingRefreshCount(userId)).build();
         }
     }
 
@@ -260,7 +298,7 @@ public class AiDashboardService {
 
     // ─── 응답 변환 ───────────────────────────────────────────────────────────
 
-    private AiReportResponse toResponse(DashboardReport r) {
+    private AiReportResponse toResponse(DashboardReport r, int remainingRefreshCount) {
         List<HighlightItem> highlights = parseHighlights(r.getMonthlyHighlightsJson());
         List<String> tags = parseStringList(r.getMonthlyTagsJson());
 
@@ -268,6 +306,7 @@ public class AiDashboardService {
                 .reportYearMonth(r.getReportYearMonth())
                 .generatedAt(r.getGeneratedAt())
                 .hasData(true)
+                .remainingRefreshCount(remainingRefreshCount)
                 .monthlyReport(MonthlyReportSection.builder()
                         .headline(r.getMonthlyHeadline())
                         .narrative(r.getMonthlyNarrative())
