@@ -140,4 +140,26 @@ public class JwtTokenProvider {
                 .getPayload()
                 .getSubject();
     }
+
+    // 재가입 확인용 단기 토큰 (10분)
+    public String createRejoinToken(String memberId) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(memberId)
+                .claim("type", "rejoin")
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + 10 * 60 * 1000L))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public boolean isRejoinToken(String token) {
+        try {
+            Claims claims = Jwts.parser().verifyWith(secretKey).build()
+                    .parseSignedClaims(token).getPayload();
+            return "rejoin".equals(claims.get("type"));
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

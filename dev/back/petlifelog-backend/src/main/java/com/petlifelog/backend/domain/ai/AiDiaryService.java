@@ -119,7 +119,11 @@ public class AiDiaryService {
             String metadataContext = String.join("\n", metadataLines);
             log.info("AI에 전달되는 메타데이터:\n{}", metadataContext);
 
-            String prompt = buildPrompt(petContext, metadataContext, userTags);
+            Member member = memberRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+            String userAiContext = member.getAiContext();
+
+            String prompt = buildPrompt(petContext, metadataContext, userTags, userAiContext);
             DailyLogResponse aiResult = geminiClient.analyzeImages(base64Images, prompt);
 
             recordUsage(userId, targetDate);
@@ -386,8 +390,11 @@ public class AiDiaryService {
         return sb.toString();
     }
 
-    private String buildPrompt(String petContext, String metadataContext, List<String> userTags) {
-        return String.format(
+    private String buildPrompt(String petContext, String metadataContext, List<String> userTags, String userAiContext) {
+        String contextSection = (userAiContext != null && !userAiContext.isBlank())
+                ? "【보호자 개인 컨텍스트 — 일기 작성 시 항상 반영할 것】\n" + userAiContext + "\n\n"
+                : "";
+        return contextSection + String.format(
                 "오늘의 사진들을 분석해서 반려동물 일기를 써줘.\n\n"
                         + "【핵심 규칙 — 반드시 지켜야 함】\n"
                         + "1. 사진 1장 = 모멘트 1개가 되어서는 절대 안 된다.\n"

@@ -51,23 +51,27 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Member member = memberRepository.findByKakaoId(kakaoId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        // 탈퇴한 회원이면 재가입 확인 페이지로 리다이렉트
+        if (!member.getIsActive()) {
+            String rejoinToken = jwtTokenProvider.createRejoinToken(member.getId().toString());
+            String encodedToken = java.net.URLEncoder.encode(rejoinToken, java.nio.charset.StandardCharsets.UTF_8);
+            getRedirectStrategy().sendRedirect(request, response, frontendUrl + "/rejoin?token=" + encodedToken);
+            return;
+        }
+
         // 3. 우리 서버용 Access Token과 Refresh Token 만들기
         String accessToken = jwtTokenProvider.createAccessToken(member.getId().toString(), member.getRole());
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getId().toString(), member.getRole());
 
         // 4. [보안] Refresh Token은 보안을 위해 SHA-256으로 암호화(해싱)해서 DB에 저장합니다.
-        // 나중에 사용자가 토큰을 가져오면 다시 해싱해서 DB값과 비교합니다.
         member.updateRefreshToken(sha256(refreshToken));
         memberRepository.save(member);
 
         // 5. [핵심] HttpOnly 쿠키에 토큰 담기
-        // 과거에는 헤더에 담아 보냈지만, 이제는 브라우저가 자동으로 관리하는 쿠키에 담습니다.
-        // HttpOnly: 자바스크립트로 쿠키를 못 읽게 막아서 해킹(XSS)으로부터 안전하게 보호합니다.
         addCookie(response, "accessToken", accessToken, (int) Duration.ofHours(24).toSeconds());
         addCookie(response, "refreshToken", refreshToken, (int) Duration.ofDays(14).toSeconds());
 
-        // 6. 모든 준비가 끝났으니 프론트엔드 홈 화면으로 리다이렉트(이동) 시킵니다.
-        // 이제 프론트엔드는 토큰을 따로 저장할 필요가 없습니다. 브라우저가 쿠키를 알아서 들고 다닙니다.
+        // 6. 프론트엔드 홈 화면으로 리다이렉트
         getRedirectStrategy().sendRedirect(request, response, frontendUrl);
     }
 

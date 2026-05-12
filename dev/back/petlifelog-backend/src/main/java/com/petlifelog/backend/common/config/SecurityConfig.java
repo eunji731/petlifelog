@@ -5,6 +5,7 @@ import com.petlifelog.backend.common.auth.JwtAuthenticationFilter;
 import com.petlifelog.backend.common.auth.JwtTokenProvider;
 import com.petlifelog.backend.common.auth.OAuth2FailureHandler;
 import com.petlifelog.backend.common.auth.OAuth2SuccessHandler;
+import com.petlifelog.backend.domain.member.MemberRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +37,7 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler; // 카카오 로그인 성공 시 실행될 로직 (쿠키 굽기 등)
     private final OAuth2FailureHandler oAuth2FailureHandler; // 카카오 로그인 실패 시 실행될 로직
     private final JwtTokenProvider jwtTokenProvider; // JWT 토큰을 만들고 검증하는 '신분증 발급기'
+    private final MemberRepository memberRepository;
 
     /**
      * [CORS 설정]
@@ -100,6 +102,7 @@ public class SecurityConfig {
                         .requestMatchers("/", "/kakao/auth-code", "/oauth2/**", "/error", "/favicon.ico").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/auth/reissue").permitAll()
+                        .requestMatchers("/api/members/rejoin").permitAll()
                         // 정적 이미지 파일: 인증 없이 접근 가능 (경로에 UUID 포함되어 추측 불가)
                         .requestMatchers("/files/**", "/uploads/**").permitAll()
                         .anyRequest().authenticated()
@@ -131,7 +134,7 @@ public class SecurityConfig {
                 // 모든 요청이 컨트롤러(비즈니스 로직)에 도착하기 전에, 이 필터가 먼저 신분증(JWT)을 검사합니다.
                 // HttpOnly 쿠키에서 토큰을 꺼내서 "이 사람 로그인한 거 맞네!"라고 인정해주면 다음 단계로 넘어갑니다.
                 // UsernamePasswordAuthenticationFilter라는 기본 검문소 앞에 우리 검문소를 세웁니다.
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), 
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, memberRepository),
                                  UsernamePasswordAuthenticationFilter.class);
 
         return http.build(); // 설정 끝! '보안관' 임무 시작!

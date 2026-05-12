@@ -119,4 +119,8 @@ public class Pet extends BaseTimeEntity {
     public void delete() {
         this.isActive = false;
     }
+
+    public void restore() {
+        this.isActive = true;
+    }
 }

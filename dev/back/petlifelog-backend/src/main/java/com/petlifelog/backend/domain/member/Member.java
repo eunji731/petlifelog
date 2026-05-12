@@ -51,6 +51,9 @@ public class Member extends BaseTimeEntity {
     @Column(nullable = false, length = 50)
     private String role; // 사용자 권한 코드 (tb_code 참조, 예: ROLE_USER)
 
+    @Column(name = "ai_context", columnDefinition = "TEXT")
+    private String aiContext; // AI에게 전달할 사용자 개인 컨텍스트 (설정 페이지에서 입력)
+
     @Builder // 빌더 패턴을 사용하여 객체 생성을 안전하고 편리하게 만듭니다.
     public Member(Long kakaoId, String kakaoEmail, String kakaoNickname,
                   String nickname, String profileImagePath, String role) {
@@ -71,6 +74,10 @@ public class Member extends BaseTimeEntity {
         return this;
     }
 
+    public void updateAiContext(String aiContext) {
+        this.aiContext = aiContext;
+    }
+
     // [Refresh Token 업데이트]
     // 로그인을 새로 하거나 토큰을 재발급받을 때 새로운 해시값을 저장하고 발행 시각을 기록합니다.
     public void updateRefreshToken(String refreshTokenHash) {
@@ -83,5 +90,19 @@ public class Member extends BaseTimeEntity {
     public void invalidateToken() {
         this.refreshTokenHash = null;
         this.tokenIssuedAt = Instant.now();
+    }
+
+    // [회원 탈퇴]
+    public void withdraw() {
+        this.isActive = false;
+        this.refreshTokenHash = null;
+        this.tokenIssuedAt = Instant.now();
+    }
+
+    // [계정 복구] 탈퇴 후 재로그인 시
+    public void reactivate(String nickname, String profileImagePath) {
+        this.isActive = true;
+        this.nickname = nickname;
+        this.profileImagePath = profileImagePath;
     }
 }

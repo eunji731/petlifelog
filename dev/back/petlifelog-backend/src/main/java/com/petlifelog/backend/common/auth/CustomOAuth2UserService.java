@@ -70,12 +70,15 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
      */
     private Member saveOrUpdate(OAuthAttributes attributes) {
         Member member = memberRepository.findByKakaoId(attributes.getKakaoId())
-                // 1. 이미 DB에 있으면: 카카오에서 준 최신 이름/사진으로 업데이트합니다.
-                .map(entity -> entity.update(attributes.getNickname(), attributes.getProfileImagePath()))
-                // 2. DB에 없으면: 새로 회원 엔티티를 만듭니다 (회원가입).
+                .map(entity -> {
+                    if (entity.getIsActive()) {
+                        entity.update(attributes.getNickname(), attributes.getProfileImagePath());
+                    }
+                    // 탈퇴 회원은 변경 없이 그대로 반환 (OAuth2SuccessHandler에서 재가입 흐름으로 분기)
+                    return entity;
+                })
                 .orElse(attributes.toEntity());
 
-        // 3. 최종 결과를 DB에 저장합니다.
         return memberRepository.save(member);
     }
 }

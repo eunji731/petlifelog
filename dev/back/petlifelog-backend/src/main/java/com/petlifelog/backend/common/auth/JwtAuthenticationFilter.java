@@ -1,5 +1,6 @@
 package com.petlifelog.backend.common.auth;
 
+import com.petlifelog.backend.domain.member.MemberRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -13,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.UUID;
 
 /**
  * [JWT 인증 필터]
@@ -23,6 +25,7 @@ import java.util.Arrays;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final MemberRepository memberRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -33,12 +36,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 2. 토큰이 존재하고, 그 토큰이 유효한지(진짜인지, 만료 안 됐는지) 검사합니다.
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
-            // 3. 토큰이 정상이면, 토큰 안에 적힌 유저 정보로 '인증 객체'를 만듭니다.
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            
-            // 4. [중요] 스프링 시큐리티의 '보안 보관함(SecurityContext)'에 이 유저를 넣어둡니다.
-            // 이렇게 해두면 이후의 컨트롤러나 서비스에서 "지금 로그인한 사람 누구야?"라고 물어볼 수 있습니다.
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String userId = jwtTokenProvider.getUserId(token);
+            boolean isActive = memberRepository.findById(UUID.fromString(userId))
+                    .map(m -> m.getIsActive())
+                    .orElse(false);
+
+            if (isActive) {
+                Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+            // isActive=false면 인증 컨텍스트 미설정 → permitAll 엔드포인트는 통과, 인증 필요 엔드포인트는 Security가 401 반환
         }
 
         // 5. 다음 단계(다른 필터나 실제 컨트롤러)로 요청을 넘깁니다.

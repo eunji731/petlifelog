@@ -7,4 +7,5 @@ import java.util.UUID;
 
 public interface PetRepository extends JpaRepository<Pet, UUID> {
     List<Pet> findByUserIdAndIsActiveTrue(UUID userId);
+    List<Pet> findByUserId(UUID userId);
 }

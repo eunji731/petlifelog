@@ -108,7 +108,12 @@ public class AiDashboardService {
         List<Pet> pets = petId != null
                 ? petRepository.findById(petId).map(List::of).orElse(List.of())
                 : petRepository.findByUserIdAndIsActiveTrue(userId);
-        String prompt = buildPrompt(pets, memories, activityCalc, locationCalc, categoryDist, yearMonth);
+
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        String userAiContext = member.getAiContext();
+
+        String prompt = buildPrompt(pets, memories, activityCalc, locationCalc, categoryDist, yearMonth, userAiContext);
 
         try {
             String jsonResponse = geminiClient.generateText(prompt);
@@ -300,8 +305,13 @@ public class AiDashboardService {
 
     private String buildPrompt(List<Pet> pets, List<Memory> memories,
                                ActivityCalc ac, LocationCalc lc,
-                               List<Object[]> categoryDist, String yearMonth) {
+                               List<Object[]> categoryDist, String yearMonth,
+                               String userAiContext) {
         StringBuilder sb = new StringBuilder();
+        if (userAiContext != null && !userAiContext.isBlank()) {
+            sb.append("【보호자 개인 컨텍스트 — 리포트 작성 시 항상 반영할 것】\n");
+            sb.append(userAiContext).append("\n\n");
+        }
         sb.append("당신은 반려동물 월간 리포트 작성 전문가입니다.\n");
         sb.append("아래 분석 결과를 바탕으로 자연스러운 문장을 작성해주세요.\n");
         sb.append("수치는 이미 계산되어 있으니, 계산은 하지 말고 문장만 작성하세요.\n\n");

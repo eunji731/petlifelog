@@ -34,7 +34,7 @@ function PetProfileCard() {
     return (
       <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 h-full flex flex-col justify-center">
         <div className="flex items-center gap-4">
-          <Skeleton className="w-16 h-16 rounded-3xl" />
+          <Skeleton className="w-16 h-16 rounded-full" />
           <div className="space-y-2 flex-1">
             <Skeleton className="h-5 w-24" />
             <Skeleton className="h-3 w-32" />
@@ -53,7 +53,11 @@ function PetProfileCard() {
 
       <div className="flex items-center gap-4 relative z-10">
         <div className="relative w-16 h-16 shrink-0">
-          <div className={`w-full h-full rounded-[20px] overflow-hidden border-2 border-white shadow-sm ring-2 ${isBirthday ? 'ring-main-yellow' : 'ring-main-green/5'}`}>
+          {/* 사진 틀 (Ring & Shadow) */}
+          <div className={`absolute inset-0 rounded-full shadow-sm ring-2 ${isBirthday ? 'ring-main-yellow' : 'ring-main-green/10'}`} />
+          
+          {/* 사진 컨테이너 (Border & Overflow) */}
+          <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-white bg-white">
             {isAll ? (
               <div className="w-full h-full bg-gradient-to-br from-main-green to-deep-green flex items-center justify-center">
                 <div className="relative">
@@ -70,7 +74,7 @@ function PetProfileCard() {
             )}
           </div>
           {isBirthday && (
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-main-yellow rounded-full flex items-center justify-center shadow-sm">
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-main-yellow rounded-full flex items-center justify-center shadow-sm z-20">
               <PartyPopper className="w-3.5 h-3.5 text-white" />
             </div>
           )}
@@ -236,7 +240,7 @@ function BestPhotosStrip() {
           <Link
             key={i}
             href={`/calendar?date=${photo.memoryDate}`}
-            className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm hover:shadow-md transition-all"
+            className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm hover:shadow-md transition-all border-2 border-white bg-white"
           >
             <Image
               src={getImagePath(photo.photoPath)}
@@ -244,7 +248,7 @@ function BestPhotosStrip() {
               fill
               className="object-cover group-hover:scale-110 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/40 backdrop-blur-sm rounded-full text-[9px] font-black text-white">
               {photo.vibeScore}
             </div>

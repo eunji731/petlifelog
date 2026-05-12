@@ -34,7 +34,10 @@
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(cmd *)",
       "Bash(Remove-Item *)",
-      "Bash(./gradlew compileJava --rerun-tasks)"
+      "Bash(./gradlew compileJava --rerun-tasks)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\front\\\\petlifelog\\\\app\\\\rejoin\")",
+      "Bash(Out-Null)",
+      "PowerShell(New-Item *)"
     ]
   }
 }
