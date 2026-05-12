@@ -3,12 +3,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  Calendar, 
-  Image as ImageIcon, 
-  MapPin, 
-  Book, 
-  FileText, 
+import {
+  Calendar,
+  Image as ImageIcon,
+  MapPin,
+  LayoutDashboard,
+  FileText,
   Settings,
   ChevronDown,
   X,
@@ -23,12 +23,11 @@ import { usePet, PetProfile, ALL_PETS_ID } from '../hooks/usePet';
 import clientApi, { getImagePath } from '../lib/clientApi';
 
 const navItems = [
-  { name: '대시보드', href: '/dashboard', icon: Book },
+  { name: '대시보드', href: '/dashboard', icon: LayoutDashboard },
   { name: '캘린더', href: '/calendar', icon: Calendar },
   { name: '아카이브', href: '/archive', icon: ImageIcon },
   { name: '가족 관리', href: '/family', icon: Users },
   { name: '지도', href: '/map', icon: MapPin },
-  { name: '도감', href: '/inventory', icon: Book },
   { name: '기록', href: '/record', icon: FileText },
   { name: '설정', href: '/settings', icon: Settings },
 ];

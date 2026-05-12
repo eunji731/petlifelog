@@ -234,7 +234,7 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
                 <div key={group.dateKey} id={`group-container-${group.dateKey}`} className="relative bg-white/60 backdrop-blur-sm rounded-[48px] p-6 lg:p-12 border border-white shadow-xl shadow-main-green/5 transition-all hover:shadow-2xl hover:shadow-main-green/10 group/container">
                   <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-3">
                     <div className="px-6 py-2 bg-main-green text-white text-xs font-black rounded-full shadow-lg shadow-main-green/20 whitespace-nowrap border-2 border-white">{group.dateKey}</div>
-                    <div className="flex items-center gap-2 no-export lg:opacity-0 lg:group-hover/container:opacity-100 transition-opacity duration-300">
+                    <div className="flex items-center gap-2 no-export">
                       <button onClick={() => handleExportGroup(group.dateKey, 'png')} disabled={!!isExporting} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-md border border-border rounded-xl text-text-sub hover:text-main-green transition-all shadow-sm active:scale-95 disabled:opacity-50 group/btn">
                         {isExporting === group.dateKey ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
                         <span className="text-[10px] font-black">이미지</span>

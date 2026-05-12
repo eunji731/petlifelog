@@ -3,221 +3,612 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { 
-  Calendar, 
-  Heart, 
-  Sparkles, 
-  Zap, 
-  MessageCircle, 
-  ChevronRight, 
-  Plus,
-  TrendingUp,
-  MapPin
+import {
+  Calendar, Heart, Sparkles, Zap, Plus,
+  TrendingUp, MapPin, Flame, RefreshCw,
+  ArrowUp, ArrowDown, Minus, PartyPopper, Trophy
 } from 'lucide-react';
-import { useDiary } from '@/app/common/hooks/useDiary';
 import { usePet, ALL_PETS_ID } from '@/app/common/hooks/usePet';
-import { useInventory } from '@/app/common/hooks/useInventory';
+import { useDashboard } from '@/app/common/hooks/useDashboard';
 import { getImagePath } from '@/app/common/lib/clientApi';
 
-export default function DashboardPage() {
-  const { allLogs } = useDiary();
+// ─── 스켈레톤 ───────────────────────────────────────────────────────────────
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-200 rounded-xl ${className}`} />;
+}
+
+// ─── 상단 카드 컴포넌트 ────────────────────────────────────────────────────────
+
+// 1. 펫 프로필 카드
+function PetProfileCard() {
   const { pets, selectedPetId } = usePet();
-  const { items } = useInventory();
-
+  const { summary, summaryLoading } = useDashboard();
+  
+  const petInfo = summary?.pet;
+  const isAll = selectedPetId === ALL_PETS_ID;
   const primaryPet = pets.find(p => p.id === selectedPetId);
-  const recentLog = allLogs[0];
+  const isBirthday = !isAll && petInfo?.birthdayDday === 0;
 
-  const stats = [
-    { 
-      label: '함께한 날', 
-      value: selectedPetId === ALL_PETS_ID 
-        ? (pets.length > 0 ? '전체 관리 중' : '0일')
-        : (primaryPet ? '128일' : '0일'), 
-      icon: Heart, color: 'text-pink-500', bg: 'bg-pink-50' 
-    },
-    { label: '기록된 추억', value: `${allLogs.length}개`, icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { label: '수집한 아이템', value: `${items.length}개`, icon: Sparkles, color: 'text-main-yellow', bg: 'bg-yellow-50' },
-  ];
+  if (summaryLoading) {
+    return (
+      <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 h-full flex flex-col justify-center">
+        <div className="flex items-center gap-4">
+          <Skeleton className="w-16 h-16 rounded-3xl" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-surface-green/30 overflow-y-auto no-scrollbar p-6 lg:p-10">
-      <div className="max-w-5xl mx-auto w-full space-y-10">
-        
-        {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 lg:p-12 rounded-[40px] border border-border shadow-sm">
-          <div className="flex items-center gap-6 lg:gap-10">
-            <div className="relative w-20 h-20 lg:w-24 lg:h-24 rounded-full overflow-hidden border-4 border-white shadow-xl ring-4 ring-main-green/10">
-              {selectedPetId === ALL_PETS_ID ? (
-                <div className="w-full h-full bg-main-green flex items-center justify-center text-white">
-                  <Heart className="w-10 h-10 fill-current" />
-                </div>
-              ) : primaryPet ? (
-                <Image src={getImagePath(primaryPet.photo, 'profiles')} alt={primaryPet.name} fill className="object-cover" />
-              ) : (
-                <div className="w-full h-full bg-surface-green flex items-center justify-center">
-                  <Plus className="w-8 h-8 text-main-green" />
-                </div>
-              )}
-            </div>
-            <div className="space-y-1">
-              <h1 className="text-2xl lg:text-3xl font-black text-text-main tracking-tight">
-                {selectedPetId === ALL_PETS_ID ? '우리 모든 가족과' : (primaryPet ? `${primaryPet.name}와 함께하는` : '반려동물과 함께하는')} <br/>
-                <span className="text-main-green">특별한 일상</span>을 기록하세요!
-              </h1>
-              <p className="text-sm font-bold text-text-sub">AI가 아이의 시선으로 소중한 순간을 정리해 드립니다.</p>
-            </div>
-          </div>
-          <Link 
-            href="/calendar" 
-            className="px-8 py-4 bg-main-green text-white font-black rounded-2xl shadow-lg shadow-main-green/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            기록 시작하기 <ChevronRight className="w-5 h-5" />
-          </Link>
-        </div>
+    <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 h-full flex flex-col justify-center relative overflow-hidden group">
+      {/* 배경 장식 (All Pets일 때만 살짝 노출) */}
+      {isAll && (
+        <div className="absolute -right-6 -top-6 w-24 h-24 bg-surface-green rounded-full opacity-50 blur-2xl group-hover:scale-110 transition-transform" />
+      )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {stats.map((stat, i) => (
-            <div key={i} className="bg-white p-6 lg:p-8 rounded-[32px] border border-border shadow-sm flex items-center gap-6 hover:shadow-md transition-all group">
-              <div className={`w-14 h-14 rounded-2xl ${stat.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <stat.icon className={`w-7 h-7 ${stat.color}`} />
-              </div>
-              <div>
-                <p className="text-xs font-black text-text-sub uppercase tracking-widest">{stat.label}</p>
-                <p className="text-2xl font-black text-text-main mt-0.5">{stat.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Main Content: Recent Memory & Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          
-          {/* Recent Memory Card */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between px-4">
-              <h2 className="text-xl font-black text-text-main flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-main-yellow fill-main-yellow" /> 최근 기록된 추억
-              </h2>
-              <Link href="/calendar" className="text-xs font-black text-main-green hover:underline">전체 보기</Link>
-            </div>
-
-            {recentLog ? (
-              <div className="bg-white rounded-[40px] overflow-hidden border border-border shadow-sm group">
-                <div className="relative h-64 lg:h-80 overflow-hidden">
-                  <Image 
-                    src={getImagePath(recentLog.representativePhotoPath)} 
-                    alt="Recent" 
-                    fill 
-                    className="object-cover group-hover:scale-105 transition-transform duration-700" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute top-6 left-6 px-4 py-2 bg-white/90 backdrop-blur-md rounded-full text-[10px] font-black text-main-green shadow-lg">
-                    {recentLog.dateKey}
-                  </div>
-                  <div className="absolute bottom-8 left-8 right-8 text-white space-y-2">
-                    <h3 className="text-2xl lg:text-3xl font-black leading-tight">{recentLog.aiTitle}</h3>
-                    <div className="flex items-center gap-3 text-xs font-bold opacity-90">
-                      <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {recentLog.moments[0]?.locationName || '어딘가'}</span>
-                      <span className="w-1 h-1 bg-white rounded-full" />
-                      <span className="flex items-center gap-1"><Zap className="w-3.5 h-3.5 fill-current text-main-yellow" /> 에너제틱</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-8 lg:p-10">
-                  <p className="text-lg font-medium text-text-main leading-relaxed italic line-clamp-3">
-                    &quot;{recentLog.aiSummary}&quot;
-                  </p>
-                  <div className="mt-8 flex items-center justify-between">
-                    <div className="flex -space-x-3">
-                      {recentLog.moments.slice(0, 3).map((m, i) => (
-                        <div key={i} className="w-12 h-12 rounded-full border-4 border-white overflow-hidden shadow-sm relative">
-                          <Image src={getImagePath(m.photos[0]?.path)} alt="Pet" fill className="object-cover" />
-                        </div>
-                      ))}
-                      {recentLog.moments.length > 3 && (
-                        <div className="w-12 h-12 rounded-full border-4 border-white bg-surface-green flex items-center justify-center text-[10px] font-black text-text-sub shadow-sm">
-                          +{recentLog.moments.length - 3}
-                        </div>
-                      )}
-                    </div>
-                    <Link 
-                      href={`/calendar?date=${recentLog.dateKey}`}
-                      className="px-6 py-3 bg-surface-green text-main-green text-sm font-black rounded-xl hover:bg-main-green hover:text-white transition-all shadow-sm"
-                    >
-                      상세 모멘트 보기
-                    </Link>
-                  </div>
+      <div className="flex items-center gap-4 relative z-10">
+        <div className="relative w-16 h-16 shrink-0">
+          <div className={`w-full h-full rounded-[20px] overflow-hidden border-2 border-white shadow-sm ring-2 ${isBirthday ? 'ring-main-yellow' : 'ring-main-green/5'}`}>
+            {isAll ? (
+              <div className="w-full h-full bg-gradient-to-br from-main-green to-deep-green flex items-center justify-center">
+                <div className="relative">
+                  <Heart className="w-6 h-6 text-white fill-white animate-pulse" />
+                  <Heart className="w-3 h-3 text-main-yellow fill-main-yellow absolute -right-1 -top-1" />
                 </div>
               </div>
+            ) : primaryPet ? (
+              <Image src={getImagePath(primaryPet.photo, 'profiles')} alt={primaryPet.name} fill className="object-cover" />
             ) : (
-              <div className="bg-white rounded-[40px] border-2 border-dashed border-border p-20 flex flex-col items-center justify-center text-center space-y-6">
-                <div className="w-20 h-20 bg-surface-green rounded-full flex items-center justify-center">
-                  <Plus className="w-10 h-10 text-main-green opacity-40" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-text-main">아직 기록이 없어요</h3>
-                  <p className="text-text-sub font-bold mt-2">아이와의 소중한 순간들을 기록해 보세요!</p>
-                </div>
+              <div className="w-full h-full bg-surface-green flex items-center justify-center">
+                <Plus className="w-6 h-6 text-main-green opacity-40" />
               </div>
             )}
           </div>
+          {isBirthday && (
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-main-yellow rounded-full flex items-center justify-center shadow-sm">
+              <PartyPopper className="w-3.5 h-3.5 text-white" />
+            </div>
+          )}
+        </div>
 
-          {/* AI Insights Card */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-black text-text-main flex items-center gap-2 px-4">
-              <TrendingUp className="w-5 h-5 text-deep-green" /> AI 성장 분석
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-xl font-black text-text-main truncate tracking-tight">
+              {isAll ? '모든 가족' : petInfo?.name ?? '반려동물'}
             </h2>
-            <div className="bg-deep-green rounded-[40px] p-8 lg:p-10 text-white shadow-xl relative overflow-hidden h-[500px]">
-              <div className="relative z-10 h-full flex flex-col">
-                <div className="space-y-2">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                    <Sparkles className="w-6 h-6 text-main-yellow fill-main-yellow" />
-                  </div>
-                  <h3 className="text-xl font-black">AI 봉봉 분석 보고서</h3>
-                </div>
-                
-                <div className="flex-1 flex flex-col justify-center space-y-8">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-end">
-                      <span className="text-xs font-black opacity-60 uppercase tracking-widest">Social Level</span>
-                      <span className="text-xl font-black">85%</span>
-                    </div>
-                    <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-main-yellow w-[85%] rounded-full shadow-[0_0_12px_rgba(255,212,90,0.5)]" />
-                    </div>
-                    <p className="text-xs font-bold opacity-80 leading-relaxed">최근 산책에서 친구 강아지들을 만났을 때 반응이 매우 긍정적이었어요!</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-end">
-                      <span className="text-xs font-black opacity-60 uppercase tracking-widest">Happiness</span>
-                      <span className="text-xl font-black">92%</span>
-                    </div>
-                    <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-main-green w-[92%] rounded-full shadow-[0_0_12px_rgba(125,190,122,0.5)]" />
-                    </div>
-                    <p className="text-xs font-bold opacity-80 leading-relaxed">좋아하는 간식과 충분한 산책 덕분에 행복 지수가 최고치를 기록 중입니다.</p>
-                  </div>
-                </div>
-
-                <div className="pt-8 border-t border-white/10">
-                  <div className="flex items-center gap-3">
-                    <MessageCircle className="w-5 h-5 opacity-60" />
-                    <p className="text-[11px] font-bold italic opacity-70">
-                      &quot;봉봉이는 지금 아주 건강하고 행복한 상태예요!&quot;
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Decorative elements */}
-              <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-              <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-main-green/10 rounded-full blur-3xl" />
+            <div className="flex items-center gap-1.5">
+              {isAll ? (
+                <span className="text-xs font-bold text-main-green bg-surface-green px-2 py-0.5 rounded-full">
+                  총 {pets.length}마리
+                </span>
+              ) : petInfo ? (
+                <p className="text-xs font-bold text-text-sub truncate">
+                  {petInfo.breed} · {petInfo.ageLabel}
+                </p>
+              ) : null}
             </div>
           </div>
-
         </div>
+      </div>
+      
+      {/* 하단 정보 영역: All Pets일 때는 다른 요약 정보를 보여줄 수도 있음 */}
+      <div className="mt-4 pt-4 border-t border-dashed border-border flex items-center justify-between">
+        {isAll ? (
+          <>
+            <span className="text-[11px] font-black text-text-sub">함께 만드는 추억</span>
+            <span className="text-xs font-black text-main-green flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> 우리 가족 화이팅!
+            </span>
+          </>
+        ) : petInfo?.daysTogether != null ? (
+          <>
+            <span className="text-[11px] font-black text-text-sub">함께한 지</span>
+            <span className="text-sm font-black text-main-green">D+{petInfo.daysTogether}</span>
+          </>
+        ) : (
+          <span className="text-[11px] font-black text-text-sub opacity-40">기록을 시작해보세요</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 2. 활동 요약 카드
+function ActivityStatsCard() {
+  const { summary, summaryLoading } = useDashboard();
+  const stats = summary?.monthlyStats;
+
+  const items = [
+    { label: '기록', value: stats?.recordedDays ?? 0, unit: '일', icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-50' },
+    { label: '장소', value: stats?.visitedPlaces ?? 0, unit: '곳', icon: MapPin, color: 'text-main-green', bg: 'bg-green-50' },
+    { label: '사진', value: stats?.bestPhotosCount ?? 0, unit: '장', icon: Sparkles, color: 'text-main-yellow', bg: 'bg-yellow-50' },
+  ];
+
+  if (summaryLoading) {
+    return (
+      <div className="bg-white rounded-[32px] border border-border shadow-sm p-5 h-full">
+        <Skeleton className="h-4 w-20 mb-4" />
+        <div className="grid grid-cols-3 gap-3">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-[32px] border border-border shadow-sm p-5 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-black text-text-main">이달의 활동</h3>
+        <span className="text-[10px] font-black text-text-sub opacity-60">전체 통계</span>
+      </div>
+      <div className="grid grid-cols-3 gap-3 flex-1">
+        {items.map((item, i) => (
+          <div key={i} className={`flex flex-col items-center justify-center gap-2 rounded-2xl p-3 ${item.bg}`}>
+            <item.icon className={`w-4 h-4 ${item.color}`} />
+            <div className="text-center">
+              <p className="text-[10px] font-bold text-text-sub">{item.label}</p>
+              <p className="text-base font-black text-text-main leading-none mt-1">
+                {item.value}<span className="text-[10px] ml-0.5 font-bold">{item.unit}</span>
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 3. 퀵 액션 카드 (기록하기 + 스트릭)
+function QuickActionCard() {
+  const { summary, summaryLoading } = useDashboard();
+  const streak = summary?.streak;
+
+  if (summaryLoading) {
+    return <Skeleton className="rounded-[32px] h-full" />;
+  }
+
+  return (
+    <Link 
+      href="/calendar" 
+      className="group bg-main-green rounded-[32px] p-5 text-white shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between overflow-hidden relative h-full"
+    >
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm">
+          <Flame className="w-4 h-4 text-main-yellow fill-main-yellow" />
+          <span className="text-xs font-black">{streak?.current ?? 0}일 연속 기록 중</span>
+        </div>
+        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+        </div>
+      </div>
+
+      <div className="relative z-10 mt-6 md:mt-0">
+        <p className="text-xs font-bold opacity-80 mb-1">오늘도 소중한 추억을</p>
+        <p className="text-xl font-black flex items-center gap-2">
+          기록하기 <Zap className="w-5 h-5 text-main-yellow fill-main-yellow" />
+        </p>
+      </div>
+
+      {/* 배경 장식 */}
+      <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+      <div className="absolute -left-8 -top-8 w-20 h-20 bg-deep-green/20 rounded-full blur-xl" />
+    </Link>
+  );
+}
+
+// ─── 베스트 포토 ───────────────────────────────────────────────────────────
+
+function BestPhotosStrip() {
+  const { summary, summaryLoading } = useDashboard();
+  const photos = (summary?.bestPhotos ?? []).slice(0, 4);
+
+  if (summaryLoading) {
+    return (
+      <div className="space-y-4 flex-1 flex flex-col">
+        <h2 className="text-lg font-black text-text-main flex items-center gap-2 px-1">
+          <Trophy className="w-5 h-5 text-main-yellow fill-main-yellow" /> 베스트 포토
+        </h2>
+        <div className="grid grid-cols-2 gap-3 flex-1">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-square rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (photos.length === 0) return null;
+
+  return (
+    <div className="space-y-4 flex-1 flex flex-col">
+      <h2 className="text-lg font-black text-text-main flex items-center gap-2 px-1">
+        <Trophy className="w-5 h-5 text-main-yellow fill-main-yellow" /> 베스트 포토
+      </h2>
+      <div className="grid grid-cols-2 gap-3 flex-1">
+        {photos.map((photo, i) => (
+          <Link
+            key={i}
+            href={`/calendar?date=${photo.memoryDate}`}
+            className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm hover:shadow-md transition-all"
+          >
+            <Image
+              src={getImagePath(photo.photoPath)}
+              alt="베스트 사진"
+              fill
+              className="object-cover group-hover:scale-110 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/40 backdrop-blur-sm rounded-full text-[9px] font-black text-white">
+              {photo.vibeScore}
+            </div>
+            {photo.aiComment && (
+              <p className="absolute bottom-2 left-2 right-2 text-[9px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity line-clamp-2">
+                {photo.aiComment}
+              </p>
+            )}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── 자주 가는 곳 ──────────────────────────────────────────────────────────
+
+function FavoritePlacesCard() {
+  const { summary, summaryLoading } = useDashboard();
+  const places = summary?.favoritePlaces ?? [];
+
+  return (
+    <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 lg:p-8 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-black text-text-main flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-main-green" /> 자주 가는 곳
+        </h3>
+        <span className="text-[10px] font-black text-text-sub">이번 달 기준</span>
+      </div>
+      {summaryLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+        </div>
+      ) : places.length === 0 ? (
+        <p className="text-sm text-text-sub font-bold text-center py-4">이번 달 방문 기록이 없어요</p>
+      ) : (
+        <div className="space-y-3">
+          {places.map((place, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                i === 0 ? 'bg-main-yellow text-white' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-500' : 'bg-gray-100 text-gray-400'
+              }`}>
+                {i + 1}
+              </span>
+              <span className="flex-1 text-sm font-bold text-text-main truncate">{place.locationName}</span>
+              <span className="text-xs font-black text-text-sub">{place.count}일</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── AI 섹션 ─────────────────────────────────────────────────────────────────
+
+function AiEmptyState() {
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return (
+    <div className="bg-deep-green rounded-[40px] p-10 text-white relative overflow-hidden h-full">
+      <div className="relative z-10 text-center space-y-4 py-4">
+        <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto">
+          <Sparkles className="w-7 h-7 text-main-yellow fill-main-yellow" />
+        </div>
+        <p className="font-black text-lg">{yearMonth} 리포트</p>
+        <p className="text-sm font-bold opacity-70 leading-relaxed">
+          이번 달 기록이 3개 이상 쌓이면<br />AI가 월간 리포트를 작성해 드려요!
+        </p>
+      </div>
+      <div className="absolute -right-16 -top-16 w-56 h-56 bg-white/5 rounded-full blur-3xl" />
+    </div>
+  );
+}
+
+// 월간 리포트 (헤더 카드)
+function AiMonthlyReportCard({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
+  const { aiReport } = useDashboard();
+
+  if (!aiReport?.monthlyReport) return null;
+
+  const report = aiReport.monthlyReport;
+  const guardian = aiReport.guardianMessage;
+  const next = aiReport.nextSuggestion;
+
+  return (
+    <div className="bg-deep-green rounded-[40px] p-8 lg:p-10 text-white relative overflow-hidden">
+      <div className="relative z-10 space-y-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-main-yellow fill-main-yellow" />
+              <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">AI 월간 리포트</span>
+            </div>
+            <h3 className="text-xl font-black leading-tight">{report.headline}</h3>
+          </div>
+          {/* <button onClick={onRefresh} disabled={refreshing}
+            className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all shrink-0 disabled:opacity-40">
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button> */}
+        </div>
+
+        <p className="text-sm font-bold opacity-80 leading-relaxed">{report.narrative}</p>
+
+        {report.highlights.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-black opacity-50 uppercase tracking-widest">이달의 하이라이트</p>
+            {report.highlights.map((h, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <Zap className="w-3.5 h-3.5 text-main-yellow fill-main-yellow mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs font-black opacity-90">{h.title}</span>
+                  {h.reason && <span className="text-xs opacity-60"> · {h.reason}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(guardian || next) && (
+          <div className="space-y-2 pt-4 border-t border-white/10">
+            {guardian && (
+              <p className="text-xs font-bold opacity-80 leading-relaxed">
+                <span className="text-main-yellow font-black">보호자에게 · </span>{guardian}
+              </p>
+            )}
+            {next && (
+              <p className="text-xs font-bold opacity-80 leading-relaxed">
+                <span className="text-main-green font-black">다음 달 팁 · </span>{next}
+              </p>
+            )}
+          </div>
+        )}
+
+        {report.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {report.tags.map((tag, i) => (
+              <span key={i} className="px-2.5 py-1 bg-white/10 rounded-full text-[11px] font-black opacity-80">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="absolute -right-16 -top-16 w-56 h-56 bg-white/5 rounded-full blur-3xl" />
+      <div className="absolute -left-16 -bottom-16 w-56 h-56 bg-main-green/10 rounded-full blur-3xl" />
+    </div>
+  );
+}
+
+// 활동 에너지 카드
+function AiActivityCard() {
+  const { aiReport } = useDashboard();
+
+  if (!aiReport?.activityInsight) return null;
+
+  const a = aiReport.activityInsight;
+  const personality = aiReport.personalityInsight;
+
+  const trendConfig = {
+    UP:      { icon: ArrowUp,   color: 'text-main-green', bg: 'bg-surface-green', label: '이전보다 활발해졌어요' },
+    STABLE:  { icon: Minus,     color: 'text-blue-500',   bg: 'bg-blue-50',       label: '꾸준하게 유지 중이에요' },
+    DOWN:    { icon: ArrowDown, color: 'text-orange-400', bg: 'bg-orange-50',     label: '이전보다 조금 줄었어요' },
+    UNKNOWN: { icon: Minus,     color: 'text-gray-400',   bg: 'bg-gray-50',       label: '비교 데이터가 부족해요' },
+  };
+  const levelLabel = { GREAT: '활발', NORMAL: '보통', WATCH: '관찰 필요', WARNING: '관찰 필요', UNKNOWN: '-' };
+  const levelColor = { GREAT: 'text-main-green bg-surface-green', NORMAL: 'text-blue-500 bg-blue-50',
+                       WATCH: 'text-amber-600 bg-amber-50', WARNING: 'text-orange-500 bg-orange-50', UNKNOWN: 'text-gray-400 bg-gray-50' };
+
+  const trendCfg = trendConfig[a.trend as keyof typeof trendConfig] ?? trendConfig.UNKNOWN;
+  const TrendIcon = trendCfg.icon;
+  const hasComparison = a.recentAverage != null && a.previousAverage != null && a.trend !== 'UNKNOWN';
+
+  return (
+    <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 lg:p-8 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-black text-text-main flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-deep-green" /> 이달의 활동
+        </h3>
+        {a.level !== 'UNKNOWN' && (
+          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${levelColor[a.level as keyof typeof levelColor]}`}>
+            {levelLabel[a.level as keyof typeof levelLabel]}
+          </span>
+        )}
+      </div>
+
+      {/* 성향 뱃지 */}
+      {personality && (
+        <div className="flex items-center gap-2 p-3 bg-surface-green/50 rounded-2xl">
+          <span className="text-sm font-black text-main-green">{personality.label}</span>
+          <span className="text-xs text-text-sub font-bold opacity-80">· {personality.message}</span>
+        </div>
+      )}
+
+      {/* AI 메시지 */}
+      <p className="text-sm font-bold text-text-main leading-relaxed">{a.message}</p>
+
+      {/* 수치 비교 - 데이터 있을 때만 */}
+      {hasComparison && (
+        <div className={`flex items-center gap-3 p-3.5 rounded-2xl ${trendCfg.bg}`}>
+          <TrendIcon className={`w-4 h-4 shrink-0 ${trendCfg.color}`} />
+          <div>
+            <p className={`text-xs font-black ${trendCfg.color}`}>{trendCfg.label}</p>
+            <p className="text-[11px] text-text-sub font-bold mt-0.5">
+              최근 2주 {a.recentAverage!.toFixed(1)} → 이전 2주 {a.previousAverage!.toFixed(1)}
+              {a.confidence === 'LOW' && <span className="opacity-60"> (기록 적음, 참고용)</span>}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 에너지 기준 안내 */}
+      <p className="text-[10px] text-text-sub font-bold opacity-60">
+        * 활동 에너지는 기록 저장 시 AI가 각 모멘트(산책·외출·휴식 등)에 자동 부여하는 활동 강도 점수(1~5)의 평균이에요.
+      </p>
+    </div>
+  );
+}
+
+// 장소 흐름 카드
+function AiLocationCard() {
+  const { aiReport } = useDashboard();
+
+  if (!aiReport?.locationInsight) return null;
+
+  const loc = aiReport.locationInsight;
+
+  const verdictConfig = {
+    VARIED:   { icon: '🗺️', label: '다양한 장소형', desc: '여러 공간에서 다양한 추억을 남겼어요', bg: 'bg-purple-50', text: 'text-purple-600' },
+    FOCUSED:  { icon: '📍', label: '한 장소 집중형', desc: '좋아하는 장소에서 깊이 있는 시간을 보냈어요', bg: 'bg-blue-50', text: 'text-blue-600' },
+    ROUTINE:  { icon: '🔄', label: '반복 루틴형', desc: '정해진 장소를 꾸준히 방문하는 패턴이 있어요', bg: 'bg-amber-50', text: 'text-amber-600' },
+    LOW_DATA: { icon: '📝', label: '장소 기록 적음', desc: '장소 기록이 더 쌓이면 패턴을 분석할 수 있어요', bg: 'bg-gray-50', text: 'text-gray-500' },
+  };
+
+  const verdict = verdictConfig[loc.verdict as keyof typeof verdictConfig] ?? verdictConfig.LOW_DATA;
+
+  return (
+    <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 lg:p-8 space-y-5 flex-1">
+      <h3 className="font-black text-text-main flex items-center gap-2">
+        <MapPin className="w-5 h-5 text-main-green" /> 이달의 장소 흐름
+      </h3>
+
+      <div className={`flex items-center gap-3 p-4 rounded-2xl ${verdict.bg}`}>
+        <span className="text-2xl">{verdict.icon}</span>
+        <div>
+          <p className={`font-black text-sm ${verdict.text}`}>{verdict.label}</p>
+          <p className={`text-xs font-bold ${verdict.text} opacity-70 mt-0.5`}>{verdict.desc}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-4">
+        {loc.verdict !== 'LOW_DATA' && (
+          <div className="grid grid-cols-2 gap-3 flex-shrink-0">
+            <div className="p-3 bg-surface-green/50 rounded-xl text-center">
+              <p className="text-xl font-black text-main-green">{loc.uniquePlaceCount}곳</p>
+              <p className="text-[10px] font-black text-text-sub mt-0.5">방문 장소</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-xl text-center">
+              <p className="text-xl font-black text-text-main">{loc.placeRecordCount}일</p>
+              <p className="text-[10px] font-black text-text-sub mt-0.5">총 외출</p>
+            </div>
+          </div>
+        )}
+
+        {loc.topPlace && (
+          <div className="flex-1 flex items-center gap-2 p-3 bg-surface-green rounded-xl">
+            <Zap className="w-4 h-4 text-main-green fill-main-green shrink-0" />
+            <div>
+              <p className="text-[10px] font-black text-main-green">가장 많이 간 곳</p>
+              <p className="text-sm font-black text-text-main truncate">{loc.topPlace}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <p className="text-sm font-bold text-text-sub leading-relaxed">{loc.message}</p>
+    </div>
+  );
+}
+
+
+// ─── 메인 페이지 ─────────────────────────────────────────────────────────────
+
+export default function DashboardPage() {
+  const { aiReport, aiLoading, aiRefreshing, refreshAiReport } = useDashboard();
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 bg-surface-green/30 overflow-y-auto no-scrollbar p-4 lg:p-8">
+      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 lg:gap-6">
+
+        {/* 1. 상단 레이아웃 (프로필, 활동 요약, 퀵 액션) */}
+        <div className="md:col-span-3 lg:col-span-4">
+          <PetProfileCard />
+        </div>
+        <div className="md:col-span-3 lg:col-span-5">
+          <ActivityStatsCard />
+        </div>
+        <div className="md:col-span-6 lg:col-span-3">
+          <QuickActionCard />
+        </div>
+
+        {/* AI 섹션 타이틀 */}
+        <div className="md:col-span-6 lg:col-span-12">
+          <h2 className="text-xl font-black text-text-main flex items-center gap-2 px-1 mt-4">
+            <Sparkles className="w-5 h-5 text-main-yellow fill-main-yellow" /> AI 분석
+          </h2>
+        </div>
+
+        {aiLoading ? (
+          <>
+            <div className="md:col-span-6 lg:col-span-12 bg-deep-green rounded-[40px] p-10 space-y-4">
+              <Skeleton className="h-6 w-40 bg-white/20" />
+              <Skeleton className="h-4 w-full bg-white/20" />
+              <Skeleton className="h-4 w-5/6 bg-white/20" />
+              <div className="pt-4 border-t border-white/10">
+                <Skeleton className="h-4 w-1/2 bg-white/20" />
+              </div>
+            </div>
+            {/* 좌측 스택 스켈레톤 (Activity + Location) */}
+            <div className="md:col-span-7 lg:col-span-8 space-y-4 lg:space-y-6 h-full">
+              <div className="bg-white rounded-[32px] border border-border p-8 space-y-4">
+                <Skeleton className="h-5 w-32" /><Skeleton className="h-4 w-full" /><Skeleton className="h-10 w-full rounded-2xl" />
+              </div>
+              <div className="bg-white rounded-[32px] border border-border p-8 space-y-6">
+                <Skeleton className="h-6 w-40" /><Skeleton className="h-20 w-full" /><Skeleton className="h-24 w-full" />
+              </div>
+            </div>
+            {/* 우측 사이드바 스켈레톤 (Places + Photos) */}
+            <div className="md:col-span-5 lg:col-span-4 space-y-4 lg:space-y-6 h-full">
+              <div className="bg-white rounded-[32px] border border-border p-8 space-y-4">
+                <Skeleton className="h-5 w-32" /><Skeleton className="h-20 w-full rounded-2xl" />
+              </div>
+              <div className="space-y-4 flex-1 flex flex-col">
+                <Skeleton className="h-5 w-32" />
+                <div className="flex-1 grid grid-cols-2 gap-4 overflow-hidden">
+                  <Skeleton className="aspect-square rounded-2xl" /><Skeleton className="aspect-square rounded-2xl" />
+                </div>
+              </div>
+            </div>
+          </>
+        ) : !aiReport?.hasData ? (
+          <div className="md:col-span-6 lg:col-span-12">
+            <AiEmptyState />
+          </div>
+        ) : (
+          <>
+            {/* AI 리포트 메인 */}
+            <div className="md:col-span-6 lg:col-span-12">
+              <AiMonthlyReportCard onRefresh={refreshAiReport} refreshing={aiRefreshing} />
+            </div>
+
+            {/* 좌측 콘텐츠 (활동 + 장소 흐름) */}
+            <div className="md:col-span-7 lg:col-span-8 flex flex-col gap-4 lg:gap-6 h-full">
+              <AiActivityCard />
+              <AiLocationCard />
+            </div>
+
+            {/* 우측 사이드바 (자주 가는 곳 + 베스트 포토) */}
+            <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-4 lg:gap-6 h-full">
+              <FavoritePlacesCard />
+              <BestPhotosStrip />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

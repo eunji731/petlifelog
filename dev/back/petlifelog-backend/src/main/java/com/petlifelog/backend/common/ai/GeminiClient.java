@@ -173,6 +173,41 @@ public class GeminiClient {
         return null;
     }
 
+    public String generateText(String prompt) {
+        String apiUrl = String.format("%s/models/%s:generateContent?key=%s", baseUrl, model, apiKey);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> contentMap = new HashMap<>();
+        contentMap.put("parts", List.of(Map.of("text", prompt)));
+
+        Map<String, Object> generationConfig = new HashMap<>();
+        generationConfig.put("response_mime_type", "application/json");
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("contents", List.of(contentMap));
+        requestBody.put("generationConfig", generationConfig);
+
+        try {
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            Map<String, Object> response = restTemplate.postForObject(apiUrl, entity, Map.class);
+
+            if (response != null && response.containsKey("candidates")) {
+                List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
+                Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
+                List<Map<String, Object>> resParts = (List<Map<String, Object>>) content.get("parts");
+                String result = (String) resParts.get(0).get("text");
+                log.info("Gemini Text Response: {}", result);
+                return result;
+            }
+        } catch (Exception e) {
+            log.error("Gemini text generation failed", e);
+            throw new RuntimeException("AI 리포트 생성 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        return null;
+    }
+
     private String buildOcrPrompt() {
         return "너는 이미지 OCR 전문가다. 제공된 이미지에서 보이는 텍스트를 있는 그대로 나열하라.\n\n"
                 + "규칙:\n"

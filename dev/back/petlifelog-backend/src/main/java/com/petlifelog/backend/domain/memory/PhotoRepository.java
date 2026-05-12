@@ -44,6 +44,33 @@ public interface PhotoRepository extends JpaRepository<Photo, UUID> {
 
     Optional<Photo> findFirstByMemory_IdAndGpsLatIsNotNull(UUID memoryId);
 
+    @Query("""
+            SELECT p FROM Photo p
+            JOIN FETCH p.memory m
+            WHERE p.isBest = true
+              AND m.user.id = :userId
+              AND (:petId IS NULL OR EXISTS (
+                    SELECT md FROM MemoryDog md WHERE md.memory = m AND md.dog.id = :petId
+              ))
+            ORDER BY p.vibeScore DESC
+            """)
+    List<Photo> findBestPhotos(@Param("userId") UUID userId, @Param("petId") UUID petId);
+
+    @Query("""
+            SELECT COUNT(p) FROM Photo p
+            WHERE p.isBest = true
+              AND p.memory.user.id = :userId
+              AND p.memory.memoryDate BETWEEN :start AND :end
+              AND (:petId IS NULL OR EXISTS (
+                    SELECT md FROM MemoryDog md WHERE md.memory = p.memory AND md.dog.id = :petId
+              ))
+            """)
+    long countBestPhotos(
+            @Param("userId") UUID userId,
+            @Param("petId") UUID petId,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end);
+
     /** 키워드 검색 (location, aiTitle, aiDiary, summary, userMemo 대상) */
     @Query("""
             SELECT p FROM Photo p
