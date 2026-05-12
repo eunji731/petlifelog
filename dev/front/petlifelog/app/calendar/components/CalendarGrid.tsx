@@ -135,7 +135,7 @@ export default function CalendarGrid({
                         </div>
                       ))}
                       {logs.length > 3 && (
-                        <div className="absolute -right-2 -top-1 bg-main-green text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white z-10">
+                        <div className="absolute -right-2 -top-1 bg-main-green text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-background z-10">
                           +{logs.length - 3}
                         </div>
                       )}

@@ -171,7 +171,7 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
   return (
     <div className="flex-1 relative overflow-y-auto no-scrollbar bg-surface-green/20 flex flex-col">
       {/* Date Filter Bar - Always Visible */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border p-3 lg:px-10 flex flex-wrap items-center gap-3">
+      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border p-3 lg:px-10 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 bg-surface-green/10 px-3 py-1.5 rounded-xl border border-main-green/10">
           <Calendar className="w-4 h-4 text-main-green" />
           <span className="text-[11px] lg:text-xs font-black text-main-green">기간 필터</span>
@@ -212,7 +212,7 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
         <div className="max-w-4xl mx-auto h-full">
           {allLogs.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-6">
-              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-inner">
+              <div className="w-24 h-24 bg-background rounded-full flex items-center justify-center shadow-inner">
                 <Calendar className="w-10 h-10 text-main-green opacity-20" />
               </div>
               <div>
@@ -222,7 +222,7 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
             </div>
           ) : monthlyLogs.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center py-20 text-center space-y-4">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mx-auto opacity-50">
+              <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center shadow-sm mx-auto opacity-50">
                 <Sparkles className="w-8 h-8 text-main-green" />
               </div>
               <p className="text-sm font-bold text-text-sub">선택하신 기간에는 기록이 없습니다.</p>
@@ -231,15 +231,15 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
           ) : (
             <div className="pt-8 space-y-24 relative before:absolute before:left-1/2 before:top-4 before:bottom-4 before:w-0.5 before:bg-main-green/10 before:-translate-x-1/2">
               {groupedLogs.map((group) => (
-                <div key={group.dateKey} id={`group-container-${group.dateKey}`} className="relative bg-white/60 backdrop-blur-sm rounded-[48px] p-6 lg:p-12 border border-white shadow-xl shadow-main-green/5 transition-all hover:shadow-2xl hover:shadow-main-green/10 group/container">
+                <div key={group.dateKey} id={`group-container-${group.dateKey}`} className="relative bg-background/60 backdrop-blur-sm rounded-[48px] p-6 lg:p-12 border border-border shadow-xl shadow-main-green/5 transition-all hover:shadow-2xl hover:shadow-main-green/10 group/container">
                   <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-3">
-                    <div className="px-6 py-2 bg-main-green text-white text-xs font-black rounded-full shadow-lg shadow-main-green/20 whitespace-nowrap border-2 border-white">{group.dateKey}</div>
+                    <div className="px-6 py-2 bg-main-green text-white text-xs font-black rounded-full shadow-lg shadow-main-green/20 whitespace-nowrap border-2 border-background">{group.dateKey}</div>
                     <div className="flex items-center gap-2 no-export">
-                      <button onClick={() => handleExportGroup(group.dateKey, 'png')} disabled={!!isExporting} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-md border border-border rounded-xl text-text-sub hover:text-main-green transition-all shadow-sm active:scale-95 disabled:opacity-50 group/btn">
+                      <button onClick={() => handleExportGroup(group.dateKey, 'png')} disabled={!!isExporting} className="flex items-center gap-1.5 px-3 py-1.5 bg-background/90 backdrop-blur-md border border-border rounded-xl text-text-sub hover:text-main-green transition-all shadow-sm active:scale-95 disabled:opacity-50 group/btn">
                         {isExporting === group.dateKey ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5" />}
                         <span className="text-[10px] font-black">이미지</span>
                       </button>
-                      <button onClick={() => handleExportGroup(group.dateKey, 'pdf')} disabled={!!isExporting} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-md border border-border rounded-xl text-text-sub hover:text-main-green transition-all shadow-sm active:scale-95 disabled:opacity-50 group/btn">
+                      <button onClick={() => handleExportGroup(group.dateKey, 'pdf')} disabled={!!isExporting} className="flex items-center gap-1.5 px-3 py-1.5 bg-background/90 backdrop-blur-md border border-border rounded-xl text-text-sub hover:text-main-green transition-all shadow-sm active:scale-95 disabled:opacity-50 group/btn">
                         {isExporting === group.dateKey ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
                         <span className="text-[10px] font-black">PDF</span>
                       </button>
@@ -249,16 +249,16 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
                     {group.logs.map((log, lIdx) => (
                       <div key={log.id} className={`space-y-8 ${lIdx > 0 ? 'pt-20 border-t border-main-green/5' : ''}`}>
                         <div className="flex flex-col items-center text-center max-w-2xl mx-auto mb-10 px-6">
-                          <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4"><Sparkles className="w-5 h-5 text-main-yellow fill-main-yellow" /></div>
+                          <div className="w-10 h-10 bg-background rounded-2xl flex items-center justify-center shadow-sm mb-4"><Sparkles className="w-5 h-5 text-main-yellow fill-main-yellow" /></div>
                           <h2 className="text-2xl font-black text-text-main mb-3 leading-tight">{log.aiTitle}</h2>
                           <p className="text-sm font-medium text-text-sub italic">&quot;{log.aiSummary}&quot;</p>
                         </div>
                         {log.moments.map((moment, mIdx) => (
                           <div key={moment.id} className={`flex flex-col md:flex-row gap-8 items-center ${mIdx % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
                             <div className="w-full md:w-1/2 px-4">
-                              <div className="relative aspect-video rounded-[32px] overflow-hidden shadow-xl group border-4 border-white">
+                              <div className="relative aspect-video rounded-[32px] overflow-hidden shadow-xl group border-4 border-background">
                                 <Image src={getImagePath(moment.photos[0]?.path) || '/dog-profile.png'} alt={moment.aiTitle} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
-                                <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[9px] font-black text-main-green shadow-sm">{moment.category}</div>
+                                <div className="absolute top-4 left-4 px-3 py-1 bg-background/90 backdrop-blur-md rounded-full text-[9px] font-black text-main-green shadow-sm">{moment.category}</div>
                               </div>
                             </div>
                             <div className="w-full md:w-1/2 px-4 space-y-4 text-center md:text-left">
@@ -273,7 +273,7 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
                           </div>
                         ))}
                         <div className="flex justify-center pt-4 no-export">
-                          <button onClick={() => onDateSelect(new Date(log.dateKey))} className="px-6 py-2.5 bg-white border border-border text-main-green text-[11px] font-black rounded-full hover:bg-main-green hover:text-white transition-all shadow-sm flex items-center gap-2 group">이날의 기록 상세보기 <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" /></button>
+                          <button onClick={() => onDateSelect(new Date(log.dateKey))} className="px-6 py-2.5 bg-background border border-border text-main-green text-[11px] font-black rounded-full hover:bg-main-green hover:text-white transition-all shadow-sm flex items-center gap-2 group">이날의 기록 상세보기 <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" /></button>
                         </div>
                       </div>
                     ))}

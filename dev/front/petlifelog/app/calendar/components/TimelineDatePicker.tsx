@@ -200,7 +200,7 @@ export default function TimelineDatePicker({ value, onChange, label }: TimelineD
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-          isOpen ? 'border-main-green bg-main-green/5 ring-4 ring-main-green/10' : 'border-border bg-white hover:border-main-green/30'
+          isOpen ? 'border-main-green bg-main-green/5 ring-4 ring-main-green/10' : 'border-border bg-background hover:border-main-green/30'
         }`}
       >
         <CalendarIcon className={`w-3.5 h-3.5 ${isOpen ? 'text-main-green' : 'text-text-sub'}`} />
@@ -215,14 +215,14 @@ export default function TimelineDatePicker({ value, onChange, label }: TimelineD
           {mounted && createPortal(
             <div className="lg:hidden fixed inset-0 z-[1000] flex flex-col items-center justify-end">
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setIsOpen(false); setPickerMode('day'); }} />
-              <div className="relative w-full bg-white rounded-t-[40px] shadow-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[90vh]">
+              <div className="relative w-full bg-background rounded-t-[40px] shadow-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[90vh]">
                 <div className="p-6 flex items-center justify-between border-b border-border shrink-0">
                   <h3 className="text-lg font-black text-text-main">{label}</h3>
                   <button onClick={() => { setIsOpen(false); setPickerMode('day'); }} className="p-2 bg-background rounded-full active:scale-90 transition-transform">
                     <X className="w-5 h-5 text-text-main" />
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto bg-white p-4 pb-12 min-h-[400px]">
+                <div className="flex-1 overflow-y-auto bg-background p-4 pb-12 min-h-[400px]">
                   {renderPickerMain(true)}
                 </div>
               </div>
@@ -231,7 +231,7 @@ export default function TimelineDatePicker({ value, onChange, label }: TimelineD
           )}
 
           {/* DESKTOP VERSION: Remains inline with button */}
-          <div className="hidden lg:block absolute top-full left-0 mt-2 z-[100] bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 w-[300px] animate-in zoom-in-95 duration-200 origin-top-left">
+          <div className="hidden lg:block absolute top-full left-0 mt-2 z-[100] bg-background rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-border p-4 w-[300px] animate-in zoom-in-95 duration-200 origin-top-left">
             {renderPickerMain(false)}
           </div>
         </>

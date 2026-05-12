@@ -54,7 +54,7 @@ export default function DiaryPreview({
   const renderEmptyState = () => (
     <div className="flex-1 flex flex-col min-h-0 animate-in fade-in duration-500">
       <div className="flex-1 overflow-y-auto no-scrollbar bg-surface-green/20">
-        <div className="max-w-4xl mx-auto min-h-full bg-white shadow-2xl flex flex-col items-center justify-center p-10 text-center space-y-6">
+        <div className="max-w-4xl mx-auto min-h-full bg-background shadow-2xl flex flex-col items-center justify-center p-10 text-center space-y-6">
           <div className="w-24 h-24 bg-surface-green rounded-full flex items-center justify-center">
             <Calendar className="w-10 h-10 text-main-green opacity-40" />
           </div>
@@ -153,7 +153,7 @@ export default function DiaryPreview({
 
     return (
       <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-500">
-        <div className="flex-1 overflow-y-auto no-scrollbar bg-white space-y-20">
+        <div className="flex-1 overflow-y-auto no-scrollbar bg-background space-y-20">
           {logs.map((log) => (
             <div key={log.id} className="max-w-[1600px] mx-auto flex flex-col lg:flex-row min-h-full border-b border-border/50 last:border-b-0">
               <div className="lg:w-[40%] p-6 lg:p-16 lg:sticky lg:top-0 lg:h-[calc(100vh-80px)] flex flex-col overflow-y-auto no-scrollbar">
@@ -183,10 +183,10 @@ export default function DiaryPreview({
                   <div className="flex items-center justify-between px-2">
                     <h3 className="text-xl lg:text-3xl font-black text-text-main flex items-center gap-4"><Clock className="w-6 h-6 lg:w-10 lg:h-10 text-main-green" /> Timeline</h3>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => onEdit(log)} className="px-6 py-2.5 bg-white text-main-green text-xs font-black rounded-full border-2 border-main-green/20 hover:border-main-green transition-all shadow-sm">Edit Record</button>
+                      <button onClick={() => onEdit(log)} className="px-6 py-2.5 bg-background text-main-green text-xs font-black rounded-full border-2 border-main-green/20 hover:border-main-green transition-all shadow-sm">Edit Record</button>
                       <button 
                         onClick={() => handleDelete(log.id)}
-                        className="p-2.5 bg-white text-red-500 rounded-full border-2 border-red-50 hover:bg-red-50 transition-all shadow-sm"
+                        className="p-2.5 bg-background text-red-500 rounded-full border-2 border-red-50 hover:bg-red-50 transition-all shadow-sm"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -196,7 +196,7 @@ export default function DiaryPreview({
                     {log.moments.map((moment, idx) => (
                       <div key={moment.id} className="relative group">
                         <div className="absolute -left-4 lg:-left-8 top-0 bottom-0 w-px bg-main-green/10" />
-                        <div className="absolute -left-[21px] lg:-left-[37px] top-10 w-3 h-3 rounded-full bg-main-green border-4 border-white shadow-md z-10" />
+                        <div className="absolute -left-[21px] lg:-left-[37px] top-10 w-3 h-3 rounded-full bg-main-green border-4 border-background shadow-md z-10" />
                         <div className="flex flex-col space-y-6 lg:space-y-10">
                           <div className="flex items-center gap-4">
                             <span className="text-[48px] lg:text-[72px] font-black text-main-green/10 leading-none tabular-nums">{(idx + 1).toString().padStart(2, '0')}</span>
@@ -205,7 +205,7 @@ export default function DiaryPreview({
                               <p className="text-xs lg:text-sm font-bold text-text-sub flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {moment.locationName || 'Location Unknown'}</p>
                             </div>
                           </div>
-                          <div className="bg-white rounded-[32px] lg:rounded-[56px] overflow-hidden border border-border/50 shadow-sm group-hover:shadow-2xl transition-all duration-700">
+                          <div className="bg-background rounded-[32px] lg:rounded-[56px] overflow-hidden border border-border/50 shadow-sm group-hover:shadow-2xl transition-all duration-700">
                             {moment.photos && moment.photos.length > 0 && (
                               <div className="relative w-full aspect-video bg-surface-green/5">
                                 <MomentImageSlider photos={moment.photos} alt={moment.aiTitle} />
@@ -233,8 +233,8 @@ export default function DiaryPreview({
   };
 
   return (
-    <div className="flex flex-col w-full h-full bg-white overflow-hidden shadow-[-12px_0_32px_rgba(0,0,0,0.03)] relative">
-      <div className="sticky top-0 z-[20] bg-white/90 backdrop-blur-md border-b border-border px-4 py-3 lg:px-6 lg:py-4 flex justify-between items-center shadow-sm shrink-0">
+    <div className="flex flex-col w-full h-full bg-background overflow-hidden shadow-[-12px_0_32px_rgba(0,0,0,0.03)] relative">
+      <div className="sticky top-0 z-[20] bg-background/90 backdrop-blur-md border-b border-border px-4 py-3 lg:px-6 lg:py-4 flex justify-between items-center shadow-sm shrink-0">
         <h2 className="text-lg lg:text-xl font-black text-text-main tracking-tight">{formattedDate}</h2>
         {onClose && (
           <button onClick={onClose} className="p-2 hover:bg-surface-green rounded-xl transition-all">
