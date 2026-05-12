@@ -230,7 +230,7 @@ export default function MapPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-white relative overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 bg-background relative overflow-hidden">
       {/* 지도 - 첫 마커 위치 계산 전까지 숨김 */}
       <div className={`absolute inset-0 transition-opacity duration-300 ${mapVisible ? 'opacity-100' : 'opacity-0'}`}>
         <NaverMap onMapLoad={handleMapLoad} onBoundsChanged={handleBoundsChanged} />
@@ -238,8 +238,8 @@ export default function MapPage() {
 
       {/* 초기 로딩 */}
       {!mapVisible && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white z-10">
-          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-lg text-sm font-bold text-text-sub">
+        <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+          <div className="flex items-center gap-2 px-4 py-2 bg-background rounded-full shadow-lg text-sm font-bold text-text-sub">
             <MapPin className="w-4 h-4 animate-bounce text-main-green" />
             추억 찾는 중...
           </div>
@@ -249,7 +249,7 @@ export default function MapPage() {
       {/* 뷰포트 재조회 중 인디케이터 */}
       {mapVisible && loading && !isSearching && (
         <div className="absolute top-24 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full shadow text-xs font-bold text-text-sub">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-background/90 backdrop-blur-sm rounded-full shadow text-xs font-bold text-text-sub">
             <MapPin className="w-3 h-3 animate-bounce text-main-green" />
             업데이트 중
           </div>
@@ -267,7 +267,7 @@ export default function MapPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setShowResults(true)}
               placeholder="장소나 추억을 검색해 보세요..."
-              className="w-full pl-11 pr-12 py-4 bg-white/90 backdrop-blur-md border border-white rounded-[24px] shadow-2xl shadow-main-green/10 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-main-green/20 transition-all"
+              className="w-full pl-11 pr-12 py-4 bg-background/90 backdrop-blur-md border border-border rounded-[24px] shadow-2xl shadow-main-green/10 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-main-green/20 transition-all text-text-main"
             />
             {searchQuery && (
               <button 
@@ -281,7 +281,7 @@ export default function MapPage() {
 
           {/* 검색 결과 리스트 - 내용이 있을 때만 표시 */}
           {showResults && (isSearching || searchQuery) && (
-            <div className="absolute top-full mt-3 w-full bg-white/95 backdrop-blur-lg rounded-[24px] shadow-2xl border border-white overflow-hidden z-20 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="absolute top-full mt-3 w-full bg-background/95 backdrop-blur-lg rounded-[24px] shadow-2xl border border-border overflow-hidden z-20 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="max-h-[400px] overflow-y-auto no-scrollbar">
                 {isSearching ? (
                   <div className="p-8 text-center text-text-sub text-sm font-bold">
@@ -329,21 +329,21 @@ export default function MapPage() {
         </div>
         
         <div className="flex gap-2">
-          <button onClick={handleCurrentLocation} className="p-4 bg-white/90 backdrop-blur-md border border-white rounded-2xl shadow-xl text-text-main hover:bg-main-green hover:text-white transition-all">
+          <button onClick={handleCurrentLocation} className="p-4 bg-background/90 backdrop-blur-md border border-border rounded-2xl shadow-xl text-text-main hover:bg-main-green hover:text-white transition-all">
             <Navigation className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2">
-        <button onClick={handleZoomIn} className="p-3 bg-white border border-border rounded-xl shadow-lg text-text-main hover:bg-surface-green transition-all"><ZoomIn className="w-5 h-5" /></button>
-        <button onClick={handleZoomOut} className="p-3 bg-white border border-border rounded-xl shadow-lg text-text-main hover:bg-surface-green transition-all"><ZoomOut className="w-5 h-5" /></button>
+        <button onClick={handleZoomIn} className="p-3 bg-background border border-border rounded-xl shadow-lg text-text-main hover:bg-surface-green transition-all"><ZoomIn className="w-5 h-5" /></button>
+        <button onClick={handleZoomOut} className="p-3 bg-background border border-border rounded-xl shadow-lg text-text-main hover:bg-surface-green transition-all"><ZoomOut className="w-5 h-5" /></button>
       </div>
 
       {/* 마커 클릭 상세 패널 */}
       {selectedDetail && (
         <div className="absolute bottom-8 left-6 right-6 md:left-auto md:right-8 md:w-[400px] animate-in slide-in-from-bottom-8 duration-500">
-          <div className="bg-white rounded-[32px] overflow-hidden shadow-2xl border border-border ring-1 ring-black/5">
+          <div className="bg-background rounded-[32px] overflow-hidden shadow-2xl border border-border ring-1 ring-black/5">
             {detailLoading ? (
               <div className="h-48 flex items-center justify-center text-text-sub text-sm font-bold">
                 <MapPin className="w-5 h-5 animate-bounce text-main-green mr-2" />불러오는 중...
@@ -359,7 +359,7 @@ export default function MapPage() {
                     {selectedDetail.moment.category && (
                       <span className="px-2.5 py-1 bg-main-green text-white text-[9px] font-black rounded-full shadow-lg uppercase tracking-widest">{selectedDetail.moment.category}</span>
                     )}
-                    <span className="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-text-main text-[9px] font-black rounded-full shadow-lg">{selectedDetail.dailyLog.dateKey}</span>
+                    <span className="px-2.5 py-1 bg-background/90 backdrop-blur-sm text-text-main text-[9px] font-black rounded-full shadow-lg">{selectedDetail.dailyLog.dateKey}</span>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">

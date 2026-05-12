@@ -116,7 +116,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
   };
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar bg-white text-text-main">
+    <div className="h-full overflow-y-auto no-scrollbar bg-background text-text-main">
       {/* Hero Section */}
       <section className="relative h-[75vh] w-full overflow-hidden bg-black">
         {bestPhoto && (
@@ -142,7 +142,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
           </button>
           {/* <button
             onClick={() => setIsShareModalOpen(true)}
-            className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 hover:bg-main-yellow hover:text-black hover:border-main-yellow transition-all"
+            className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 hover:bg-main-yellow hover:text-text-main hover:border-main-yellow transition-all"
           >
             <Share2 className="w-5 h-5" />
           </button> */}
@@ -175,7 +175,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      <section className="px-8 py-12 bg-white relative">
+      <section className="px-8 py-12 bg-background relative">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div>
             <div className="flex items-center gap-3 mb-4">
@@ -206,7 +206,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
       </section>
 
       {/* Gallery Section - Editorial Gallery Style */}
-      <section className="px-4 md:px-12 py-24 bg-white">
+      <section className="px-4 md:px-12 py-24 bg-background">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
             <div className="space-y-4">
@@ -283,7 +283,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
       {/* Share Modal */}
       {isShareModalOpen && bestPhoto && (
         <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 transition-all animate-in fade-in duration-300">
-          <div className="w-full max-w-[400px] aspect-[9/16] bg-white relative shadow-2xl animate-in zoom-in-95 duration-500 overflow-hidden rounded-[40px]">
+          <div className="w-full max-w-[400px] aspect-[9/16] bg-background relative shadow-2xl animate-in zoom-in-95 duration-500 overflow-hidden rounded-[40px]">
             <Image src={bestPhoto.path} alt="Poster" fill className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90" />
 
@@ -308,7 +308,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
                     <span className="text-[9px] font-black text-white/40 tracking-[0.3em] uppercase">{bestPhoto.date}</span>
                     <span className="text-[10px] font-black text-main-green tracking-widest uppercase">@PETLIFELOG</span>
                   </div>
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black">
+                  <div className="w-10 h-10 bg-background rounded-full flex items-center justify-center text-text-main">
                     <ArrowUpRight className="w-5 h-5" />
                   </div>
                 </div>
@@ -339,23 +339,23 @@ export default function ThemeDetailPage({ params }: PageProps) {
       {/* Expanded View Modal - Redesigned to Premium Gallery Style */}
       {selectedPhotoIndex !== null && (
         <div
-          className="fixed inset-0 z-[200] bg-white/90 backdrop-blur-3xl flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-500"
+          className="fixed inset-0 z-[200] bg-background/90 backdrop-blur-3xl flex items-center justify-center p-4 md:p-10 animate-in fade-in duration-500"
           onClick={() => setSelectedPhotoIndex(null)}
         >
           {/* Close Button */}
           <button 
             onClick={() => setSelectedPhotoIndex(null)}
-            className="absolute top-6 right-6 md:top-10 md:right-10 w-12 h-12 rounded-full bg-black/5 flex items-center justify-center text-black/40 hover:text-black hover:bg-black/10 transition-all z-10"
+            className="absolute top-6 right-6 md:top-10 md:right-10 w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center text-text-sub hover:text-text-main hover:bg-foreground/10 transition-all z-10"
           >
             <X className="w-6 h-6" />
           </button>
 
           <div 
-            className="w-full max-w-7xl h-full md:h-[80vh] bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 duration-500"
+            className="w-full max-w-7xl h-full md:h-[80vh] bg-background rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 duration-500"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Left Side: Photo Gallery - Immersive Full View */}
-            <div className="relative flex-[1.2] bg-stone-200 flex items-center justify-center group overflow-hidden">
+            <div className="relative flex-[1.2] bg-surface-green flex items-center justify-center group overflow-hidden">
               <Image
                 src={photos[selectedPhotoIndex].path}
                 alt="Expanded"
@@ -392,7 +392,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
             </div>
 
             {/* Right Side: Content & Story */}
-            <div className="flex-1 p-8 md:p-16 flex flex-col justify-between bg-white border-l border-stone-100">
+            <div className="flex-1 p-8 md:p-16 flex flex-col justify-between bg-background border-l border-border">
               <div className="space-y-12">
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
@@ -417,9 +417,9 @@ export default function ThemeDetailPage({ params }: PageProps) {
 
                 <div className="space-y-8">
                   <div className="flex items-center gap-4">
-                    <div className="h-[1px] flex-1 bg-stone-100" />
-                    <span className="text-[10px] font-black text-stone-300 uppercase tracking-[0.4em]">AI Analysis</span>
-                    <div className="h-[1px] flex-1 bg-stone-100" />
+                    <div className="h-[1px] flex-1 bg-border" />
+                    <span className="text-[10px] font-black text-text-sub/30 uppercase tracking-[0.4em]">AI Analysis</span>
+                    <div className="h-[1px] flex-1 bg-border" />
                   </div>
 
                   {photos[selectedPhotoIndex].photoComment ? (
@@ -437,7 +437,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
               </div>
 
               <div className="space-y-8 mt-12 md:mt-0">
-                <div className="flex items-center justify-between py-6 border-y border-stone-100">
+                <div className="flex items-center justify-between py-6 border-y border-border">
                   <div className="flex flex-col gap-1">
                     <span className="text-[9px] font-black text-text-sub uppercase tracking-widest">Date Captured</span>
                     <span className="text-sm font-bold text-text-main">{photos[selectedPhotoIndex].date}</span>
@@ -454,11 +454,11 @@ export default function ThemeDetailPage({ params }: PageProps) {
 
                 <button
                   onClick={() => router.push(`/timeline?date=${photos[selectedPhotoIndex].diaryDateKey}`)}
-                  className="w-full group flex items-center justify-between px-8 py-5 bg-text-main text-white rounded-2xl transition-all hover:bg-main-green hover:shadow-2xl hover:shadow-main-green/20"
+                  className="w-full group flex items-center justify-between px-8 py-5 bg-text-main text-background rounded-2xl transition-all hover:bg-main-green hover:shadow-2xl hover:shadow-main-green/20"
                 >
                   <span className="text-[12px] font-black uppercase tracking-[0.2em]">View Full Context</span>
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center transition-transform group-hover:rotate-45">
-                    <ArrowUpRight className="w-4 h-4 text-white" />
+                  <div className="w-8 h-8 rounded-full bg-background/10 flex items-center justify-center transition-transform group-hover:rotate-45">
+                    <ArrowUpRight className="w-4 h-4 text-background" />
                   </div>
                 </button>
               </div>

@@ -31,7 +31,7 @@ export default function InventoryPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-surface-green/30 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-border p-6 lg:p-10 shrink-0">
+      <div className="bg-background border-b border-border p-6 lg:p-10 shrink-0">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div>
             <span className="text-xs font-black text-main-yellow tracking-widest uppercase mb-1 block">Smart Inventory</span>
@@ -53,7 +53,7 @@ export default function InventoryPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-border shrink-0">
+      <div className="bg-background border-b border-border shrink-0">
         <div className="max-w-6xl mx-auto px-6 overflow-x-auto no-scrollbar">
           <div className="flex gap-8">
             {tabs.map(tab => (
@@ -78,11 +78,11 @@ export default function InventoryPage() {
         <div className="max-w-6xl mx-auto">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="w-12 h-12 border-4 border-light-yellow border-t-main-yellow rounded-full animate-spin" />
+              <div className="w-12 h-12 border-4 border-main-yellow/10 border-t-main-yellow rounded-full animate-spin" />
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-20 h-20 bg-light-yellow rounded-full flex items-center justify-center mb-6">
+              <div className="w-20 h-20 bg-main-yellow/10 rounded-full flex items-center justify-center mb-6">
                 <ShoppingBag className="w-10 h-10 text-main-yellow" />
               </div>
               <h3 className="text-xl font-black text-text-main">도감이 텅 비어있어요</h3>
@@ -93,26 +93,26 @@ export default function InventoryPage() {
               {filteredItems.map((item) => (
                 <div 
                   key={item.id} 
-                  className={`bg-white rounded-[32px] border transition-all duration-300 group relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 ${
+                  className={`bg-background rounded-[32px] border transition-all duration-300 group relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 ${
                     item.isFeeding ? 'border-main-green/50 ring-2 ring-main-green/10' : 'border-border'
                   }`}
                 >
                   {/* Photo */}
                   <div 
-                    className="relative aspect-square overflow-hidden bg-light-yellow/30 cursor-pointer"
+                    className="relative aspect-square overflow-hidden bg-main-yellow/5 cursor-pointer"
                     onClick={() => router.push(`/inventory/edit/${item.id}`)}
                   >
                     {item.photo ? (
                       <Image src={getImagePath(item.photo)} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <ShoppingBag className="w-12 h-12 text-light-yellow" />
+                        <ShoppingBag className="w-12 h-12 text-main-yellow/20" />
                       </div>
                     )}
                     
                     {/* Status Badges */}
                     <div className="absolute top-4 left-4 flex flex-col gap-2">
-                      <span className={`px-3 py-1.5 bg-white/90 backdrop-blur-md text-[10px] font-black rounded-full shadow-sm ${
+                      <span className={`px-3 py-1.5 bg-background/90 backdrop-blur-md text-[10px] font-black rounded-full shadow-sm ${
                         item.category === 'FOOD' ? 'text-orange-500' :
                         item.category === 'SNACK' ? 'text-amber-500' :
                         item.category === 'TOY' ? 'text-blue-500' :
@@ -131,7 +131,7 @@ export default function InventoryPage() {
                     {/* Stock Badge */}
                     <div className="absolute bottom-4 right-4">
                       <span className={`px-3 py-1.5 backdrop-blur-md text-[11px] font-black rounded-xl shadow-sm border ${
-                        item.stock <= 2 ? 'bg-red-50 text-red-500 border-red-100' : 'bg-white/90 text-text-main border-white/20'
+                        item.stock <= 2 ? 'bg-red-50 dark:bg-red-900/10 text-red-500 border-red-100 dark:border-red-900/20' : 'bg-background/90 text-text-main border-border/20'
                       }`}>
                         재고 {item.stock}개
                       </span>
@@ -144,7 +144,7 @@ export default function InventoryPage() {
                           e.stopPropagation();
                           router.push(`/inventory/edit/${item.id}`);
                         }}
-                        className="p-2 bg-white/80 backdrop-blur-md text-text-main rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-main-yellow hover:text-white"
+                        className="p-2 bg-background/80 backdrop-blur-md text-text-main rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-main-yellow hover:text-white"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
@@ -175,9 +175,9 @@ export default function InventoryPage() {
                         )}
                         {item.storageMethod && (
                           <span className={`px-2.5 py-1 text-[10px] font-black rounded-lg ${
-                            item.storageMethod === 'REFRIGERATED' ? 'bg-blue-50 text-blue-600' :
-                            item.storageMethod === 'FROZEN' ? 'bg-indigo-50 text-indigo-600' :
-                            'bg-emerald-50 text-emerald-600'
+                            item.storageMethod === 'REFRIGERATED' ? 'bg-blue-50 dark:bg-blue-900/10 text-blue-600' :
+                            item.storageMethod === 'FROZEN' ? 'bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600' :
+                            'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600'
                           }`}>
                             {item.storageMethod === 'REFRIGERATED' ? '냉장' :
                              item.storageMethod === 'FROZEN' ? '냉동' : '상온'}
@@ -193,9 +193,9 @@ export default function InventoryPage() {
 
                     {/* Expiry */}
                     {(item.expiryDateSpecific || item.expiryDateText) && (
-                      <div className="mb-2.5 px-3 py-2 bg-amber-50 rounded-xl border border-amber-100">
+                      <div className="mb-2.5 px-3 py-2 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/20">
                         {item.expiryDateSpecific && (
-                          <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-700">
+                          <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-700 dark:text-amber-500">
                             <Calendar className="w-3 h-3 shrink-0" />
                             유통: {item.expiryDateSpecific}
                           </div>
@@ -243,7 +243,7 @@ export default function InventoryPage() {
                         className={`text-[10px] font-black px-3 py-1.5 rounded-full transition-all ${
                           item.isFeeding
                             ? 'bg-main-green text-white shadow-md shadow-main-green/20'
-                            : 'bg-surface-green text-text-sub border border-border hover:border-main-green/50'
+                            : 'bg-surface-green dark:bg-white/5 text-text-sub border border-border hover:border-main-green/50'
                         }`}
                       >
                         {item.isFeeding ? '지급 중지' : '지급 시작'}

@@ -73,10 +73,10 @@ export default function CalendarGrid({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl lg:rounded-2xl shadow-sm overflow-hidden border border-border">
+    <div className="flex flex-col h-full bg-background rounded-xl lg:rounded-2xl shadow-sm overflow-hidden border border-border">
       <div className="flex-1 grid grid-cols-7 grid-rows-[auto_repeat(6,1fr)] min-h-0">
         {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
-          <div key={day} className={`py-3 text-center text-[10px] font-black uppercase tracking-widest bg-white border-b border-border ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-text-sub/60'}`}>
+          <div key={day} className={`py-3 text-center text-[10px] font-black uppercase tracking-widest bg-background border-b border-border ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-text-sub/60'}`}>
             {day}
           </div>
         ))}
@@ -91,7 +91,7 @@ export default function CalendarGrid({
             <div 
               key={i}
               className={`relative flex flex-col items-center justify-start p-1 lg:p-2 transition-all group cursor-pointer border-b border-r border-border last:border-r-0 ${
-                day.isCurrentMonth ? 'bg-white' : 'bg-surface-green/5'
+                day.isCurrentMonth ? 'bg-background' : 'bg-surface-green/5'
               } ${isSelected ? 'bg-main-green/5' : 'hover:bg-surface-green/20'}`}
               onClick={() => onDateSelect(day.date)}
             >
@@ -120,7 +120,7 @@ export default function CalendarGrid({
                       {logs.slice(0, 3).reverse().map((log, idx, arr) => (
                         <div 
                           key={log.id} 
-                          className="relative w-6 h-6 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-main-green/20"
+                          className="relative w-6 h-6 lg:w-10 lg:h-10 rounded-full overflow-hidden border-2 border-background shadow-sm ring-1 ring-main-green/20"
                           style={{
                             marginLeft: idx === 0 ? 0 : '-12px',
                             zIndex: idx

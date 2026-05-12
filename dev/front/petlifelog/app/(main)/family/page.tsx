@@ -149,7 +149,7 @@ export default function FamilyPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-surface-green/30 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-border p-6 lg:p-10 shrink-0">
+      <div className="bg-background border-b border-border p-6 lg:p-10 shrink-0">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <span className="text-xs font-black text-main-green tracking-widest uppercase mb-1 block">Family Management</span>
@@ -174,7 +174,7 @@ export default function FamilyPage() {
         <div className="max-w-5xl mx-auto">
           {/* Add/Edit Pet Form */}
           {isAdding && (
-            <div className="mb-12 bg-white rounded-[32px] border-2 border-main-green/20 shadow-xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="mb-12 bg-background rounded-[32px] border-2 border-main-green/20 shadow-xl overflow-hidden animate-in zoom-in-95 duration-300">
               <div className="p-8 lg:p-10">
                 <div className="flex justify-between items-start mb-8">
                   <h2 className="text-2xl font-black text-text-main flex items-center gap-2">
@@ -236,7 +236,7 @@ export default function FamilyPage() {
                         <div className="relative">
                           <input 
                             type="date" value={newBirthDate} onChange={e => setNewBirthDate(e.target.value)}
-                            className="w-full px-4 py-3 bg-surface-green border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-main-green/20 font-bold appearance-none"
+                            className="w-full px-4 py-3 bg-surface-green border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-main-green/20 font-bold appearance-none dark:color-scheme-dark"
                           />
                           <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-sub pointer-events-none" />
                         </div>
@@ -247,14 +247,14 @@ export default function FamilyPage() {
                           <button
                             type="button"
                             onClick={() => setNewGender('MALE')}
-                            className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${newGender === 'MALE' ? 'bg-white text-blue-500 shadow-sm' : 'text-text-sub'}`}
+                            className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${newGender === 'MALE' ? 'bg-background text-blue-500 shadow-sm' : 'text-text-sub'}`}
                           >
                             남아
                           </button>
                           <button
                             type="button"
                             onClick={() => setNewGender('FEMALE')}
-                            className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${newGender === 'FEMALE' ? 'bg-white text-pink-500 shadow-sm' : 'text-text-sub'}`}
+                            className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${newGender === 'FEMALE' ? 'bg-background text-pink-500 shadow-sm' : 'text-text-sub'}`}
                           >
                             여아
                           </button>
@@ -268,7 +268,7 @@ export default function FamilyPage() {
                         <div className="relative">
                           <input 
                             type="date" value={newAdoptionDate} onChange={e => setNewAdoptionDate(e.target.value)}
-                            className="w-full px-4 py-3 bg-surface-green border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-main-green/20 font-bold appearance-none"
+                            className="w-full px-4 py-3 bg-surface-green border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-main-green/20 font-bold appearance-none dark:color-scheme-dark"
                           />
                           <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-sub pointer-events-none" />
                         </div>
@@ -346,17 +346,17 @@ export default function FamilyPage() {
 
           {/* viewing pet detail */}
           {viewingPet && (
-            <div className="mb-12 bg-white rounded-[40px] border-2 border-main-green/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+            <div className="mb-12 bg-background rounded-[40px] border-2 border-main-green/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
               <div className="relative h-48 bg-gradient-to-br from-main-green/20 to-surface-green">
                 <button 
                   onClick={() => setViewingPet(null)}
-                  className="absolute top-6 right-6 p-3 bg-white/80 backdrop-blur-md hover:bg-white rounded-2xl shadow-sm z-10 transition-all"
+                  className="absolute top-6 right-6 p-3 bg-background/80 backdrop-blur-md hover:bg-background rounded-2xl shadow-sm z-10 transition-all"
                 >
                   <X className="w-6 h-6 text-text-main" />
                 </button>
                 
                 <div className="absolute -bottom-16 left-10 flex items-end gap-6">
-                  <div className="relative w-32 h-32 rounded-[32px] overflow-hidden border-4 border-white shadow-xl bg-white">
+                  <div className="relative w-32 h-32 rounded-[32px] overflow-hidden border-4 border-background shadow-xl bg-background">
                     <Image src={getImagePath(viewingPet.photo, 'profiles')} alt={viewingPet.name} fill className="object-cover" />
                   </div>
                   <div className="pb-4">
@@ -402,7 +402,7 @@ export default function FamilyPage() {
 
                   <div className="space-y-4">
                     <h4 className="text-xs font-black text-main-green tracking-widest uppercase">성격 및 특징</h4>
-                    <div className="p-6 bg-white border border-border rounded-3xl shadow-sm italic leading-relaxed text-sm font-medium text-text-main/80">
+                    <div className="p-6 bg-background border border-border rounded-3xl shadow-sm italic leading-relaxed text-sm font-medium text-text-main/80">
                       &quot;{viewingPet.traits || '등록된 특징이 없습니다.'}&quot;
                     </div>
                   </div>
@@ -412,11 +412,11 @@ export default function FamilyPage() {
                   <div className="space-y-4">
                     <h4 className="text-xs font-black text-main-green tracking-widest uppercase">좋아하고 싫어하는 것</h4>
                     <div className="space-y-3">
-                      <div className="flex items-start gap-4 p-5 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+                      <div className="flex items-start gap-4 p-5 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100/50 dark:border-blue-900/20">
                         <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs shrink-0 font-black">Like</div>
                         <p className="text-sm font-bold text-text-main leading-relaxed mt-1.5">{viewingPet.likes || '정보 없음'}</p>
                       </div>
-                      <div className="flex items-start gap-4 p-5 bg-pink-50/50 rounded-2xl border border-pink-100/50">
+                      <div className="flex items-start gap-4 p-5 bg-pink-50/50 dark:bg-pink-900/10 rounded-2xl border border-pink-100/50 dark:border-pink-900/20">
                         <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white text-xs shrink-0 font-black">Hate</div>
                         <p className="text-sm font-bold text-text-main leading-relaxed mt-1.5">{viewingPet.dislikes || '정보 없음'}</p>
                       </div>
@@ -439,7 +439,7 @@ export default function FamilyPage() {
                     </button>
                     <button 
                       onClick={(e) => handleRemovePet(e, viewingPet.id, viewingPet.name)}
-                      className="flex-1 py-4 bg-white border-2 border-red-100 text-red-500 font-black rounded-2xl hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                      className="flex-1 py-4 bg-background border-2 border-red-100 dark:border-red-900/30 text-red-500 font-black rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-all flex items-center justify-center gap-2"
                     >
                       <Trash2 className="w-4 h-4" /> 삭제
                     </button>
@@ -458,9 +458,9 @@ export default function FamilyPage() {
                   setViewingPet(pet);
                   setIsAdding(false);
                 }}
-                className={`group bg-white rounded-[32px] border p-6 flex items-center gap-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer ${viewingPet?.id === pet.id ? 'border-main-green ring-4 ring-main-green/5' : 'border-border'}`}
+                className={`group bg-background rounded-[32px] border p-6 flex items-center gap-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer ${viewingPet?.id === pet.id ? 'border-main-green ring-4 ring-main-green/5' : 'border-border'}`}
               >
-                <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-background shadow-md shrink-0">
                   <Image src={getImagePath(pet.photo, 'profiles')} alt={pet.name} fill className="object-cover" />
                 </div>
                 
@@ -502,7 +502,7 @@ export default function FamilyPage() {
 
             {pets.length === 0 && !isAdding && (
               <div className="md:col-span-2 py-20 flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-light-green rounded-full flex items-center justify-center mb-6">
+                <div className="w-20 h-20 bg-main-green/10 rounded-full flex items-center justify-center mb-6">
                   <User className="w-10 h-10 text-main-green" />
                 </div>
                 <h3 className="text-xl font-black text-text-main">등록된 가족이 없어요</h3>

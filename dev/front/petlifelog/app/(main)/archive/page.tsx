@@ -97,11 +97,11 @@ export default function ArchivePage() {
   const heights = ['h-[340px]', 'h-[260px]', 'h-[300px]', 'h-[380px]', 'h-[240px]', 'h-[320px]', 'h-[280px]', 'h-[360px]'];
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar bg-white text-text-main">
+    <div className="h-full overflow-y-auto no-scrollbar bg-background text-text-main">
       <div className="w-full relative">
         
         {/* Full-Width Compact Sticky Header */}
-        <div className="sticky top-0 z-[100] bg-white/95 backdrop-blur-xl border-b border-black/[0.03]">
+        <div className="sticky top-0 z-[100] bg-background/95 backdrop-blur-xl border-b border-border">
           <div className="w-full px-6 md:px-10 h-16 flex items-center justify-between gap-12">
             {/* Minimal Title */}
             <div className="flex items-center gap-3 shrink-0">
@@ -128,7 +128,7 @@ export default function ArchivePage() {
 
             {/* Compact Integrated Search */}
             <div className="relative group shrink-0" ref={searchRef}>
-              <div className="flex items-center bg-surface-green/50 rounded-full px-5 py-2 border border-transparent focus-within:border-main-green/30 focus-within:bg-white transition-all shadow-sm">
+              <div className="flex items-center bg-surface-green/50 rounded-full px-5 py-2 border border-transparent focus-within:border-main-green/30 focus-within:bg-background transition-all shadow-sm">
                 <Search className="w-4 h-4 text-text-sub mr-2 group-focus-within:text-main-green" />
                 <input 
                   type="text" 
@@ -147,7 +147,7 @@ export default function ArchivePage() {
 
               {/* Suggestions */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-border shadow-2xl rounded-2xl overflow-hidden z-[110] animate-in fade-in slide-in-from-top-1">
+                <div className="absolute top-full right-0 mt-2 w-64 bg-background border border-border shadow-2xl rounded-2xl overflow-hidden z-[110] animate-in fade-in slide-in-from-top-1">
                   {suggestions.map((tag) => (
                     <button
                       key={tag}
@@ -169,7 +169,7 @@ export default function ArchivePage() {
           {isSearching ? (
 
             <div className="animate-in fade-in duration-500">
-              <div className="flex items-center justify-between mb-10 pb-4 border-b border-black/[0.03]">
+              <div className="flex items-center justify-between mb-10 pb-4 border-b border-border">
                 <div className="flex items-baseline gap-4">
                   <span className="text-3xl font-black tracking-tight text-text-main italic">"{searchQuery}"</span>
                   <span className="text-[11px] font-bold text-text-sub uppercase tracking-[0.2em]">/ {searchResults.length} Archives Found</span>
@@ -240,7 +240,7 @@ export default function ArchivePage() {
                 <div className="flex flex-col items-center justify-center py-40 gap-8 animate-in fade-in zoom-in duration-700">
                   <div className="relative">
                     <div className="w-24 h-24 bg-surface-green/50 rounded-[32px] rotate-12 absolute -inset-2" />
-                    <div className="w-24 h-24 bg-white border border-border rounded-[32px] flex items-center justify-center relative shadow-sm">
+                    <div className="w-24 h-24 bg-background border border-border rounded-[32px] flex items-center justify-center relative shadow-sm">
                       <Sparkles className="w-10 h-10 text-main-green/20" />
                     </div>
                   </div>
@@ -320,7 +320,7 @@ export default function ArchivePage() {
         </div>
 
         {/* Full-Width Minimal Footer */}
-        <footer className="px-10 flex justify-between items-center border-t border-black/[0.03] py-10 opacity-30">
+        <footer className="px-10 flex justify-between items-center border-t border-border py-10 opacity-30">
           <div className="flex items-center gap-4">
             <Image src="/logo_simple.png" alt="Logo" width={20} height={20} className="grayscale" />
             <span className="text-[10px] font-black tracking-[0.5em] text-text-sub uppercase">PetLife / Unified Archive System</span>

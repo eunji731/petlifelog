@@ -64,7 +64,7 @@ export default function DateDropdown({ currentDate, onSelect, onClose, align = '
       <div className="lg:hidden fixed inset-0 z-[250] flex flex-col items-center justify-end">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
         
-        <div className="relative w-full bg-white rounded-t-[40px] shadow-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh]">
+        <div className="relative w-full bg-background rounded-t-[40px] shadow-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[85vh]">
           <div className="p-6 flex items-center justify-between border-b border-border shrink-0">
             <h3 className="text-lg font-black text-text-main">날짜 선택</h3>
             <button onClick={onClose} className="p-2 bg-background rounded-full active:scale-90 transition-transform">
@@ -125,7 +125,7 @@ export default function DateDropdown({ currentDate, onSelect, onClose, align = '
                         onClose();
                       }}
                       className={`py-4 rounded-2xl text-base font-black transition-all ${
-                        isSelected ? 'bg-main-green text-white shadow-lg shadow-main-green/20' : 'text-text-main border border-border bg-white active:bg-main-green/5'
+                        isSelected ? 'bg-main-green text-white shadow-lg shadow-main-green/20' : 'text-text-main border border-border bg-background active:bg-main-green/5'
                       }`}
                     >
                       {month}월
@@ -141,7 +141,7 @@ export default function DateDropdown({ currentDate, onSelect, onClose, align = '
       {/* DESKTOP VERSION */}
       <div 
         ref={containerRef}
-        className={`hidden lg:flex absolute top-full mt-2 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-[32px] border border-border p-4 z-[200] animate-in zoom-in-95 duration-200 ${
+        className={`hidden lg:flex absolute top-full mt-2 bg-background shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-[32px] border border-border p-4 z-[200] animate-in zoom-in-95 duration-200 ${
           align === 'left' ? 'left-0 origin-top-left' : 'right-0 origin-top-right'
         }`}
       >

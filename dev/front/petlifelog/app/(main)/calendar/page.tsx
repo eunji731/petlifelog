@@ -106,8 +106,8 @@ function CalendarContent() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-white relative overflow-hidden">
-      <div className="bg-white border-b border-border">
+    <div className="flex-1 flex flex-col min-h-0 bg-background relative overflow-hidden">
+      <div className="bg-background border-b border-border">
         <div className="max-w-[1600px] mx-auto w-full">
           <CalendarHeader 
             currentDate={currentDate}
@@ -135,7 +135,7 @@ function CalendarContent() {
         ) : (
           <>
             {/* Main Calendar Area */}
-            <div className={`flex-col min-h-0 bg-white p-2 lg:p-6 overflow-y-auto no-scrollbar transition-all duration-500 ${
+            <div className={`flex-col min-h-0 bg-background p-2 lg:p-6 overflow-y-auto no-scrollbar transition-all duration-500 ${
               isExpanded ? 'hidden lg:flex lg:w-0 lg:opacity-0 lg:invisible' : 'flex-1 flex lg:w-1/2 lg:flex-none'
             }`}>
               <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
@@ -154,12 +154,12 @@ function CalendarContent() {
               ${showSidePanel ? 'fixed inset-0 z-[150] flex' : 'hidden'} 
               lg:relative lg:inset-auto lg:z-auto lg:flex
               ${isExpanded ? 'lg:flex-1' : 'w-full lg:w-1/2'}
-              shrink-0 border-l border-border bg-white overflow-hidden flex-col transition-all duration-500 relative
+              shrink-0 border-l border-border bg-background overflow-hidden flex-col transition-all duration-500 relative
             `}>
               {/* Expand/Collapse Toggle Button (Desktop Only) */}
               <button 
                 onClick={toggleExpand}
-                className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-[160] p-2 bg-white border border-border border-l-0 rounded-r-xl shadow-md hover:bg-surface-green transition-all group"
+                className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-[160] p-2 bg-background border border-border border-l-0 rounded-r-xl shadow-md hover:bg-surface-green transition-all group"
                 title={isExpanded ? "달력 보기" : "크게 보기"}
               >
                 {isExpanded ? (
@@ -193,7 +193,7 @@ function CalendarContent() {
 
 export default function CalendarPage() {
   return (
-    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-white text-sm font-bold text-text-sub">불러오는 중...</div>}>
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-background text-sm font-bold text-text-sub">불러오는 중...</div>}>
       <CalendarContent />
     </Suspense>
   );

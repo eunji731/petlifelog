@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar, Heart, MessageCircle, MapPin, Sparkles, Zap, Clock } from 'lucide-react';
 import { useDiary } from '@/app/common/hooks/useDiary';
+import { getImagePath } from '@/app/common/lib/clientApi';
 
 export default function TimelinePage() {
   const { allLogs } = useDiary();
@@ -37,9 +38,9 @@ export default function TimelinePage() {
   }, [] as { dateKey: string; logs: typeof sortedLogs }[]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-white overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 bg-background overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-border p-6 lg:p-10 shrink-0">
+      <div className="bg-background border-b border-border p-6 lg:p-10 shrink-0">
         <div className="max-w-4xl mx-auto flex items-end justify-between">
           <div>
             <span className="text-xs font-black text-main-green tracking-widest uppercase mb-1 block">Timeline</span>
@@ -53,7 +54,7 @@ export default function TimelinePage() {
         <div className="max-w-4xl mx-auto">
           {groupedLogs.length === 0 ? (
             <div className="py-40 flex flex-col items-center text-center space-y-6">
-              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-inner">
+              <div className="w-20 h-20 bg-background rounded-full flex items-center justify-center shadow-inner">
                 <Calendar className="w-10 h-10 text-main-green opacity-20" />
               </div>
               <p className="text-text-sub font-bold">기록된 추억이 아직 없습니다.</p>
@@ -74,7 +75,7 @@ export default function TimelinePage() {
                       <div key={log.id} className={`space-y-8 ${lIdx > 0 ? 'pt-12 border-t border-main-green/5' : ''}`}>
                         {/* Daily Summary Preview */}
                         <div className="flex flex-col items-center text-center max-w-2xl mx-auto mb-10 px-6">
-                          <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
+                          <div className="w-10 h-10 bg-background rounded-2xl flex items-center justify-center shadow-sm mb-4">
                             <Sparkles className="w-5 h-5 text-main-yellow fill-main-yellow" />
                           </div>
                           <h2 className="text-2xl font-black text-text-main mb-3 leading-tight">{log.aiTitle}</h2>
@@ -86,9 +87,9 @@ export default function TimelinePage() {
                           <div key={moment.id} className={`flex flex-col md:flex-row gap-8 items-center ${mIdx % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
                             {/* Photo Side */}
                             <div className="w-full md:w-1/2 px-4">
-                              <div className="relative aspect-video rounded-[32px] overflow-hidden shadow-xl group border-4 border-white">
-                                <Image src={moment.photos[0]?.path || '/dog-profile.png'} alt={moment.aiTitle} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
-                                <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[9px] font-black text-main-green shadow-sm">
+                              <div className="relative aspect-video rounded-[32px] overflow-hidden shadow-xl group border-4 border-background">
+                                <Image src={getImagePath(moment.photos[0]?.path) || '/dog-profile.png'} alt={moment.aiTitle} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                <div className="absolute top-4 left-4 px-3 py-1 bg-background/90 backdrop-blur-md rounded-full text-[9px] font-black text-main-green shadow-sm">
                                   {moment.category}
                                 </div>
                               </div>
@@ -117,7 +118,7 @@ export default function TimelinePage() {
                         <div className="flex justify-center pt-4">
                           <Link 
                             href={`/calendar?date=${log.dateKey}`}
-                            className="px-6 py-2.5 bg-white border border-border text-main-green text-[11px] font-black rounded-full hover:bg-main-green hover:text-white transition-all shadow-sm"
+                            className="px-6 py-2.5 bg-background border border-border text-main-green text-[11px] font-black rounded-full hover:bg-main-green hover:text-white transition-all shadow-sm"
                           >
                             이날의 기록 상세보기
                           </Link>

@@ -25,7 +25,7 @@ function useDash() {
 // ─── 스켈레톤 ───────────────────────────────────────────────────────────────
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse bg-gray-200 rounded-xl ${className}`} />;
+  return <div className={`animate-pulse bg-gray-200 dark:bg-white/10 rounded-xl ${className}`} />;
 }
 
 // ─── 월 네비게이터 ──────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ function MonthNavigator() {
     <div className="flex items-center gap-2">
       <button
         onClick={goToPrevMonth}
-        className="w-7 h-7 rounded-full bg-white border border-border flex items-center justify-center hover:bg-surface-green transition-colors shadow-sm active:scale-90"
+        className="w-7 h-7 rounded-full bg-background border border-border flex items-center justify-center hover:bg-surface-green transition-colors shadow-sm active:scale-90"
       >
         <ChevronLeft className="w-4 h-4 text-text-sub" />
       </button>
@@ -72,7 +72,7 @@ function MonthNavigator() {
       <button
         onClick={goToNextMonth}
         disabled={isCurrentMonth}
-        className="w-7 h-7 rounded-full bg-white border border-border flex items-center justify-center hover:bg-surface-green transition-colors shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-90"
+        className="w-7 h-7 rounded-full bg-background border border-border flex items-center justify-center hover:bg-surface-green transition-colors shadow-sm disabled:opacity-30 disabled:cursor-not-allowed active:scale-90"
       >
         <ChevronRight className="w-4 h-4 text-text-sub" />
       </button>
@@ -94,7 +94,7 @@ function PetProfileCard() {
 
   if (summaryLoading) {
     return (
-      <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 h-full flex flex-col justify-center">
+      <div className="bg-background rounded-[32px] border border-border shadow-sm p-6 h-full flex flex-col justify-center">
         <div className="flex items-center gap-4">
           <Skeleton className="w-16 h-16 rounded-full" />
           <div className="space-y-2 flex-1">
@@ -107,7 +107,7 @@ function PetProfileCard() {
   }
 
   return (
-    <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 h-full flex flex-col justify-center relative overflow-hidden group">
+    <div className="bg-background rounded-[32px] border border-border shadow-sm p-6 h-full flex flex-col justify-center relative overflow-hidden group">
       {/* 배경 장식 (All Pets일 때만 살짝 노출) */}
       {isAll && (
         <div className="absolute -right-6 -top-6 w-24 h-24 bg-surface-green rounded-full opacity-50 blur-2xl group-hover:scale-110 transition-transform" />
@@ -119,7 +119,7 @@ function PetProfileCard() {
           <div className={`absolute inset-0 rounded-full shadow-sm ring-2 ${isBirthday ? 'ring-main-yellow' : 'ring-main-green/10'}`} />
           
           {/* 사진 컨테이너 (Border & Overflow) */}
-          <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-white bg-white">
+          <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-background bg-background">
             {isAll ? (
               <div className="w-full h-full bg-gradient-to-br from-main-green to-deep-green flex items-center justify-center">
                 <div className="relative">
@@ -191,14 +191,14 @@ function ActivityStatsCard() {
   const monthLabel = isCurrentMonth ? '이달의 활동' : `${selectedMonth}월 활동`;
 
   const items = [
-    { label: '기록', value: stats?.recordedDays ?? 0, unit: '일', icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { label: '장소', value: stats?.visitedPlaces ?? 0, unit: '곳', icon: MapPin, color: 'text-main-green', bg: 'bg-green-50' },
-    { label: '사진', value: stats?.bestPhotosCount ?? 0, unit: '장', icon: Sparkles, color: 'text-main-yellow', bg: 'bg-yellow-50' },
+    { label: '기록', value: stats?.recordedDays ?? 0, unit: '일', icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/10' },
+    { label: '장소', value: stats?.visitedPlaces ?? 0, unit: '곳', icon: MapPin, color: 'text-main-green', bg: 'bg-green-50 dark:bg-green-900/10' },
+    { label: '사진', value: stats?.bestPhotosCount ?? 0, unit: '장', icon: Sparkles, color: 'text-main-yellow', bg: 'bg-yellow-50 dark:bg-yellow-900/10' },
   ];
 
   if (summaryLoading) {
     return (
-      <div className="bg-white rounded-[32px] border border-border shadow-sm p-5 h-full">
+      <div className="bg-background rounded-[32px] border border-border shadow-sm p-5 h-full">
         <Skeleton className="h-4 w-20 mb-4" />
         <div className="grid grid-cols-3 gap-3">
           <Skeleton className="h-24 rounded-2xl" />
@@ -210,7 +210,7 @@ function ActivityStatsCard() {
   }
 
   return (
-    <div className="bg-white rounded-[32px] border border-border shadow-sm p-5 h-full flex flex-col">
+    <div className="bg-background rounded-[32px] border border-border shadow-sm p-5 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-black text-text-main">{monthLabel}</h3>
         <span className="text-[10px] font-black text-text-sub opacity-60">전체 통계</span>
@@ -303,7 +303,7 @@ function BestPhotosStrip() {
           <Link
             key={i}
             href={`/calendar?date=${photo.memoryDate}`}
-            className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm hover:shadow-md transition-all border-2 border-white bg-white"
+            className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm hover:shadow-md transition-all border-2 border-background bg-background"
           >
             <Image
               src={getImagePath(photo.photoPath)}
@@ -334,7 +334,7 @@ function FavoritePlacesCard() {
   const places = summary?.favoritePlaces ?? [];
 
   return (
-    <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 lg:p-8 space-y-4">
+    <div className="bg-background rounded-[32px] border border-border shadow-sm p-6 lg:p-8 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-black text-text-main flex items-center gap-2">
           <MapPin className="w-5 h-5 text-main-green" /> 자주 가는 곳
@@ -352,7 +352,7 @@ function FavoritePlacesCard() {
           {places.map((place, i) => (
             <div key={i} className="flex items-center gap-3">
               <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
-                i === 0 ? 'bg-main-yellow text-white' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-500' : 'bg-gray-100 text-gray-400'
+                i === 0 ? 'bg-main-yellow text-white' : i === 1 ? 'bg-border text-text-sub' : i === 2 ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-500' : 'bg-surface-green text-text-sub'
               }`}>
                 {i + 1}
               </span>
@@ -542,20 +542,20 @@ function AiActivityCard() {
 
   const trendConfig = {
     UP:      { icon: ArrowUp,   color: 'text-main-green', bg: 'bg-surface-green', label: '이전보다 활발해졌어요' },
-    STABLE:  { icon: Minus,     color: 'text-blue-500',   bg: 'bg-blue-50',       label: '꾸준하게 유지 중이에요' },
-    DOWN:    { icon: ArrowDown, color: 'text-orange-400', bg: 'bg-orange-50',     label: '이전보다 조금 줄었어요' },
-    UNKNOWN: { icon: Minus,     color: 'text-gray-400',   bg: 'bg-gray-50',       label: '비교 데이터가 부족해요' },
+    STABLE:  { icon: Minus,     color: 'text-blue-500',   bg: 'bg-blue-50 dark:bg-blue-900/10',       label: '꾸준하게 유지 중이에요' },
+    DOWN:    { icon: ArrowDown, color: 'text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/10',     label: '이전보다 조금 줄었어요' },
+    UNKNOWN: { icon: Minus,     color: 'text-gray-400',   bg: 'bg-gray-100 dark:bg-white/5',       label: '비교 데이터가 부족해요' },
   };
   const levelLabel = { GREAT: '활발', NORMAL: '보통', WATCH: '관찰 필요', WARNING: '관찰 필요', UNKNOWN: '-' };
-  const levelColor = { GREAT: 'text-main-green bg-surface-green', NORMAL: 'text-blue-500 bg-blue-50',
-                       WATCH: 'text-amber-600 bg-amber-50', WARNING: 'text-orange-500 bg-orange-50', UNKNOWN: 'text-gray-400 bg-gray-50' };
+  const levelColor = { GREAT: 'text-main-green bg-surface-green', NORMAL: 'text-blue-500 bg-blue-50 dark:bg-blue-900/10',
+                       WATCH: 'text-amber-600 bg-amber-50 dark:bg-amber-900/10', WARNING: 'text-orange-500 bg-orange-50 dark:bg-orange-900/10', UNKNOWN: 'text-gray-400 bg-gray-100 dark:bg-white/5' };
 
   const trendCfg = trendConfig[a.trend as keyof typeof trendConfig] ?? trendConfig.UNKNOWN;
   const TrendIcon = trendCfg.icon;
   const hasComparison = a.recentAverage != null && a.previousAverage != null && a.trend !== 'UNKNOWN';
 
   return (
-    <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 lg:p-8 space-y-4">
+    <div className="bg-background rounded-[32px] border border-border shadow-sm p-6 lg:p-8 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-black text-text-main flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-deep-green" /> 이달의 활동
@@ -609,16 +609,16 @@ function AiLocationCard() {
   const loc = aiReport.locationInsight;
 
   const verdictConfig = {
-    VARIED:   { icon: '🗺️', label: '다양한 장소형', desc: '여러 공간에서 다양한 추억을 남겼어요', bg: 'bg-purple-50', text: 'text-purple-600' },
-    FOCUSED:  { icon: '📍', label: '한 장소 집중형', desc: '좋아하는 장소에서 깊이 있는 시간을 보냈어요', bg: 'bg-blue-50', text: 'text-blue-600' },
-    ROUTINE:  { icon: '🔄', label: '반복 루틴형', desc: '정해진 장소를 꾸준히 방문하는 패턴이 있어요', bg: 'bg-amber-50', text: 'text-amber-600' },
-    LOW_DATA: { icon: '📝', label: '장소 기록 적음', desc: '장소 기록이 더 쌓이면 패턴을 분석할 수 있어요', bg: 'bg-gray-50', text: 'text-gray-500' },
+    VARIED:   { icon: '🗺️', label: '다양한 장소형', desc: '여러 공간에서 다양한 추억을 남겼어요', bg: 'bg-purple-50 dark:bg-purple-900/10', text: 'text-purple-600' },
+    FOCUSED:  { icon: '📍', label: '한 장소 집중형', desc: '좋아하는 장소에서 깊이 있는 시간을 보냈어요', bg: 'bg-blue-50 dark:bg-blue-900/10', text: 'text-blue-600' },
+    ROUTINE:  { icon: '🔄', label: '반복 루틴형', desc: '정해진 장소를 꾸준히 방문하는 패턴이 있어요', bg: 'bg-amber-50 dark:bg-amber-900/10', text: 'text-amber-600' },
+    LOW_DATA: { icon: '📝', label: '장소 기록 적음', desc: '장소 기록이 더 쌓이면 패턴을 분석할 수 있어요', bg: 'bg-gray-50 dark:bg-white/5', text: 'text-text-sub' },
   };
 
   const verdict = verdictConfig[loc.verdict as keyof typeof verdictConfig] ?? verdictConfig.LOW_DATA;
 
   return (
-    <div className="bg-white rounded-[32px] border border-border shadow-sm p-6 lg:p-8 space-y-5 flex-1">
+    <div className="bg-background rounded-[32px] border border-border shadow-sm p-6 lg:p-8 space-y-5 flex-1">
       <h3 className="font-black text-text-main flex items-center gap-2">
         <MapPin className="w-5 h-5 text-main-green" /> 이달의 장소 흐름
       </h3>
@@ -638,7 +638,7 @@ function AiLocationCard() {
               <p className="text-xl font-black text-main-green">{loc.uniquePlaceCount}곳</p>
               <p className="text-[10px] font-black text-text-sub mt-0.5">방문 장소</p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-xl text-center">
+            <div className="p-3 bg-background border border-border rounded-xl text-center">
               <p className="text-xl font-black text-text-main">{loc.placeRecordCount}일</p>
               <p className="text-[10px] font-black text-text-sub mt-0.5">총 외출</p>
             </div>
@@ -720,16 +720,16 @@ export default function DashboardPage() {
             </div>
             {/* 좌측 스택 스켈레톤 (Activity + Location) */}
             <div className="md:col-span-7 lg:col-span-8 space-y-4 lg:space-y-6 h-full">
-              <div className="bg-white rounded-[32px] border border-border p-8 space-y-4">
+              <div className="bg-background rounded-[32px] border border-border p-8 space-y-4">
                 <Skeleton className="h-5 w-32" /><Skeleton className="h-4 w-full" /><Skeleton className="h-10 w-full rounded-2xl" />
               </div>
-              <div className="bg-white rounded-[32px] border border-border p-8 space-y-6">
+              <div className="bg-background rounded-[32px] border border-border p-8 space-y-6">
                 <Skeleton className="h-6 w-40" /><Skeleton className="h-20 w-full" /><Skeleton className="h-24 w-full" />
               </div>
             </div>
             {/* 우측 사이드바 스켈레톤 (Places + Photos) */}
             <div className="md:col-span-5 lg:col-span-4 space-y-4 lg:space-y-6 h-full">
-              <div className="bg-white rounded-[32px] border border-border p-8 space-y-4">
+              <div className="bg-background rounded-[32px] border border-border p-8 space-y-4">
                 <Skeleton className="h-5 w-32" /><Skeleton className="h-20 w-full rounded-2xl" />
               </div>
               <div className="space-y-4 flex-1 flex flex-col">

@@ -404,7 +404,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
       {/* AI 호출 전 날짜 불일치 확인 모달 */}
       {preAiDateModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
+          <div className="bg-background rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
             <div className="space-y-2">
               <p className="text-base font-black text-text-main">사진 촬영일이 달라요</p>
               <p className="text-sm font-medium text-text-sub leading-relaxed">
@@ -435,7 +435,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
       {/* AI 호출 전 메타데이터 누락 확인 모달 */}
       {preMetaModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
+          <div className="bg-background rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
             <div className="space-y-3">
               <p className="text-base font-black text-text-main">사진 정보가 부족해요</p>
               {preMetaModal.missingDate && (
@@ -476,7 +476,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
       {/* AI 에러 모달 */}
       {aiErrorModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
+          <div className="bg-background rounded-[28px] shadow-2xl p-8 mx-6 max-w-sm w-full space-y-6">
             <div className="space-y-2">
               <p className="text-base font-black text-text-main">{aiErrorModal.title}</p>
               <p className="text-sm font-medium text-text-sub leading-relaxed whitespace-pre-line">
@@ -493,7 +493,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
         </div>
       )}
       {/* Header */}
-      <div className="bg-white border-b border-border p-6 shrink-0 flex justify-between items-center">
+      <div className="bg-background border-b border-border px-6 py-4 shrink-0 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <button onClick={onCancel} className="p-2 hover:bg-surface-green rounded-xl transition-all">
             <X className="w-6 h-6 text-text-sub" />
@@ -514,13 +514,13 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 lg:p-10 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-6 py-2 lg:px-10 lg:py-4 no-scrollbar">
         <div className="max-w-4xl mx-auto space-y-10">
 
           {!aiResult && !isAnalyzing ? (
             /* Phase 1: 사진 업로드 & 입력 */
             <div className="space-y-10 animate-in fade-in duration-500">
-              <div className="bg-white rounded-[32px] p-8 border border-border shadow-sm space-y-8">
+              <div className="bg-background rounded-[32px] p-8 border border-border shadow-sm space-y-8">
                 {/* 사진 업로드 */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -537,7 +537,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                       disabled={photoFiles.length >= 5}
                       className={`aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${
                         photoFiles.length >= 5 
-                          ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                          ? 'border-border bg-surface-green/50 text-text-sub cursor-not-allowed'
                           : 'border-main-green/30 bg-light-green/30 text-main-green hover:bg-light-green/50'
                       }`}
                     >
@@ -706,7 +706,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
             /* Phase 3: AI 결과 표시 */
             <div className="space-y-6 lg:space-y-10 animate-in slide-in-from-bottom-8 duration-700">
               {/* 일일 요약 */}
-              <div className="bg-white rounded-[32px] overflow-hidden border border-border shadow-sm">
+              <div className="bg-background rounded-[32px] overflow-hidden border border-border shadow-sm">
                 {aiResult.representativePhotoPath && (
                   <div className="relative w-full h-48 lg:h-64 bg-surface-green/10 border-b border-border/50">
                     <Image
@@ -744,8 +744,8 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                 <div className="relative space-y-6 lg:space-y-8 before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-main-green/10">
                   {aiResult.moments.map((moment, idx) => (
                     <div key={moment.id} className="relative pl-14 lg:pl-20 pr-0 lg:pr-4">
-                      <div className="absolute left-6 top-6 w-4 h-4 rounded-full bg-main-green border-4 border-white shadow-sm ring-4 ring-main-green/5 z-10" />
-                      <div className="bg-white rounded-[24px] lg:rounded-[32px] overflow-hidden border border-border shadow-sm hover:shadow-md transition-all group">
+                      <div className="absolute left-6 top-6 w-4 h-4 rounded-full bg-main-green border-4 border-background shadow-sm ring-4 ring-main-green/5 z-10" />
+                      <div className="bg-background rounded-[24px] lg:rounded-[32px] overflow-hidden border border-border shadow-sm hover:shadow-md transition-all group">
 
                         {/* 사진 영역: 슬라이더 적용 */}
                         {moment.photos && moment.photos.length > 0 && (
@@ -754,7 +754,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                               photos={moment.photos}
                               alt={moment.aiTitle}
                             />
-                            <div className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[9px] font-black text-main-green z-10">
+                            <div className="absolute top-3 left-3 px-2 py-1 bg-background/90 backdrop-blur-md rounded-lg text-[9px] font-black text-main-green z-10">
                               {moment.category}
                             </div>
                           </div>
@@ -763,7 +763,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                         <div className="p-4 lg:p-6 space-y-3 lg:space-y-4">
                           <div className="flex justify-between items-start gap-2">
                             <h4 className="text-lg lg:text-xl font-black text-text-main group-hover:text-main-green transition-colors">{moment.aiTitle}</h4>
-                            <div className="flex items-center gap-1 text-amber-500 font-black text-[10px] bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 shrink-0">
+                            <div className="flex items-center gap-1 text-amber-500 font-black text-[10px] bg-amber-50 dark:bg-amber-900/10 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-900/20 shrink-0">
                               <Zap className="w-3 h-3 fill-current" /> Lv.{moment.energyLevel}
                             </div>
                           </div>
@@ -775,7 +775,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                           </p>
                           <div className="flex flex-wrap gap-1.5 pt-1 lg:pt-2">
                             {moment.tags.map(t => (
-                              <span key={t} className="text-[10px] font-bold text-text-sub px-2 py-0.5 bg-surface-green rounded-md border border-border/50">#{t}</span>
+                              <span key={t} className="text-[10px] font-bold text-text-sub px-2 py-0.5 bg-surface-green dark:bg-white/5 rounded-md border border-border/50">#{t}</span>
                             ))}
                           </div>
                         </div>
@@ -791,17 +791,17 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                   {metaWarnings && (
                     <div className="space-y-1.5">
                       {metaWarnings.missingDate && (
-                        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                        <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/20 rounded-xl px-3 py-2">
                           <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                          <p className="text-[11px] font-medium text-amber-700 leading-relaxed">
+                          <p className="text-[11px] font-medium text-amber-700 dark:text-amber-500 leading-relaxed">
                             날짜 정보가 없어 시간 순서가 부정확할 수 있어요. {formattedDate}로 저장됩니다.
                           </p>
                         </div>
                       )}
                       {metaWarnings.missingLocation && (
-                        <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
+                        <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-xl px-3 py-2">
                           <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
-                          <p className="text-[11px] font-medium text-blue-700 leading-relaxed">
+                          <p className="text-[11px] font-medium text-blue-700 dark:text-blue-500 leading-relaxed">
                             위치 정보가 없어 지도 메뉴에 표시되지 않아요.
                           </p>
                         </div>
@@ -810,7 +810,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                   )}
                   <button
                     onClick={handleReAnalyze}
-                    className="w-full py-4 bg-white border-2 border-border text-text-sub font-black rounded-2xl hover:bg-surface-green transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-background border-2 border-border text-text-sub font-black rounded-2xl hover:bg-surface-green transition-all flex items-center justify-center gap-2"
                   >
                     <RefreshCw className="w-4 h-4" /> 다시 분석하기
                   </button>

@@ -82,7 +82,7 @@ export default function CalendarHeader({
         <div className="flex items-center gap-1 bg-surface-green/20 p-1 rounded-xl">
           <button 
             onClick={onToday}
-            className="shrink-0 px-3 lg:px-4 py-1.5 lg:py-2 bg-white border border-border rounded-lg text-[11px] lg:text-sm font-black text-text-main hover:bg-main-yellow/5 hover:border-main-yellow/30 transition-all shadow-sm active:scale-95"
+            className="shrink-0 px-3 lg:px-4 py-1.5 lg:py-2 bg-background border border-border rounded-lg text-[11px] lg:text-sm font-black text-text-main hover:bg-main-yellow/5 hover:border-main-yellow/30 transition-all shadow-sm active:scale-95"
           >
             오늘
           </button>
@@ -92,7 +92,7 @@ export default function CalendarHeader({
             className={`relative group flex items-center gap-1.5 px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-[11px] lg:text-sm font-black transition-all ${
               isTimelineMode 
                 ? 'bg-main-green text-white shadow-md' 
-                : 'bg-white border border-border text-text-main hover:bg-main-green/5'
+                : 'bg-background border border-border text-text-main hover:bg-main-green/5'
             }`}
           >
             {isTimelineMode ? <LayoutGrid className="w-3.5 h-3.5" /> : <List className="w-3.5 h-3.5" />}
@@ -116,9 +116,9 @@ export default function CalendarHeader({
           <Plus className="w-4 h-4" /> <span className="hidden sm:inline">기록하기</span>
         </button>
 
-        <button className="relative p-2 lg:p-2.5 bg-white rounded-xl shadow-sm border border-border text-text-sub hover:text-text-main transition-all group active:scale-90">
+        <button className="relative p-2 lg:p-2.5 bg-background rounded-xl shadow-sm border border-border text-text-sub hover:text-text-main transition-all group active:scale-90">
           <Bell className="w-4 h-4 lg:w-5 lg:h-5" />
-          <span className="absolute top-1.5 lg:top-2.5 right-1.5 lg:right-2.5 w-1.5 h-1.5 lg:w-2 lg:h-2 bg-red-500 rounded-full border-2 border-white"></span>
+          <span className="absolute top-1.5 lg:top-2.5 right-1.5 lg:right-2.5 w-1.5 h-1.5 lg:w-2 lg:h-2 bg-red-500 rounded-full border-2 border-background"></span>
         </button>
       </div>
     </div>

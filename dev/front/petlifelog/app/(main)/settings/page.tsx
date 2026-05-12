@@ -2,44 +2,36 @@
 
 import React, { useEffect, useState } from 'react';
 import { Bot, Save, Sun, Moon, Monitor, UserX } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import clientApi from '@/app/common/lib/clientApi';
 import { useToast } from '@/app/common/hooks/useToast';
 import { useConfirm } from '@/app/common/hooks/useConfirm';
 
 export default function SettingsPage() {
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [aiContext, setAiContext] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { success, error } = useToast();
   const { confirm } = useConfirm();
 
+  // useEffect only runs on the client, so now we can safely show the UI
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
-    if (savedTheme) setTheme(savedTheme);
+    setMounted(true);
 
     clientApi.get('/api/members/me')
       .then(res => setAiContext(res.data?.data?.aiContext ?? ''))
       .catch(() => error('설정을 불러오지 못했습니다.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [error]);
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+  if (!mounted) {
+    return null;
+  }
+
+  const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else if (newTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else {
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-    
     success(`${newTheme === 'light' ? '라이트' : newTheme === 'dark' ? '다크' : '시스템'} 모드로 설정되었습니다.`);
   };
 
@@ -76,10 +68,10 @@ export default function SettingsPage() {
       </div>
 
       {/* 1. 라이트/다크모드 */}
-      <section className="bg-white rounded-2xl border border-border p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <section className="bg-background rounded-2xl border border-border p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-3 min-w-[200px]">
           <div className="w-10 h-10 rounded-xl bg-main-green/10 flex items-center justify-center shrink-0">
-            <Sun className="w-5 h-5 text-main-green" />
+            {resolvedTheme === 'dark' ? <Moon className="w-5 h-5 text-main-green" /> : <Sun className="w-5 h-5 text-main-green" />}
           </div>
           <div>
             <h2 className="font-black text-text-main text-[16px]">라이트/다크모드</h2>
@@ -95,11 +87,11 @@ export default function SettingsPage() {
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              onClick={() => handleThemeChange(id as any)}
+              onClick={() => handleThemeChange(id)}
               className={`flex-1 md:w-28 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition text-sm font-bold ${
                 theme === id 
                   ? 'border-main-green bg-main-green/5 text-main-green' 
-                  : 'border-border bg-white text-text-sub hover:bg-surface-green/20'
+                  : 'border-border bg-background text-text-sub hover:bg-surface-green/20'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -110,7 +102,7 @@ export default function SettingsPage() {
       </section>
 
       {/* 2. AI 개인 컨텍스트 */}
-      <section className="bg-white rounded-2xl border border-border p-6 shadow-sm space-y-5">
+      <section className="bg-background rounded-2xl border border-border p-6 shadow-sm space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-main-green/10 flex items-center justify-center shrink-0">
@@ -154,9 +146,9 @@ export default function SettingsPage() {
       </section>
 
       {/* 3. 회원탈퇴 */}
-      <section className="bg-white rounded-2xl border border-border p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <section className="bg-background rounded-2xl border border-border p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
             <UserX className="w-5 h-5 text-red-500" />
           </div>
           <div>
@@ -167,7 +159,7 @@ export default function SettingsPage() {
 
         <button
           onClick={handleWithdraw}
-          className="px-6 py-2.5 text-red-500 bg-red-50 rounded-xl text-sm font-bold hover:bg-red-100 transition border border-red-100 w-full md:w-auto"
+          className="px-6 py-2.5 text-red-500 bg-red-50 dark:bg-red-900/10 rounded-xl text-sm font-bold hover:bg-red-100 dark:hover:bg-red-900/20 transition border border-red-100 dark:border-red-900/30 w-full md:w-auto"
         >
           탈퇴하기
         </button>

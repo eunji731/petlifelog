@@ -205,7 +205,7 @@ export default function InventoryRegisterPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-surface-green/30 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-border p-4 lg:p-6 shrink-0 z-20 shadow-sm">
+      <div className="bg-background border-b border-border p-4 lg:p-6 shrink-0 z-20 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={() => router.back()} className="p-2 hover:bg-surface-green rounded-full transition-colors">
@@ -238,7 +238,7 @@ export default function InventoryRegisterPage() {
               </div>
 
               {/* AI Policy Notice */}
-              <div className="bg-white/60 p-4 rounded-2xl border border-border flex items-center gap-3">
+              <div className="bg-background/60 p-4 rounded-2xl border border-border flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
                 <p className="text-[11px] font-bold text-text-sub">
                   <span className="text-red-500 font-black">중요:</span> AI 분석은 하루 최대 <span className="text-text-main font-black">10회</span>로 제한됩니다. 분석 시작 시 저장 여부와 관계없이 <span className="text-text-main font-black">횟수가 1회 차감</span>되니 신중하게 이용해주세요.
@@ -253,7 +253,7 @@ export default function InventoryRegisterPage() {
                   key={idx}
                   onClick={photos[idx] ? undefined : handlePhotoClick}
                   className={`relative aspect-square rounded-[32px] border-4 border-dashed transition-all overflow-hidden flex flex-col items-center justify-center gap-2 ${
-                    photos[idx] ? 'border-main-yellow bg-white shadow-lg' : 'border-border bg-white hover:border-main-yellow/50 cursor-pointer'
+                    photos[idx] ? 'border-main-yellow bg-background shadow-lg' : 'border-border bg-background hover:border-main-yellow/50 cursor-pointer'
                   }`}
                 >
                   {photos[idx] ? (
@@ -300,7 +300,7 @@ export default function InventoryRegisterPage() {
             )}
 
             {isScanning && (
-              <div className="py-10 flex flex-col items-center justify-center text-center space-y-6 bg-white rounded-[48px] shadow-xl border border-border animate-pulse">
+              <div className="py-10 flex flex-col items-center justify-center text-center space-y-6 bg-background rounded-[48px] shadow-xl border border-border animate-pulse">
                 <div className="relative">
                   <div className="w-24 h-24 border-[8px] border-light-yellow border-t-main-yellow rounded-full animate-spin" />
                   <Search className="absolute inset-0 m-auto w-10 h-10 text-main-yellow" />
@@ -342,7 +342,7 @@ export default function InventoryRegisterPage() {
               )}
 
               {/* Editable Fields Section (Same as before but with integrated data) */}
-              <div className="bg-white rounded-[40px] p-10 border border-border shadow-xl space-y-8 relative overflow-hidden">
+              <div className="bg-background rounded-[40px] p-10 border border-border shadow-xl space-y-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                   <Sparkles className="w-32 h-32 text-main-yellow" />
                 </div>
@@ -357,13 +357,13 @@ export default function InventoryRegisterPage() {
                       <Type className="w-4 h-4" /> 제품명
                       {aiReviewFields.includes('name') && <span className="text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">확인 필요</span>}
                     </label>
-                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black text-xl focus:bg-white focus:border-main-yellow transition-all outline-none" />
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black text-xl focus:bg-background focus:border-main-yellow transition-all outline-none" />
                     {aiCandidates.name?.length > 0 && (
                       <div className="flex flex-wrap gap-2 px-1">
                         <span className="text-[10px] font-black text-text-sub self-center">AI 후보:</span>
                         {aiCandidates.name.map((c, i) => (
                           <button key={i} type="button" onClick={() => setName(c)}
-                            className="px-3 py-1.5 text-xs font-black bg-white border border-main-yellow/40 text-main-yellow rounded-full hover:bg-main-yellow hover:text-white transition-all">
+                            className="px-3 py-1.5 text-xs font-black bg-background border border-main-yellow/40 text-main-yellow rounded-full hover:bg-main-yellow hover:text-white transition-all">
                             {c}
                           </button>
                         ))}
@@ -376,13 +376,13 @@ export default function InventoryRegisterPage() {
                       <Briefcase className="w-4 h-4" /> 브랜드
                       {aiReviewFields.includes('brand') && <span className="text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">확인 필요</span>}
                     </label>
-                    <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none" />
+                    <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none" />
                     {aiCandidates.brand?.length > 0 && (
                       <div className="flex flex-wrap gap-2 px-1">
                         <span className="text-[10px] font-black text-text-sub self-center">AI 후보:</span>
                         {aiCandidates.brand.map((c, i) => (
                           <button key={i} type="button" onClick={() => setBrand(c)}
-                            className="px-3 py-1.5 text-xs font-black bg-white border border-main-yellow/40 text-main-yellow rounded-full hover:bg-main-yellow hover:text-white transition-all">
+                            className="px-3 py-1.5 text-xs font-black bg-background border border-main-yellow/40 text-main-yellow rounded-full hover:bg-main-yellow hover:text-white transition-all">
                             {c}
                           </button>
                         ))}
@@ -392,7 +392,7 @@ export default function InventoryRegisterPage() {
 
                   <div className="space-y-3">
                     <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1">카테고리</label>
-                    <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none appearance-none">
+                    <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none appearance-none">
                       <option value="FOOD">사료</option>
                       <option value="SNACK">간식</option>
                       <option value="TOY">장난감</option>
@@ -409,13 +409,13 @@ export default function InventoryRegisterPage() {
                           <Tag className="w-4 h-4 text-orange-400" /> 맛/풍미
                           {aiReviewFields.includes('flavor') && <span className="text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">확인 필요</span>}
                         </label>
-                        <input type="text" value={flavor} onChange={(e) => setFlavor(e.target.value)} placeholder="예: 닭가슴살, 연어, 오리" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none" />
+                        <input type="text" value={flavor} onChange={(e) => setFlavor(e.target.value)} placeholder="예: 닭가슴살, 연어, 오리" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none" />
                         {aiCandidates.flavor?.length > 0 && (
                           <div className="flex flex-wrap gap-2 px-1">
                             <span className="text-[10px] font-black text-text-sub self-center">AI 후보:</span>
                             {aiCandidates.flavor.map((c, i) => (
                               <button key={i} type="button" onClick={() => setFlavor(c)}
-                                className="px-3 py-1.5 text-xs font-black bg-white border border-main-yellow/40 text-main-yellow rounded-full hover:bg-main-yellow hover:text-white transition-all">
+                                className="px-3 py-1.5 text-xs font-black bg-background border border-main-yellow/40 text-main-yellow rounded-full hover:bg-main-yellow hover:text-white transition-all">
                                 {c}
                               </button>
                             ))}
@@ -425,25 +425,25 @@ export default function InventoryRegisterPage() {
 
                       <div className="space-y-3">
                         <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Calendar className="w-4 h-4" /> 제조일</label>
-                        <input type="date" value={productionDate} onChange={(e) => setProductionDate(e.target.value)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none" />
+                        <input type="date" value={productionDate} onChange={(e) => setProductionDate(e.target.value)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none" />
                       </div>
                       <div className="space-y-3">
                         <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Calendar className="w-4 h-4 text-main-yellow" /> 유통기한 (날짜)</label>
-                        <input type="date" value={expiryDateSpecific} onChange={(e) => setExpiryDateSpecific(e.target.value)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none" />
+                        <input type="date" value={expiryDateSpecific} onChange={(e) => setExpiryDateSpecific(e.target.value)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none" />
                       </div>
                       <div className="space-y-3">
                         <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Flame className="w-4 h-4 text-orange-400" /> 유통기한 문구</label>
-                        <input type="text" value={expiryDateText} onChange={(e) => setExpiryDateText(e.target.value)} placeholder="예: 제조일로부터 18개월" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none" />
+                        <input type="text" value={expiryDateText} onChange={(e) => setExpiryDateText(e.target.value)} placeholder="예: 제조일로부터 18개월" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none" />
                       </div>
                       <div className="space-y-3">
                         <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Ruler className="w-4 h-4" /> 용량/크기</label>
-                        <input type="text" value={size} onChange={(e) => setSize(e.target.value)} placeholder="예: 120g, 1kg" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none" />
+                        <input type="text" value={size} onChange={(e) => setSize(e.target.value)} placeholder="예: 120g, 1kg" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none" />
                         {aiCandidates.size?.length > 0 && (
                           <div className="flex flex-wrap gap-2 px-1">
                             <span className="text-[10px] font-black text-text-sub self-center">AI 후보:</span>
                             {aiCandidates.size.map((c, i) => (
                               <button key={i} type="button" onClick={() => setSize(c)}
-                                className="px-3 py-1.5 text-xs font-black bg-white border border-main-yellow/40 text-main-yellow rounded-full hover:bg-main-yellow hover:text-white transition-all">
+                                className="px-3 py-1.5 text-xs font-black bg-background border border-main-yellow/40 text-main-yellow rounded-full hover:bg-main-yellow hover:text-white transition-all">
                                 {c}
                               </button>
                             ))}
@@ -452,7 +452,7 @@ export default function InventoryRegisterPage() {
                       </div>
                       <div className="space-y-3">
                         <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Thermometer className="w-4 h-4 text-blue-400" /> 보관방법</label>
-                        <select value={storageMethod} onChange={(e) => setStorageMethod(e.target.value as any)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none appearance-none">
+                        <select value={storageMethod} onChange={(e) => setStorageMethod(e.target.value as any)} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none appearance-none">
                           <option value="ROOM_TEMP">상온보관</option>
                           <option value="REFRIGERATED">냉장보관</option>
                           <option value="FROZEN">냉동보관</option>
@@ -462,25 +462,25 @@ export default function InventoryRegisterPage() {
                         <label className="text-sm font-black text-text-sub px-1">주요 성분 (뒷면 분석)</label>
                         <div className="flex flex-wrap gap-2 mb-2 p-6 bg-surface-green/30 rounded-[32px] border-2 border-dashed border-border">
                           {ingredients.map((ing, i) => (
-                            <span key={i} className="px-5 py-2.5 bg-white border border-border rounded-full text-xs font-black flex items-center gap-2 shadow-sm">
+                            <span key={i} className="px-5 py-2.5 bg-background border border-border rounded-full text-xs font-black flex items-center gap-2 shadow-sm">
                               {ing} <button type="button" onClick={() => setIngredients(ingredients.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600">×</button>
                             </span>
                           ))}
                           <div className="flex gap-2 w-full mt-2">
-                            <input type="text" value={ingredientInput} onChange={(e) => setIngredientInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addIngredient())} placeholder="성분 직접 추가" className="flex-1 px-6 py-3 bg-white border border-border rounded-xl font-bold text-sm outline-none focus:border-main-yellow" />
+                            <input type="text" value={ingredientInput} onChange={(e) => setIngredientInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addIngredient())} placeholder="성분 직접 추가" className="flex-1 px-6 py-3 bg-background border border-border rounded-xl font-bold text-sm outline-none focus:border-main-yellow" />
                             <button type="button" onClick={addIngredient} className="px-6 bg-main-yellow text-white rounded-xl font-black shadow-md">+</button>
                           </div>
                         </div>
                       </div>
                       <div className="md:col-span-2 space-y-3">
                         <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Tag className="w-4 h-4 text-main-green" /> 급여/사용 방법</label>
-                        <textarea value={suggestedUsage} onChange={(e) => setSuggestedUsage(e.target.value)} placeholder="예: 체중 5kg 기준 하루 2~3개, 충분한 물과 함께 급여하세요." rows={3} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-bold text-sm focus:bg-white focus:border-main-yellow transition-all outline-none resize-none leading-relaxed" />
+                        <textarea value={suggestedUsage} onChange={(e) => setSuggestedUsage(e.target.value)} placeholder="예: 체중 5kg 기준 하루 2~3개, 충분한 물과 함께 급여하세요." rows={3} className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-bold text-sm focus:bg-background focus:border-main-yellow transition-all outline-none resize-none leading-relaxed" />
                         {aiCandidates.suggestedUsage?.length > 0 && (
                           <div className="space-y-1.5 px-1">
                             <span className="text-[10px] font-black text-text-sub">AI 후보:</span>
                             {aiCandidates.suggestedUsage.map((c, i) => (
                               <button key={i} type="button" onClick={() => setSuggestedUsage(c)}
-                                className="w-full text-left px-4 py-2.5 text-xs font-bold bg-white border border-main-yellow/40 text-text-main rounded-2xl hover:border-main-yellow hover:bg-light-yellow/30 transition-all">
+                                className="w-full text-left px-4 py-2.5 text-xs font-bold bg-background border border-main-yellow/40 text-text-main rounded-2xl hover:border-main-yellow hover:bg-light-yellow/30 transition-all">
                                 {c}
                               </button>
                             ))}
@@ -492,11 +492,11 @@ export default function InventoryRegisterPage() {
                     <>
                       <div className="space-y-3">
                         <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Ruler className="w-4 h-4" /> 사이즈</label>
-                        <input type="text" value={size} onChange={(e) => setSize(e.target.value)} placeholder="M, 25cm 등" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none" />
+                        <input type="text" value={size} onChange={(e) => setSize(e.target.value)} placeholder="M, 25cm 등" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none" />
                       </div>
                       <div className="space-y-3">
                         <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Layers className="w-4 h-4" /> 재질</label>
-                        <input type="text" value={material} onChange={(e) => setMaterial(e.target.value)} placeholder="면 100%, 고무 등" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none" />
+                        <input type="text" value={material} onChange={(e) => setMaterial(e.target.value)} placeholder="면 100%, 고무 등" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none" />
                       </div>
                     </>
                   )}
@@ -504,7 +504,7 @@ export default function InventoryRegisterPage() {
               </div>
 
               {/* User Settings Section */}
-              <div className="bg-white rounded-[40px] p-10 border border-border shadow-xl space-y-10">
+              <div className="bg-background rounded-[40px] p-10 border border-border shadow-xl space-y-10">
                 <h3 className="text-xl font-black text-text-main flex items-center gap-3">
                   <Package className="w-6 h-6 text-main-green" /> 집사님 추가 설정
                 </h3>
@@ -512,29 +512,29 @@ export default function InventoryRegisterPage() {
                   <div className="space-y-3">
                     <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Coins className="w-4 h-4 text-amber-500" /> 구매 가격</label>
                     <div className="relative">
-                      <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-white focus:border-main-yellow transition-all outline-none text-right pr-12" />
+                      <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" className="w-full px-8 py-5 bg-surface-green/50 border-2 border-transparent rounded-[24px] font-black focus:bg-background focus:border-main-yellow transition-all outline-none text-right pr-12" />
                       <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-text-sub">원</span>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <label className="text-sm font-black text-text-sub flex items-center gap-2 px-1"><Package className="w-4 h-4 text-main-green" /> 보유 수량</label>
                     <div className="flex items-center justify-between px-8 py-5 bg-surface-green/50 rounded-[24px] border-2 border-transparent">
-                      <button type="button" onClick={() => setStock(Math.max(0, stock - 1))} className="w-12 h-12 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-red-50 transition-all active:scale-90"><Minus className="w-6 h-6 text-text-main" /></button>
+                      <button type="button" onClick={() => setStock(Math.max(0, stock - 1))} className="w-12 h-12 rounded-full bg-background shadow-md flex items-center justify-center hover:bg-red-50 transition-all active:scale-90"><Minus className="w-6 h-6 text-text-main" /></button>
                       <span className="text-3xl font-black text-text-main">{stock}</span>
-                      <button type="button" onClick={() => setStock(stock + 1)} className="w-12 h-12 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-green-50 transition-all active:scale-90"><Plus className="w-6 h-6 text-text-main" /></button>
+                      <button type="button" onClick={() => setStock(stock + 1)} className="w-12 h-12 rounded-full bg-background shadow-md flex items-center justify-center hover:bg-green-50 transition-all active:scale-90"><Plus className="w-6 h-6 text-text-main" /></button>
                     </div>
                   </div>
 
                   <div className="md:col-span-2 p-8 bg-main-green/5 rounded-[40px] flex items-center justify-between border-2 border-main-green/10">
                     <div className="flex gap-6 items-center">
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${isFeeding ? 'bg-main-green text-white shadow-xl animate-pulse' : 'bg-white text-text-sub border border-border'}`}><Activity className="w-10 h-10" /></div>
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${isFeeding ? 'bg-main-green text-white shadow-xl animate-pulse' : 'bg-background text-text-sub border border-border'}`}><Activity className="w-10 h-10" /></div>
                       <div>
                         <p className="font-black text-text-main text-xl">현재 급여/사용 중</p>
                         <p className="text-sm text-text-sub font-bold leading-tight mt-1">이 제품은 홈 화면과 타임라인에서 빠르게 기록할 수 있습니다.</p>
                       </div>
                     </div>
                     <button type="button" onClick={() => setIsFeeding(!isFeeding)} className={`w-20 h-10 rounded-full relative transition-all shadow-inner ${isFeeding ? 'bg-main-green' : 'bg-border'}`}>
-                      <div className={`absolute top-1.5 w-7 h-7 bg-white rounded-full transition-all shadow-md ${isFeeding ? 'left-11' : 'left-1.5'}`} />
+                      <div className={`absolute top-1.5 w-7 h-7 bg-background rounded-full transition-all shadow-md ${isFeeding ? 'left-11' : 'left-1.5'}`} />
                     </button>
                   </div>
 

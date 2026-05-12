@@ -73,10 +73,10 @@ export default function DiaryPreview({
 
     return (
       <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-500">
-        <div className="flex-1 overflow-y-auto no-scrollbar bg-surface-green/20 space-y-4 lg:space-y-8 py-4 lg:py-8">
+        <div className="flex-1 overflow-y-auto no-scrollbar bg-surface-green/20 space-y-4 lg:space-y-8">
           {logs.map((log) => (
-            <div key={log.id} className="max-w-4xl mx-auto bg-white shadow-2xl first:mt-0">
-              <div className="bg-white border-b border-border overflow-hidden">
+            <div key={log.id} className="max-w-4xl mx-auto bg-background shadow-2xl first:mt-0">
+              <div className="bg-background border-b border-border overflow-hidden">
                 {log.representativePhotoPath && (
                   <div className="relative w-full h-48 lg:h-80 bg-surface-green/5">
                     <Image src={getImagePath(log.representativePhotoPath)} alt="대표 사진" fill className="object-cover" />
@@ -99,13 +99,13 @@ export default function DiaryPreview({
                 </div>
               </div>
 
-              <div className="p-6 lg:p-10 space-y-8 lg:space-y-10 bg-white">
+              <div className="p-6 lg:p-10 space-y-8 lg:space-y-10 bg-background">
                 <h3 className="text-lg lg:text-xl font-black text-text-main flex items-center gap-2.5 px-2"><Clock className="w-5 h-5 text-main-green" /> 모멘트 타임라인</h3>
                 <div className="relative space-y-8 lg:space-y-12 before:absolute before:left-8 before:top-4 before:bottom-4 before:w-0.5 before:bg-main-green/10">
                   {log.moments.map((moment) => (
                     <div key={moment.id} className="relative pl-16 lg:pl-20 group">
-                      <div className="absolute left-6 top-6 w-4 h-4 rounded-full bg-main-green border-4 border-white shadow-md z-10" />
-                      <div className="bg-white rounded-[24px] lg:rounded-[32px] overflow-hidden border border-border shadow-sm hover:shadow-xl transition-all duration-500">
+                      <div className="absolute left-6 top-6 w-4 h-4 rounded-full bg-main-green border-4 border-background shadow-md z-10" />
+                      <div className="bg-background rounded-[24px] lg:rounded-[32px] overflow-hidden border border-border shadow-sm hover:shadow-xl transition-all duration-500">
                         {moment.photos && moment.photos.length > 0 && (
                           <div className="relative w-full h-48 lg:h-64 bg-surface-green/5">
                             <MomentImageSlider photos={moment.photos} alt={moment.aiTitle} />
@@ -118,23 +118,23 @@ export default function DiaryPreview({
                           </div>
                           <p className="text-sm lg:text-base font-medium text-text-main/80 leading-relaxed italic">&quot;{moment.aiContent}&quot;</p>
                           <div className="flex flex-wrap gap-2 pt-2 border-t border-border mt-2">
-                            {moment.tags.map(t => <span key={t} className="px-3 py-1 bg-surface-green text-text-sub text-[10px] font-bold rounded-lg border border-border">#{t}</span>)}
+                            {moment.tags.map(t => <span key={t} className="px-3 py-1 bg-surface-green dark:bg-white/5 text-text-sub text-[10px] font-bold rounded-lg border border-border">#{t}</span>)}
                           </div>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="pt-6 pb-10 flex gap-4">
+                <div className="pt-6 pb-6 flex gap-4">
                   <button 
                     onClick={() => onEdit(log)} 
-                    className="flex-[2] py-4 bg-white border-2 border-main-green text-main-green font-black rounded-[20px] hover:bg-main-green hover:text-white transition-all shadow-lg flex items-center justify-center gap-2 group"
+                    className="flex-[2] py-4 bg-background border-2 border-main-green text-main-green font-black rounded-[20px] hover:bg-main-green hover:text-white transition-all shadow-lg flex items-center justify-center gap-2 group"
                   >
                     기록 수정하기 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
                   <button 
                     onClick={() => handleDelete(log.id)}
-                    className="flex-1 py-4 bg-white border-2 border-red-200 text-red-500 font-black rounded-[20px] hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-4 bg-background border-2 border-red-200 text-red-500 font-black rounded-[20px] hover:bg-red-50 dark:hover:bg-red-900/10 transition-all flex items-center justify-center gap-2"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -234,7 +234,7 @@ export default function DiaryPreview({
 
   return (
     <div className="flex flex-col w-full h-full bg-white overflow-hidden shadow-[-12px_0_32px_rgba(0,0,0,0.03)] relative">
-      <div className="sticky top-0 z-[20] bg-white/90 backdrop-blur-md border-b border-border p-4 lg:p-6 flex justify-between items-center shadow-sm shrink-0">
+      <div className="sticky top-0 z-[20] bg-white/90 backdrop-blur-md border-b border-border px-4 py-3 lg:px-6 lg:py-4 flex justify-between items-center shadow-sm shrink-0">
         <h2 className="text-lg lg:text-xl font-black text-text-main tracking-tight">{formattedDate}</h2>
         {onClose && (
           <button onClick={onClose} className="p-2 hover:bg-surface-green rounded-xl transition-all">

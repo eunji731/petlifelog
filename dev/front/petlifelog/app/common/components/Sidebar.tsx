@@ -86,7 +86,7 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
       <div className="p-3 lg:p-4 border-t border-main-yellow/10 space-y-2 relative">
         {/* Pet Switcher Dropdown */}
         {isPetSwitcherOpen && (
-          <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-2xl shadow-2xl border border-border overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200">
+          <div className="absolute bottom-full left-3 right-3 mb-2 bg-background rounded-2xl shadow-2xl border border-border overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200">
             <div className="p-3 border-b border-border bg-surface-green/30">
               <span className="text-[10px] font-black text-main-green uppercase tracking-widest">가족 선택</span>
             </div>
@@ -99,7 +99,7 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
                 }}
                 className={`w-full flex items-center gap-3 p-3 hover:bg-surface-green transition-all ${selectedPetId === ALL_PETS_ID ? 'bg-main-green/5' : ''}`}
               >
-                <div className="w-8 h-8 rounded-full bg-main-green flex items-center justify-center shrink-0 border border-white text-white">
+                <div className="w-8 h-8 rounded-full bg-main-green flex items-center justify-center shrink-0 border border-background text-white">
                   <Users className="w-4 h-4" />
                 </div>
                 <div className="flex-1 text-left min-w-0">
@@ -118,7 +118,7 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
                   }}
                   className={`w-full flex items-center gap-3 p-3 hover:bg-surface-green transition-all ${selectedPetId === pet.id ? 'bg-main-green/5' : ''}`}
                 >
-                  <div className="w-8 h-8 rounded-full bg-main-green/10 relative overflow-hidden shrink-0 border border-white">
+                  <div className="w-8 h-8 rounded-full bg-main-green/10 relative overflow-hidden shrink-0 border border-background">
                     <Image src={getImagePath(pet.photo, 'profiles')} alt={pet.name} fill className="object-cover" />
                   </div>
                   <div className="flex-1 text-left min-w-0">
@@ -134,7 +134,7 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
 
         <button 
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-sub hover:bg-red-50 hover:text-red-500 transition-all group"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-sub hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-500 transition-all group"
         >
           <LogOut className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
           <span className="text-[14px] font-bold tracking-tight">로그아웃</span>
@@ -143,9 +143,9 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
         {selectedPetId === ALL_PETS_ID ? (
           <div 
             onClick={() => pets.length > 0 && setIsPetSwitcherOpen(!isPetSwitcherOpen)}
-            className={`flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-main-yellow/5 hover:bg-white transition-all shadow-sm group cursor-pointer ${isPetSwitcherOpen ? 'ring-2 ring-main-green' : ''}`}
+            className={`flex items-center gap-3 p-3 bg-background/50 rounded-xl border border-main-yellow/5 hover:bg-background transition-all shadow-sm group cursor-pointer ${isPetSwitcherOpen ? 'ring-2 ring-main-green' : ''}`}
           >
-            <div className="w-10 h-10 rounded-full bg-main-green flex items-center justify-center shrink-0 ring-2 ring-white shadow-sm text-white">
+            <div className="w-10 h-10 rounded-full bg-main-green flex items-center justify-center shrink-0 ring-2 ring-background shadow-sm text-white">
               <Users className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -157,9 +157,9 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
         ) : primaryPet ? (
           <div 
             onClick={() => pets.length > 0 && setIsPetSwitcherOpen(!isPetSwitcherOpen)}
-            className={`flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-main-yellow/5 hover:bg-white transition-all shadow-sm group cursor-pointer ${isPetSwitcherOpen ? 'ring-2 ring-main-green' : ''}`}
+            className={`flex items-center gap-3 p-3 bg-background/50 rounded-xl border border-main-yellow/5 hover:bg-background transition-all shadow-sm group cursor-pointer ${isPetSwitcherOpen ? 'ring-2 ring-main-green' : ''}`}
           >
-            <div className="w-10 h-10 rounded-full bg-main-green/20 relative overflow-hidden ring-2 ring-white shadow-sm shrink-0">
+            <div className="w-10 h-10 rounded-full bg-main-green/20 relative overflow-hidden ring-2 ring-background shadow-sm shrink-0">
               <Image src={getImagePath(primaryPet.photo, 'profiles')} alt={primaryPet.name} fill className="object-cover" />
             </div>
             <div className="flex-1 min-w-0">
@@ -172,7 +172,7 @@ const SidebarContent = ({ pathname, onClose, onLogout }: SidebarContentProps) =>
           <Link 
             href="/family"
             onClick={onClose}
-            className="flex items-center gap-3 p-3 bg-white/50 rounded-xl border border-dashed border-main-yellow/30 hover:bg-white transition-all group"
+            className="flex items-center gap-3 p-3 bg-background/50 rounded-xl border border-dashed border-main-yellow/30 hover:bg-background transition-all group"
           >
             <div className="w-10 h-10 rounded-full bg-light-yellow flex items-center justify-center shrink-0">
               <Plus className="w-5 h-5 text-main-yellow" />
