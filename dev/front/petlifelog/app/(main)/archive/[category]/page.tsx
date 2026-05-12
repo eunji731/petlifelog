@@ -453,7 +453,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
                 </div>
 
                 <button
-                  onClick={() => router.push(`/timeline?date=${photos[selectedPhotoIndex].diaryDateKey}`)}
+                  onClick={() => router.push(`/calendar?mode=timeline&date=${photos[selectedPhotoIndex].diaryDateKey}`)}
                   className="w-full group flex items-center justify-between px-8 py-5 bg-text-main text-background rounded-2xl transition-all hover:bg-main-green hover:shadow-2xl hover:shadow-main-green/20"
                 >
                   <span className="text-[12px] font-black uppercase tracking-[0.2em]">View Full Context</span>

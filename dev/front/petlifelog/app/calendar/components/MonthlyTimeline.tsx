@@ -26,9 +26,10 @@ import { useToast } from '@/app/common/hooks/useToast';
 interface MonthlyTimelineProps {
   currentDate: Date;
   onDateSelect: (date: Date) => void;
+  initialDateRange?: { start: string; end: string };
 }
 
-export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTimelineProps) {
+export default function MonthlyTimeline({ currentDate, onDateSelect, initialDateRange }: MonthlyTimelineProps) {
   const { allLogs, syncFromBackend } = useDiary();
   const [isExporting, setIsExporting] = useState<string | null>(null);
   const { toast } = useToast();
@@ -37,10 +38,9 @@ export default function MonthlyTimeline({ currentDate, onDateSelect }: MonthlyTi
   const currentMonth = currentDate.getMonth();
 
   // Date Filter States
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
-    start: '',
-    end: ''
-  });
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>(
+    initialDateRange || { start: '', end: '' }
+  );
 
   // Sync from backend when date range changes
   useEffect(() => {

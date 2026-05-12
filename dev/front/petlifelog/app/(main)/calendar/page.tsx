@@ -14,6 +14,7 @@ import { useCalendar } from '@/app/calendar/hooks/useCalendar';
 function CalendarContent() {
   const searchParams = useSearchParams();
   const dateParam = searchParams.get('date');
+  const modeParam = searchParams.get('mode');
 
   // URL에서 초기 날짜 계산 (렌더링 시점에 바로 결정)
   const getInitialDate = () => {
@@ -28,10 +29,10 @@ function CalendarContent() {
   const initialDate = getInitialDate();
   
   const [isEditing, setIsEditing] = useState(false);
-  // dateParam이 있으면 처음부터 상세 창이 열린 상태로 시작 (단, 전체화면은 부담스러우므로 반반)
-  const [showSidePanel, setShowSidePanel] = useState(!!dateParam);
+  // dateParam이 있고 mode가 timeline이 아니면 상세 창이 열린 상태로 시작
+  const [showSidePanel, setShowSidePanel] = useState(!!dateParam && modeParam !== 'timeline');
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isTimelineMode, setIsTimelineMode] = useState(false);
+  const [isTimelineMode, setIsTimelineMode] = useState(modeParam === 'timeline');
   
   const { addDailyLog, syncFromBackend } = useDiary();
 
@@ -56,11 +57,19 @@ function CalendarContent() {
         goToDate(parsedDate.getFullYear(), parsedDate.getMonth());
         onSelectDate(parsedDate);
         setIsEditing(false);
-        setShowSidePanel(true);
-        setIsTimelineMode(false); // 상세 보기 시엔 타임라인 모드 해제
+        
+        if (modeParam === 'timeline') {
+          setIsTimelineMode(true);
+          setShowSidePanel(false);
+        } else {
+          setIsTimelineMode(false);
+          setShowSidePanel(true);
+        }
       }
+    } else if (modeParam === 'timeline') {
+      setIsTimelineMode(true);
     }
-  }, [dateParam, goToDate, onSelectDate]);
+  }, [dateParam, modeParam, goToDate, onSelectDate]);
 
   const handleDateSelect = (date: Date) => {
     onSelectDate(date);
@@ -130,7 +139,8 @@ function CalendarContent() {
         {isTimelineMode ? (
           <MonthlyTimeline 
             currentDate={currentDate} 
-            onDateSelect={handleDateSelect} 
+            onDateSelect={handleDateSelect}
+            initialDateRange={dateParam ? { start: dateParam, end: dateParam } : undefined}
           />
         ) : (
           <>

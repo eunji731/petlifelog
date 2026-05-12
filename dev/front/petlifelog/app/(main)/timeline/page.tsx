@@ -7,10 +7,19 @@ import { Calendar, Heart, MessageCircle, MapPin, Sparkles, Zap, Clock } from 'lu
 import { useDiary } from '@/app/common/hooks/useDiary';
 import { getImagePath } from '@/app/common/lib/clientApi';
 
-export default function TimelinePage() {
-  const { allLogs } = useDiary();
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-  const sortedLogs = [...allLogs].sort((a, b) => {
+function TimelineContent() {
+  const { allLogs } = useDiary();
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get('date');
+
+  const filteredLogs = dateParam 
+    ? allLogs.filter(log => log.dateKey === dateParam)
+    : allLogs;
+
+  const sortedLogs = [...filteredLogs].sort((a, b) => {
     // 1. 일자별 내림차순 (최신순)
     if (b.dateKey !== a.dateKey) {
       return b.dateKey.localeCompare(a.dateKey);
@@ -133,5 +142,13 @@ export default function TimelinePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TimelinePage() {
+  return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-background text-sm font-bold text-text-sub">불러오는 중...</div>}>
+      <TimelineContent />
+    </Suspense>
   );
 }
