@@ -79,25 +79,32 @@ export default function SettingsPage() {
           </div>
         </div>
         
-        <div className="flex gap-2 w-full md:w-auto">
-          {[
-            { id: 'light', label: '라이트', icon: Sun },
-            { id: 'dark', label: '다크', icon: Moon },
-            { id: 'system', label: '시스템', icon: Monitor },
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => handleThemeChange(id)}
-              className={`flex-1 md:w-28 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition text-sm font-bold ${
-                theme === id 
-                  ? 'border-main-green bg-main-green/5 text-main-green' 
-                  : 'border-border bg-background text-text-sub hover:bg-surface-green/20'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{label}</span>
-            </button>
-          ))}
+        <div className="flex flex-col gap-2 w-full md:w-auto">
+          <div className="flex gap-2">
+            {[
+              { id: 'light', label: '라이트', icon: Sun },
+              { id: 'dark', label: '다크', icon: Moon },
+              { id: 'system', label: '시스템', icon: Monitor },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => handleThemeChange(id)}
+                className={`flex-1 md:w-28 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition text-sm font-bold ${
+                  theme === id
+                    ? 'border-main-green bg-main-green/5 text-main-green'
+                    : 'border-border bg-background text-text-sub hover:bg-surface-green/20'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+          {theme === 'system' && (
+            <p className="text-xs text-text-sub text-right">
+              감지된 브라우저 모드: <span className="font-bold text-main-green">{resolvedTheme === 'dark' ? '다크' : '라이트'}</span>
+            </p>
+          )}
         </div>
       </section>
 

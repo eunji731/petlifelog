@@ -28,6 +28,24 @@
   --border: #F2F2F7;
 }
 
+/* 시스템 설정이 다크일 때 기본값 (클래스 설정이 없을 때) */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #121212;
+    --foreground: #F5F5F5;
+    --surface-green: #1E1E1E;
+    --sidebar-bg: #1A1A1A;
+    --text-sub: #A0A0A0;
+    --border: #2A2A2A;
+    
+    --color-main-green: #8ED18B;
+    --color-light-green: #1A2E1A;
+    --color-main-yellow: #FFD970;
+    --color-light-yellow: #2D2A1A;
+  }
+}
+
+/* 명시적인 다크 모드 클래스 (next-themes에서 부여) */
 .dark {
   --background: #121212;
   --foreground: #F5F5F5;
@@ -40,6 +58,16 @@
   --color-light-green: #1A2E1A;
   --color-main-yellow: #FFD970;
   --color-light-yellow: #2D2A1A;
+}
+
+/* 명시적인 라이트 모드 클래스 */
+.light {
+  --background: #FFFFFF;
+  --foreground: #1A1A1A;
+  --surface-green: #F8FAF8;
+  --sidebar-bg: #FFFBEB;
+  --text-sub: #8E8E93;
+  --border: #F2F2F7;
 }
 
 body {
