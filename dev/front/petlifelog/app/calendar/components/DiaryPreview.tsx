@@ -130,7 +130,7 @@ export default function DiaryPreview({
                     onClick={() => onEdit(log)} 
                     className="flex-[2] py-4 bg-background border-2 border-main-green text-main-green font-black rounded-[20px] hover:bg-main-green hover:text-white transition-all shadow-lg flex items-center justify-center gap-2 group"
                   >
-                    기록 수정하기 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    재기록하기 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
                   <button 
                     onClick={() => handleDelete(log.id)}
@@ -183,7 +183,7 @@ export default function DiaryPreview({
                   <div className="flex items-center justify-between px-2">
                     <h3 className="text-xl lg:text-3xl font-black text-text-main flex items-center gap-4"><Clock className="w-6 h-6 lg:w-10 lg:h-10 text-main-green" /> Timeline</h3>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => onEdit(log)} className="px-6 py-2.5 bg-background text-main-green text-xs font-black rounded-full border-2 border-main-green/20 hover:border-main-green transition-all shadow-sm">Edit Record</button>
+                      <button onClick={() => onEdit(log)} className="px-6 py-2.5 bg-background text-main-green text-xs font-black rounded-full border-2 border-main-green/20 hover:border-main-green transition-all shadow-sm">Re-record</button>
                       <button 
                         onClick={() => handleDelete(log.id)}
                         className="p-2.5 bg-background text-red-500 rounded-full border-2 border-red-50 hover:bg-red-50 transition-all shadow-sm"

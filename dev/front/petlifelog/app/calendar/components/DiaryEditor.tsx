@@ -109,13 +109,13 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
     const files = e.target.files;
     if (files) {
       const fileArray = Array.from(files);
-      
+
       if (photoFiles.length + fileArray.length > 5) {
         toast('사진은 최대 5개까지만 업로드 가능합니다.', 'warning');
         // Limit to 5 total if some were already present
         const remainingSlots = 5 - photoFiles.length;
         if (remainingSlots <= 0) return;
-        
+
         const slicedFiles = fileArray.slice(0, remainingSlots);
         setPhotoFiles(prev => [...prev, ...slicedFiles]);
         setPhotoPreviews(prev => [...prev, ...slicedFiles.map(f => URL.createObjectURL(f))]);
@@ -535,24 +535,23 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={photoFiles.length >= 5}
-                      className={`aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${
-                        photoFiles.length >= 5 
+                      className={`aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all ${photoFiles.length >= 5
                           ? 'border-border bg-surface-green/50 text-text-sub cursor-not-allowed'
                           : 'border-main-green/30 bg-light-green/30 text-main-green hover:bg-light-green/50'
-                      }`}
+                        }`}
                     >
                       <Plus className="w-8 h-8" />
                       <span className="text-[10px] font-bold">사진 추가</span>
                     </button>
-                    {photoPreviews.map((url, i) => (                      <div key={url} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm group">
-                        <Image src={url} alt={`Upload ${i}`} fill className="object-cover" />
-                        <button
-                          onClick={() => removePhoto(i)}
-                          className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
+                    {photoPreviews.map((url, i) => (<div key={url} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm group">
+                      <Image src={url} alt={`Upload ${i}`} fill className="object-cover" />
+                      <button
+                        onClick={() => removePhoto(i)}
+                        className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                     ))}
                   </div>
                   <input type="file" ref={fileInputRef} multiple className="hidden" accept="image/*" onChange={handleFileChange} />
@@ -585,7 +584,8 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
                     <label className="text-sm font-black text-text-main">
                       추가 태그(선택)
                     </label>
-                    <p className="mt-1 text-xs font-medium text-text-sub/70">
+                    <p className="mt-1 text-xs font-medium text-text-sub/70 leading-relaxed">
+                      <span className="text-main-green font-black">💡 AI가 더 정확한 일기를 작성할 수 있도록 중요한 단어와 상황을 적어주세요.</span><br />
                       태그를 입력한 뒤 Enter를 눌러 추가하세요.
                     </p>
                   </div>
