@@ -36,7 +36,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final MemberRepository memberRepository;
 
     @Value("${app.frontend-url}")
-    private String frontendUrl; // 로그인 완료 후 돌아갈 프론트엔드 주소 (예: localhost:3000)
+    private String frontendUrl;
+
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -80,12 +83,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
      */
     private void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
-                .httpOnly(true) // 자바스크립트 접근 차단 (보안!)
-                .secure(false) // HTTPS 환경에서만 전송할지 여부 (로컬 개발 시 false, 배포 시 true 권장)
-                .path("/") // 모든 주소에서 이 쿠키를 사용할 수 있게 함
-                .maxAge(maxAge) // 쿠키 유효 기간
-                .sameSite("Lax") // [CSRF 방어] 타 도메인에서 오는 POST/PUT/DELETE 요청에는 쿠키를 전송하지 않도록 브라우저에게 지시합니다.
-                                  // 이 설정 덕분에 Spring의 CSRF 토큰 없이도 CSRF 공격을 막을 수 있습니다.
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .maxAge(maxAge)
+                .sameSite("Lax")
                 .build();
         
         // HTTP 응답 헤더에 'Set-Cookie'라는 이름으로 쿠키 정보를 싣습니다.

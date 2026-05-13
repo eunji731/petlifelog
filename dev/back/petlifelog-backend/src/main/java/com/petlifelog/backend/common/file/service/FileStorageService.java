@@ -15,6 +15,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+
+
 /**
  * 물리 파일 I/O 전담 서비스.
  * DB 작업 없이 스토리지만 담당한다.
@@ -29,6 +31,10 @@ import java.util.stream.Stream;
 @Service
 public class FileStorageService {
 
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+            "jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "tiff", "tif"
+    );
+
     /** WebConfig /files/** 핸들러의 물리 루트: D:/uploads/files/ */
     @Getter
     private final Path filesRoot;
@@ -42,6 +48,7 @@ public class FileStorageService {
      */
     public String store(MultipartFile file, ParentDomainType parentType, UUID parentId) {
         String ext = extractExtension(file.getOriginalFilename());
+        validateExtension(ext);
         String storedName = UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
         String storedPath = parentType.name().toLowerCase() + "/" + parentId + "/" + storedName;
 
@@ -63,6 +70,7 @@ public class FileStorageService {
     public String storeFromStream(InputStream inputStream, String originalFilename,
                                    ParentDomainType parentType, UUID parentId) {
         String ext = extractExtension(originalFilename);
+        validateExtension(ext);
         String storedName = UUID.randomUUID() + (ext.isEmpty() ? "" : "." + ext);
         String storedPath = parentType.name().toLowerCase() + "/" + parentId + "/" + storedName;
 
@@ -119,5 +127,11 @@ public class FileStorageService {
     private String extractExtension(String filename) {
         if (filename == null || !filename.contains(".")) return "";
         return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    private void validateExtension(String ext) {
+        if (!ALLOWED_EXTENSIONS.contains(ext)) {
+            throw new FileStorageException("허용되지 않는 파일 형식입니다: " + ext, null);
+        }
     }
 }

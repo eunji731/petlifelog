@@ -54,6 +54,9 @@ public class AuthController {
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
+
     // ─────────────────────────────────────────────────────────────
     // 토큰 재발급
     // ─────────────────────────────────────────────────────────────
@@ -152,11 +155,10 @@ public class AuthController {
                 .orElse(null);
     }
 
-    /** HttpOnly 쿠키를 응답에 추가합니다. SameSite=Lax로 CSRF 방어. */
     private void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .httpOnly(true)
-                .secure(false) // HTTPS 환경에서는 true로 변경 필요
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(maxAge)
                 .sameSite("Lax")
@@ -164,11 +166,10 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
-    /** 쿠키를 삭제합니다. maxAge=0으로 설정하면 브라우저가 즉시 쿠키를 삭제합니다. */
     private void clearCookie(HttpServletResponse response, String name) {
         ResponseCookie cookie = ResponseCookie.from(name, "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(0)
                 .sameSite("Lax")

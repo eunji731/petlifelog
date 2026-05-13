@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   images: {
-    unoptimized: true, // 로컬 개발 환경에서 최적화 기능을 끄고 직접 로딩 허용
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'http',

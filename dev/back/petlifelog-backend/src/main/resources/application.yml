@@ -1,3 +1,6 @@
+server:
+  forward-headers-strategy: native   # nginx 뒤에서 X-Forwarded-Proto 신뢰 (HTTPS 리다이렉트 정상 동작)
+
 spring:
   config:
     import: optional:file:.env.dev[.properties]
@@ -16,12 +19,12 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${DDL_AUTO:update}   # 배포 환경에서는 validate 또는 none으로 설정
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-    show-sql: true
+    show-sql: ${SHOW_SQL:false}
 
   security:
     oauth2:
@@ -51,11 +54,19 @@ jwt:
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  cookie:
+    secure: ${COOKIE_SECURE:false}   # 배포 환경(HTTPS)에서는 반드시 true로 설정
   upload:
-    base-path: D:/uploads
+    base-path: ${UPLOAD_BASE_PATH:D:/uploads}
     daily-path: ${app.upload.base-path}/daily
     profile-path: ${app.upload.base-path}/profiles
     files-path: ${app.upload.base-path}/files   # AttachedFile 시스템 저장 루트
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}   # 배포 환경에서는 false로 설정
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
 
 gemini:
   api-key: ${GEMINI_API_KEY}

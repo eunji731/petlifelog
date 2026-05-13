@@ -8,6 +8,7 @@ import com.petlifelog.backend.common.auth.OAuth2SuccessHandler;
 import com.petlifelog.backend.domain.member.repository.MemberRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -39,6 +40,9 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider; // JWT 토큰을 만들고 검증하는 '신분증 발급기'
     private final MemberRepository memberRepository;
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     /**
      * [CORS 설정]
      * 원래 브라우저는 자기 도메인(예: localhost:3000)이 아닌 곳에 요청을 보내는 걸 막습니다.
@@ -49,7 +53,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         
         // 1. 어떤 주소에서 오는 요청을 허락할 것인가? (프론트엔드 주소)
-        config.setAllowedOrigins(List.of("http://localhost:3000")); 
+        config.setAllowedOrigins(List.of(frontendUrl));
         
         // 2. 어떤 방식의 요청을 허락할 것인가? (GET, POST 등)
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
