@@ -17,6 +17,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * [Google Gemini AI API 클라이언트]
+ *
+ * Google Gemini API를 호출하여 이미지 분석과 텍스트 생성을 담당합니다.
+ * 이 앱에서는 2가지 용도로 사용됩니다:
+ *
+ * 1. 일기 생성: analyzeImages() → 사진들을 분석하여 반려동물 일기 JSON 생성
+ * 2. 제품 분석: ocrProductImages() + extractProductInfoFromText()
+ *    → 2단계 파이프라인으로 환각(hallucination)을 최소화
+ *      ① 이미지에서 텍스트만 읽기 (OCR, 추측 없음)
+ *      ② OCR 결과 텍스트를 구조화된 JSON으로 변환
+ *
+ * ▶ 설정 (application.yml)
+ *   gemini:
+ *     api-key: [GOOGLE_AI_API_KEY]
+ *     model: gemini-2.5-flash
+ *     url: https://generativelanguage.googleapis.com/v1
+ */
 @Slf4j
 @RequiredArgsConstructor
 @Component
@@ -34,6 +52,13 @@ public class GeminiClient {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper;
 
+    /**
+     * 이미지들과 프롬프트를 Gemini에 전달하여 반려동물 일기 JSON을 생성합니다.
+     *
+     * @param base64Images 512px로 리사이즈된 이미지들의 Base64 문자열 목록
+     * @param prompt 반려동물 정보, 메타데이터, 사용자 키워드가 포함된 상세 프롬프트
+     * @return DailyLogResponse (AI 제목, 요약, 모멘트 목록, 사진 평가 포함)
+     */
     public DailyLogResponse analyzeImages(List<String> base64Images, String prompt) {
         // v1/models/gemini-1.5-flash:generateContent?key=... 형식으로 호출
         String apiUrl = String.format("%s/models/%s:generateContent?key=%s", baseUrl, model, apiKey);

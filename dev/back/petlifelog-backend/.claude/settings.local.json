@@ -39,7 +39,8 @@
       "Bash(Out-Null)",
       "PowerShell(New-Item *)",
       "Bash(xargs grep -l \"theme\\\\|Theme\")",
-      "Bash(xargs grep -l \"^package\")"
+      "Bash(xargs grep -l \"^package\")",
+      "Bash(./gradlew build *)"
     ]
   }
 }
