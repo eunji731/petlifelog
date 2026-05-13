@@ -1,7 +1,7 @@
 package com.petlifelog.backend.domain.map.controller;
 
 import com.petlifelog.backend.common.dto.ApiResponse;
-import com.petlifelog.backend.domain.map.MapService;
+import com.petlifelog.backend.domain.map.service.MapService;
 import com.petlifelog.backend.domain.map.dto.MapMarkerResponse;
 import com.petlifelog.backend.domain.map.dto.MapMemoryResponse;
 import lombok.RequiredArgsConstructor;

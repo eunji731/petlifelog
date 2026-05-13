@@ -5,7 +5,7 @@ import com.petlifelog.backend.common.auth.JwtAuthenticationFilter;
 import com.petlifelog.backend.common.auth.JwtTokenProvider;
 import com.petlifelog.backend.common.auth.OAuth2FailureHandler;
 import com.petlifelog.backend.common.auth.OAuth2SuccessHandler;
-import com.petlifelog.backend.domain.member.MemberRepository;
+import com.petlifelog.backend.domain.member.repository.MemberRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

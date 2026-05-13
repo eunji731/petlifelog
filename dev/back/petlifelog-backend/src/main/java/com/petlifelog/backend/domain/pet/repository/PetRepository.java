@@ -1,0 +1,12 @@
+package com.petlifelog.backend.domain.pet.repository;
+
+import com.petlifelog.backend.domain.pet.domain.Pet;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface PetRepository extends JpaRepository<Pet, UUID> {
+    List<Pet> findByUserIdAndIsActiveTrue(UUID userId);
+    List<Pet> findByUserId(UUID userId);
+}

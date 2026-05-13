@@ -1,6 +1,6 @@
 package com.petlifelog.backend.domain.archive.dto;
 
-import com.petlifelog.backend.domain.memory.Photo;
+import com.petlifelog.backend.domain.memory.domain.Photo;
 import lombok.Builder;
 import lombok.Getter;
 

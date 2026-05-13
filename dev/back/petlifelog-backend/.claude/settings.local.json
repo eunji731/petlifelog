@@ -38,7 +38,8 @@
       "Bash(New-Item -ItemType Directory -Force -Path \"D:\\\\selfProject\\\\petLifeLog\\\\dev\\\\front\\\\petlifelog\\\\app\\\\rejoin\")",
       "Bash(Out-Null)",
       "PowerShell(New-Item *)",
-      "Bash(xargs grep -l \"theme\\\\|Theme\")"
+      "Bash(xargs grep -l \"theme\\\\|Theme\")",
+      "Bash(xargs grep -l \"^package\")"
     ]
   }
 }

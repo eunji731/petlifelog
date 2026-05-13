@@ -1,8 +1,8 @@
 package com.petlifelog.backend.common.auth;
 
 import com.petlifelog.backend.common.auth.dto.TokenResponse;
-import com.petlifelog.backend.domain.member.Member;
-import com.petlifelog.backend.domain.member.MemberRepository;
+import com.petlifelog.backend.domain.member.domain.Member;
+import com.petlifelog.backend.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

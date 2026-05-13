@@ -1,8 +1,8 @@
 package com.petlifelog.backend.domain.ai.controller;
 
 import com.petlifelog.backend.common.dto.ApiResponse;
-import com.petlifelog.backend.domain.ai.AiDiaryService;
-import com.petlifelog.backend.domain.ai.AiInventoryService;
+import com.petlifelog.backend.domain.ai.service.AiDiaryService;
+import com.petlifelog.backend.domain.ai.service.AiInventoryService;
 import com.petlifelog.backend.domain.ai.dto.AnalyzeDiaryResult;
 import com.petlifelog.backend.domain.ai.dto.AnalyzeProductResult;
 import com.petlifelog.backend.domain.ai.dto.AiUsageResponse;

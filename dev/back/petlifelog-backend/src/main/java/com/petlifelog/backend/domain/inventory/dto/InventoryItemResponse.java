@@ -1,7 +1,7 @@
 package com.petlifelog.backend.domain.inventory.dto;
 
 import com.petlifelog.backend.common.file.dto.FileResponse;
-import com.petlifelog.backend.domain.inventory.InventoryItem;
+import com.petlifelog.backend.domain.inventory.domain.InventoryItem;
 import lombok.Builder;
 import lombok.Data;
 

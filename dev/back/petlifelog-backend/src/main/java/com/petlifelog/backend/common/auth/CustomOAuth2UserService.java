@@ -1,8 +1,8 @@
 package com.petlifelog.backend.common.auth;
 
 import com.petlifelog.backend.common.auth.dto.OAuthAttributes;
-import com.petlifelog.backend.domain.member.Member;
-import com.petlifelog.backend.domain.member.MemberRepository;
+import com.petlifelog.backend.domain.member.domain.Member;
+import com.petlifelog.backend.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

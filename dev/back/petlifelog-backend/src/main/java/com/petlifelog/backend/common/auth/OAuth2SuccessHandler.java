@@ -1,7 +1,7 @@
 package com.petlifelog.backend.common.auth;
 
-import com.petlifelog.backend.domain.member.Member;
-import com.petlifelog.backend.domain.member.MemberRepository;
+import com.petlifelog.backend.domain.member.domain.Member;
+import com.petlifelog.backend.domain.member.repository.MemberRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

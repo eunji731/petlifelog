@@ -1,6 +1,6 @@
 package com.petlifelog.backend.common.auth;
 
-import com.petlifelog.backend.domain.member.MemberRepository;
+import com.petlifelog.backend.domain.member.repository.MemberRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;

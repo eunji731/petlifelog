@@ -2,7 +2,7 @@ package com.petlifelog.backend.domain.pet.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.petlifelog.backend.domain.pet.Gender;
+import com.petlifelog.backend.domain.pet.domain.Gender;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

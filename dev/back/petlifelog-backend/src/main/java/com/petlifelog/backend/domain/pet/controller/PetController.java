@@ -1,7 +1,7 @@
 package com.petlifelog.backend.domain.pet.controller;
 
 import com.petlifelog.backend.common.dto.ApiResponse;
-import com.petlifelog.backend.domain.pet.PetService;
+import com.petlifelog.backend.domain.pet.service.PetService;
 import com.petlifelog.backend.domain.pet.dto.PetRequest;
 import com.petlifelog.backend.domain.pet.dto.PetResponse;
 import lombok.RequiredArgsConstructor;

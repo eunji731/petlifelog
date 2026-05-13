@@ -1,6 +1,6 @@
 package com.petlifelog.backend.common.auth.dto;
 
-import com.petlifelog.backend.domain.member.Member;
+import com.petlifelog.backend.domain.member.domain.Member;
 import lombok.Builder;
 import lombok.Getter;
 
