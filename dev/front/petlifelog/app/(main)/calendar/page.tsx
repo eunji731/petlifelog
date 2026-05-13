@@ -130,7 +130,14 @@ function CalendarContent() {
               setIsTimelineMode(false);
             }}
             isTimelineMode={isTimelineMode}
-            onToggleView={() => setIsTimelineMode(!isTimelineMode)}
+            onToggleView={() => {
+              const nextMode = !isTimelineMode;
+              if (!nextMode) {
+                setIsExpanded(false);
+                setShowSidePanel(true);
+              }
+              setIsTimelineMode(nextMode);
+            }}
           />
         </div>
       </div>
