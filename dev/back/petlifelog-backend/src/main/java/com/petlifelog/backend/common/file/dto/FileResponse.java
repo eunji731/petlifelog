@@ -19,11 +19,11 @@ public class FileResponse {
     private Integer sortOrder;
     private Instant createdAt;
 
-    public static FileResponse from(AttachedFile file, String fileBaseUrl) {
+    public static FileResponse from(AttachedFile file, String fileUrl) {
         return FileResponse.builder()
                 .id(file.getId())
                 .originalName(file.getOriginalName())
-                .fileUrl(fileBaseUrl + "/" + file.getStoredPath())
+                .fileUrl(fileUrl)
                 .contentType(file.getContentType())
                 .fileSize(file.getFileSize())
                 .sortOrder(file.getSortOrder())

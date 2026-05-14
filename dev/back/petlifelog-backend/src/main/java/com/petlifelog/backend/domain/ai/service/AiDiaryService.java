@@ -34,6 +34,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -99,9 +100,9 @@ public class AiDiaryService {
                         exif.takenAt != null ? exif.takenAt : "알수없음",
                         exif.lat != null ? exif.lat + ", " + exif.lng : "알수없음"));
 
-                File physicalFile = fileStorageService.getFilesRoot()
-                        .resolve(storedPath).toFile();
-                base64Images.add(resizeAndEncodeToBase64(physicalFile));
+                try (InputStream is = fileStorageService.getInputStream(storedPath)) {
+                    base64Images.add(resizeAndEncodeToBase64(is));
+                }
             }
 
             String petContext = preparePetContext(petInfos);
@@ -176,7 +177,7 @@ public class AiDiaryService {
 
             Photo photo = Photo.builder()
                     .memory(memory)
-                    .pathOrigin("/files/" + af.getStoredPath())
+                    .pathOrigin(fileStorageService.getFileUrl(af.getStoredPath()))
                     .takenAt(info.getTakenAt())
                     .gpsLat(info.getLatitude())
                     .gpsLng(info.getLongitude())
@@ -420,10 +421,9 @@ public class AiDiaryService {
                 String.join(", ", userTags != null ? userTags : List.of()));
     }
 
-    private String resizeAndEncodeToBase64(File file) throws IOException {
-        BufferedImage originalImage = ImageIO.read(file);
+    private String resizeAndEncodeToBase64(InputStream inputStream) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Thumbnails.of(originalImage).size(512, 512).outputFormat("jpg").toOutputStream(outputStream);
+        Thumbnails.of(inputStream).size(512, 512).outputFormat("jpg").toOutputStream(outputStream);
         return Base64.getEncoder().encodeToString(outputStream.toByteArray());
     }
 

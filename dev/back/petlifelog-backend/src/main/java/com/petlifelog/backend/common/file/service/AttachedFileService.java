@@ -6,7 +6,6 @@ import com.petlifelog.backend.common.file.dto.FileResponse;
 import com.petlifelog.backend.common.file.dto.StoredFileInfo;
 import com.petlifelog.backend.common.file.repository.AttachedFileRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,12 +32,6 @@ public class AttachedFileService {
     private final AttachedFileRepository fileRepository;
     private final FileStorageService storageService;
 
-    @Value("${app.upload.base-path}")
-    private String uploadBasePath;
-
-    // WebConfig 의 /files/** 핸들러와 일치해야 함
-    private static final String FILE_URL_PREFIX = "/files";
-
     // ─────────────────────────────────────────────
     // 조회
     // ─────────────────────────────────────────────
@@ -47,7 +40,7 @@ public class AttachedFileService {
         return fileRepository
                 .findByParentTypeAndParentIdOrderBySortOrderAsc(parentType, parentId)
                 .stream()
-                .map(f -> FileResponse.from(f, FILE_URL_PREFIX))
+                .map(f -> FileResponse.from(f, storageService.getFileUrl(f.getStoredPath())))
                 .toList();
     }
 
@@ -78,7 +71,7 @@ public class AttachedFileService {
         }
 
         return saved.stream()
-                .map(f -> FileResponse.from(f, FILE_URL_PREFIX))
+                .map(f -> FileResponse.from(f, storageService.getFileUrl(f.getStoredPath())))
                 .toList();
     }
 
@@ -131,7 +124,7 @@ public class AttachedFileService {
         return fileRepository
                 .findByParentTypeAndParentIdOrderBySortOrderAsc(parentType, parentId)
                 .stream()
-                .map(f -> FileResponse.from(f, FILE_URL_PREFIX))
+                .map(f -> FileResponse.from(f, storageService.getFileUrl(f.getStoredPath())))
                 .toList();
     }
 

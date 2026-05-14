@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gradlew.bat dependencies *)",
+      "Bash(Select-String -Pattern \"awspring|aws-sdk|s3\")"
+    ]
+  }
+}
