@@ -36,7 +36,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
       setIsInitialLoading(true);
 
       // 1. 먼저 로컬 리스트에서 찾아보고 없으면 서버에서 직접 가져옴
-      let targetTheme = getTheme(category);
+      let targetTheme: ArchiveTheme | null | undefined = getTheme(category);
       if (!targetTheme) {
         targetTheme = await fetchThemeDetail(category);
       }
@@ -77,7 +77,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
             <p className="text-lg font-bold mb-2">해당 테마를 찾을 수 없습니다.</p>
             <p className="text-sm">검색어나 태그를 다시 확인해 주세요.</p>
           </div>
-          <button 
+          <button
             onClick={() => router.back()}
             className="px-8 py-3 bg-main-green text-white font-black rounded-full shadow-lg"
           >
@@ -91,10 +91,10 @@ export default function ThemeDetailPage({ params }: PageProps) {
   const bestPhoto = photos.find(p => p.isBest) || photos[0];
 
   // 바이브 스코어 평균 및 등급 계산
-  const avgVibeScore = photos.length > 0 
-    ? photos.reduce((acc, p) => acc + p.vibeScore, 0) / photos.length 
+  const avgVibeScore = photos.length > 0
+    ? photos.reduce((acc, p) => acc + p.vibeScore, 0) / photos.length
     : 0;
-  
+
   const getVibeGrade = (score: number) => {
     if (score >= 90) return 'A+';
     if (score >= 80) return 'A';
@@ -214,7 +214,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
                 <div className="w-8 h-[1px] bg-main-green" />
                 <span className="text-[10px] font-black text-main-green uppercase tracking-[0.4em]">Visual Archive</span>
               </div>
-              <h2 className="text-4xl md:text-5xl font-black text-text-main uppercase tracking-tighter leading-none">Selected <br/>Fragments.</h2>
+              <h2 className="text-4xl md:text-5xl font-black text-text-main uppercase tracking-tighter leading-none">Selected <br />Fragments.</h2>
             </div>
             <div className="flex items-center gap-6">
               <div className="flex flex-col items-end">
@@ -235,48 +235,48 @@ export default function ThemeDetailPage({ params }: PageProps) {
           ) : (
             <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-6 space-y-6">
               {photos.map((photo, index) => (
-                <div 
+                <div
                   key={photo.id}
                   onClick={() => setSelectedPhotoIndex(index)}
                   className="relative group cursor-pointer break-inside-avoid-column"
                 >
                   <div className="relative overflow-hidden rounded-[32px] bg-surface-green/10 shadow-sm transition-all duration-700 group-hover:shadow-2xl">
-                    <img 
-                      src={photo.path} 
+                    <img
+                      src={photo.path}
                       alt={`Fragment ${index}`}
                       className="w-full h-auto transition-transform duration-1000 group-hover:scale-110"
                     />
 
-                  {/* Polished Information Overlay */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col items-center justify-center p-4 text-center">
-                    <div className="space-y-4 translate-y-2 group-hover:translate-y-0 transition-transform duration-500 w-full">
-                      <div className="flex flex-col items-center gap-2">
-                        <span className="text-[8px] font-black text-main-green uppercase tracking-[0.4em] border border-main-green/30 px-2 py-0.5 rounded">
-                          Fragment {index + 1}
-                        </span>
-                        {photo.vibeScore > 0 && (
-                          <div className="flex items-center gap-1 bg-main-yellow/90 px-2 py-0.5 rounded text-[8px] font-black text-black">
-                            <Sparkles className="w-2 h-2" /> VIBE {photo.vibeScore.toFixed(1)}
-                          </div>
+                    {/* Polished Information Overlay */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col items-center justify-center p-4 text-center">
+                      <div className="space-y-4 translate-y-2 group-hover:translate-y-0 transition-transform duration-500 w-full">
+                        <div className="flex flex-col items-center gap-2">
+                          <span className="text-[8px] font-black text-main-green uppercase tracking-[0.4em] border border-main-green/30 px-2 py-0.5 rounded">
+                            Fragment {index + 1}
+                          </span>
+                          {photo.vibeScore > 0 && (
+                            <div className="flex items-center gap-1 bg-main-yellow/90 px-2 py-0.5 rounded text-[8px] font-black text-black">
+                              <Sparkles className="w-2 h-2" /> VIBE {photo.vibeScore.toFixed(1)}
+                            </div>
+                          )}
+                        </div>
+
+                        {photo.photoComment && (
+                          <p className="text-sm font-bold leading-tight text-white uppercase tracking-tight line-clamp-3 px-2">
+                            &quot;{photo.photoComment}&quot;
+                          </p>
                         )}
-                      </div>
-                      
-                      {photo.photoComment && (
-                        <p className="text-sm font-bold leading-tight text-white uppercase tracking-tight line-clamp-3 px-2">
-                          &quot;{photo.photoComment}&quot;
-                        </p>
-                      )}
-                      
-                      <div className="pt-3 flex flex-col items-center gap-1 border-t border-white/10 mx-4">
-                        <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">{photo.date}</span>
-                        <span className="text-[8px] font-black text-white/40 uppercase tracking-widest truncate max-w-full">@ {photo.locationName}</span>
+
+                        <div className="pt-3 flex flex-col items-center gap-1 border-t border-white/10 mx-4">
+                          <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">{photo.date}</span>
+                          <span className="text-[8px] font-black text-white/40 uppercase tracking-widest truncate max-w-full">@ {photo.locationName}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  </div>
                 </div>
               ))}
-            </div>          )}
+            </div>)}
         </div>
       </section>
 
@@ -343,14 +343,14 @@ export default function ThemeDetailPage({ params }: PageProps) {
           onClick={() => setSelectedPhotoIndex(null)}
         >
           {/* Close Button */}
-          <button 
+          <button
             onClick={() => setSelectedPhotoIndex(null)}
             className="absolute top-6 right-6 md:top-10 md:right-10 w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center text-text-sub hover:text-text-main hover:bg-foreground/10 transition-all z-10"
           >
             <X className="w-6 h-6" />
           </button>
 
-          <div 
+          <div
             className="w-full max-w-7xl h-full md:h-[80vh] bg-background rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 duration-500"
             onClick={(e) => e.stopPropagation()}
           >
@@ -363,7 +363,7 @@ export default function ThemeDetailPage({ params }: PageProps) {
                 className="object-cover transition-transform duration-1000 group-hover:scale-105"
                 priority
               />
-              
+
               {/* Subtle Overlay for better text/button readability */}
               <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors duration-500" />
 
@@ -376,14 +376,14 @@ export default function ThemeDetailPage({ params }: PageProps) {
 
               {/* Navigation Controls */}
               <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-4 md:px-8 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
-                <button 
-                  onClick={handlePrevPhoto} 
+                <button
+                  onClick={handlePrevPhoto}
                   className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center text-white hover:bg-main-green hover:border-main-green transition-all pointer-events-auto active:scale-90"
                 >
                   <ChevronLeft className="w-8 h-8" />
                 </button>
-                <button 
-                  onClick={handleNextPhoto} 
+                <button
+                  onClick={handleNextPhoto}
                   className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center text-white hover:bg-main-green hover:border-main-green transition-all pointer-events-auto active:scale-90"
                 >
                   <ChevronRight className="w-8 h-8" />
