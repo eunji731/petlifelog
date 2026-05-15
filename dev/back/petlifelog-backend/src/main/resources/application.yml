@@ -21,7 +21,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: ${DDL_AUTO:update}   # 배포 환경에서는 validate 또는 none으로 설정
+      ddl-auto: ${DDL_AUTO:validate}   # 배포 환경에서는 validate 또는 none으로 설정
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect

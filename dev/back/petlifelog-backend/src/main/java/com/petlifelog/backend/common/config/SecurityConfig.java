@@ -103,7 +103,7 @@ public class SecurityConfig {
                 
                 // 6. [URL별 권한 설정] - 어떤 문을 열어줄지 정합니다.
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/kakao/auth-code", "/oauth2/**", "/error", "/favicon.ico").permitAll()
+                        .requestMatchers("/", "/oauth2/**", "/login/oauth2/**", "/error", "/favicon.ico").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/auth/reissue").permitAll()
                         .requestMatchers("/api/members/rejoin").permitAll()
@@ -123,7 +123,7 @@ public class SecurityConfig {
                 // 7. [OAuth2 로그인(카카오) 설정]
                 .oauth2Login(oauth2 -> oauth2
                         // 카카오 로그인 창에서 로그인을 마친 후, 우리 서버로 돌아올 주소입니다. (Redirection)
-                        .redirectionEndpoint(redirection -> redirection.baseUri("/kakao/auth-code"))
+                        //.redirectionEndpoint(redirection -> redirection.baseUri("/kakao/auth-code"))
                         
                         // 카카오에서 준 사용자 데이터를 가져온 뒤, 어떻게 처리할지 정한 서비스입니다.
                         // 카카오 code 받음 ->  Spring Security가 code를 카카오 accessToken으로 바꿈 -> 그 accessToken을 userRequest 안에 넣어둠
