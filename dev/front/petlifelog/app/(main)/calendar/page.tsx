@@ -171,7 +171,7 @@ function CalendarContent() {
               ${showSidePanel ? 'fixed inset-0 z-[150] flex' : 'hidden'} 
               lg:relative lg:inset-auto lg:z-auto lg:flex
               ${isExpanded ? 'lg:flex-1' : 'w-full lg:w-1/2'}
-              shrink-0 border-l border-border bg-background overflow-hidden flex-col transition-all duration-500 relative
+              shrink-0 border-l border-border bg-background overflow-hidden flex-col transition-all duration-500
             `}>
               {/* Expand/Collapse Toggle Button (Desktop Only) */}
               <button 

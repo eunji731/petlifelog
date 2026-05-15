@@ -53,7 +53,7 @@ export default function DiaryPreview({
 
   const renderEmptyState = () => (
     <div className="flex-1 flex flex-col min-h-0 animate-in fade-in duration-500">
-      <div className="flex-1 overflow-y-auto no-scrollbar bg-surface-green/20">
+      <div className="flex-1 overflow-y-auto no-scrollbar touch-pan-y bg-surface-green/20">
         <div className="max-w-4xl mx-auto min-h-full bg-background shadow-2xl flex flex-col items-center justify-center p-10 text-center space-y-6">
           <div className="w-24 h-24 bg-surface-green rounded-full flex items-center justify-center">
             <Calendar className="w-10 h-10 text-main-green opacity-40" />
@@ -73,7 +73,7 @@ export default function DiaryPreview({
 
     return (
       <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-500">
-        <div className="flex-1 overflow-y-auto no-scrollbar bg-surface-green/20 space-y-4 lg:space-y-8">
+        <div className="flex-1 overflow-y-auto no-scrollbar touch-pan-y bg-surface-green/20 space-y-4 lg:space-y-8">
           {logs.map((log) => (
             <div key={log.id} className="max-w-4xl mx-auto bg-background shadow-2xl first:mt-0">
               <div className="bg-background border-b border-border overflow-hidden">
@@ -153,7 +153,7 @@ export default function DiaryPreview({
 
     return (
       <div className="flex-1 flex flex-col min-h-0 animate-in slide-in-from-right-4 duration-500">
-        <div className="flex-1 overflow-y-auto no-scrollbar bg-background space-y-20">
+        <div className="flex-1 overflow-y-auto no-scrollbar touch-pan-y bg-background space-y-20">
           {logs.map((log) => (
             <div key={log.id} className="max-w-[1600px] mx-auto flex flex-col lg:flex-row min-h-full border-b border-border/50 last:border-b-0">
               <div className="lg:w-[40%] p-6 lg:p-16 lg:sticky lg:top-0 lg:h-[calc(100vh-80px)] flex flex-col overflow-y-auto no-scrollbar">
