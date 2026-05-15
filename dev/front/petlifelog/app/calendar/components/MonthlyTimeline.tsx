@@ -96,9 +96,11 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const images = Array.from(element.getElementsByTagName('img'));
     const originalSources = new Map<HTMLImageElement, { src: string; srcset: string }>();
+    let tempContainer: HTMLDivElement | null = null;
     let pcStyle: HTMLStyleElement | null = null;
 
     try {
+      // 모든 이미지를 data URL로 변환 (CORS 및 캡처 누락 방지)
       await Promise.all(
         images.map(async (img) => {
           const src = img.getAttribute('src');
@@ -122,36 +124,47 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
         })
       );
 
-      const noExportElements = element.querySelectorAll('.no-export');
-      noExportElements.forEach(el => (el as HTMLElement).style.opacity = '0');
+      // 다운로드 버튼 등 숨기기
+      element.querySelectorAll('.no-export').forEach(el => (el as HTMLElement).style.opacity = '0');
+
+      let captureTarget: HTMLElement = element;
 
       if (isMobile) {
-        // md: 브레이크포인트 클래스를 강제 적용해 PC 레이아웃으로 캡처
+        // 핵심: 클론을 화면 밖 900px 컨테이너에 실제로 붙여서
+        // 브라우저가 PC 너비로 레이아웃을 재계산하게 만든 뒤 캡처
+        tempContainer = document.createElement('div');
+        tempContainer.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:900px;pointer-events:none;z-index:-1;visibility:hidden;';
+        document.body.appendChild(tempContainer);
+
+        // md: 미디어쿼리 없이 PC 레이아웃 클래스 강제 적용
         pcStyle = document.createElement('style');
         pcStyle.textContent = `
-          .capture-pc-layout .md\\:flex-row { flex-direction: row !important; }
-          .capture-pc-layout .md\\:flex-row-reverse { flex-direction: row-reverse !important; }
-          .capture-pc-layout .md\\:w-1\\/2 { width: 50% !important; }
-          .capture-pc-layout .md\\:text-left { text-align: left !important; }
-          .capture-pc-layout .md\\:justify-start { justify-content: flex-start !important; }
-          .capture-pc-layout .md\\:p-12 { padding: 3rem !important; }
-          .capture-pc-layout .md\\:p-16 { padding: 4rem !important; }
+          .export-pc.md\\:flex-row, .export-pc .md\\:flex-row { flex-direction: row !important; }
+          .export-pc.md\\:flex-row-reverse, .export-pc .md\\:flex-row-reverse { flex-direction: row-reverse !important; }
+          .export-pc .md\\:w-1\\/2 { width: 50% !important; }
+          .export-pc .md\\:text-left { text-align: left !important; }
+          .export-pc .md\\:justify-start { justify-content: flex-start !important; }
+          .export-pc .md\\:p-12 { padding: 3rem !important; }
+          .export-pc .md\\:p-16 { padding: 4rem !important; }
         `;
         document.head.appendChild(pcStyle);
-        element.classList.add('capture-pc-layout');
+
+        const clone = element.cloneNode(true) as HTMLElement;
+        clone.classList.add('export-pc');
+        clone.style.width = '900px';
+        tempContainer.appendChild(clone);
+        captureTarget = clone;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // 브라우저가 레이아웃을 재계산할 시간
+      await new Promise(resolve => setTimeout(resolve, 400));
 
-      const dataUrl = await toPng(element, {
+      const dataUrl = await toPng(captureTarget, {
         backgroundColor: '#ffffff',
         cacheBust: true,
         skipFonts: true,
         pixelRatio: isMobile ? 1.5 : 2,
-        style: {
-          padding: '40px',
-          ...(isMobile ? { width: '900px', minWidth: '900px' } : {}),
-        },
+        style: { padding: '40px' },
       });
 
       return dataUrl;
@@ -161,10 +174,8 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
     } finally {
       originalSources.forEach(({ src, srcset }, img) => { img.srcset = srcset; img.src = src; });
       element.querySelectorAll('.no-export').forEach(el => (el as HTMLElement).style.opacity = '1');
-      if (pcStyle) {
-        element.classList.remove('capture-pc-layout');
-        document.head.removeChild(pcStyle);
-      }
+      if (tempContainer) document.body.removeChild(tempContainer);
+      if (pcStyle) document.head.removeChild(pcStyle);
     }
   };
 
