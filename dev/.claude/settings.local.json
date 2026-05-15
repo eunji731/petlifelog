@@ -9,7 +9,9 @@
       "Bash(xargs grep -l \"files\\\\|image\\\\|photo\")",
       "Bash(xargs grep -l \"fileUrl\\\\|imageUrl\\\\|/files\")",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
+      "Bash(Get-ChildItem -Recurse -Path \"front\\\\petlifelog\\\\src\" -Include \"*.tsx\", \"*.ts\", \"*.jsx\", \"*.js\", \"*.vue\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }

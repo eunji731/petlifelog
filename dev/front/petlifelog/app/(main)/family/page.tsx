@@ -473,15 +473,15 @@ export default function FamilyPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button 
+                      <button
                         onClick={(e) => handleEditClick(e, pet)}
-                        className="p-2 text-text-sub hover:text-main-green opacity-0 group-hover:opacity-100 transition-all"
+                        className="p-2 text-text-sub hover:text-main-green opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                       >
                         <Sparkles className="w-4 h-4" />
                       </button>
-                      <button 
+                      <button
                         onClick={(e) => handleRemovePet(e, pet.id, pet.name)}
-                        className="p-2 text-text-sub hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                        className="p-2 text-text-sub hover:text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
