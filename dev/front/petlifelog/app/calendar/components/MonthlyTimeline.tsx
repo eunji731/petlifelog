@@ -93,10 +93,12 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
     const element = document.getElementById(`group-container-${dateKey}`);
     if (!element) return null;
 
-    try {
-      const images = Array.from(element.getElementsByTagName('img'));
-      const originalSources = new Map<HTMLImageElement, { src: string; srcset: string }>();
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const images = Array.from(element.getElementsByTagName('img'));
+    const originalSources = new Map<HTMLImageElement, { src: string; srcset: string }>();
+    let pcStyle: HTMLStyleElement | null = null;
 
+    try {
       await Promise.all(
         images.map(async (img) => {
           const src = img.getAttribute('src');
@@ -123,24 +125,46 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
       const noExportElements = element.querySelectorAll('.no-export');
       noExportElements.forEach(el => (el as HTMLElement).style.opacity = '0');
 
+      if (isMobile) {
+        // md: 브레이크포인트 클래스를 강제 적용해 PC 레이아웃으로 캡처
+        pcStyle = document.createElement('style');
+        pcStyle.textContent = `
+          .capture-pc-layout .md\\:flex-row { flex-direction: row !important; }
+          .capture-pc-layout .md\\:flex-row-reverse { flex-direction: row-reverse !important; }
+          .capture-pc-layout .md\\:w-1\\/2 { width: 50% !important; }
+          .capture-pc-layout .md\\:text-left { text-align: left !important; }
+          .capture-pc-layout .md\\:justify-start { justify-content: flex-start !important; }
+          .capture-pc-layout .md\\:p-12 { padding: 3rem !important; }
+          .capture-pc-layout .md\\:p-16 { padding: 4rem !important; }
+        `;
+        document.head.appendChild(pcStyle);
+        element.classList.add('capture-pc-layout');
+      }
+
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
         cacheBust: true,
         skipFonts: true,
         pixelRatio: isMobile ? 1.5 : 2,
-        style: { padding: '40px' }
+        style: {
+          padding: '40px',
+          ...(isMobile ? { width: '900px', minWidth: '900px' } : {}),
+        },
       });
-
-      originalSources.forEach(({ src, srcset }, img) => { img.srcset = srcset; img.src = src; });
-      noExportElements.forEach(el => (el as HTMLElement).style.opacity = '1');
 
       return dataUrl;
     } catch (err) {
       console.error('Capture process failed:', err);
       throw err;
+    } finally {
+      originalSources.forEach(({ src, srcset }, img) => { img.srcset = srcset; img.src = src; });
+      element.querySelectorAll('.no-export').forEach(el => (el as HTMLElement).style.opacity = '1');
+      if (pcStyle) {
+        element.classList.remove('capture-pc-layout');
+        document.head.removeChild(pcStyle);
+      }
     }
   };
 
