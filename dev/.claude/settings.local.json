@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(gradlew.bat dependencies *)",
-      "Bash(Select-String -Pattern \"awspring|aws-sdk|s3\")"
+      "Bash(Select-String -Pattern \"awspring|aws-sdk|s3\")",
+      "Bash(xargs grep -l \"imageUrl\\\\|image_url\\\\|profileImage\")",
+      "Bash(xargs grep -l \"pathOrigin\\\\|getFileUrl\\\\|imageUrl\")",
+      "Bash(xargs grep -l \"S3\\\\|s3\\\\|imageUrl\\\\|image_url\\\\|AWS\")",
+      "Bash(xargs grep -l \"files\\\\|image\\\\|photo\")",
+      "Bash(xargs grep -l \"fileUrl\\\\|imageUrl\\\\|/files\")",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
     ]
   }
 }

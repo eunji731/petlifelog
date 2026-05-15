@@ -177,7 +177,7 @@ public class AiDiaryService {
 
             Photo photo = Photo.builder()
                     .memory(memory)
-                    .pathOrigin(fileStorageService.getFileUrl(af.getStoredPath()))
+                    .pathOrigin(af.getStoredPath())
                     .takenAt(info.getTakenAt())
                     .gpsLat(info.getLatitude())
                     .gpsLng(info.getLongitude())

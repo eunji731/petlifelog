@@ -2,6 +2,7 @@ package com.petlifelog.backend.domain.memory.service;
 
 import com.petlifelog.backend.common.file.domain.ParentDomainType;
 import com.petlifelog.backend.common.file.service.AttachedFileService;
+import com.petlifelog.backend.common.file.service.FileStorageService;
 import com.petlifelog.backend.domain.memory.domain.Memory;
 import com.petlifelog.backend.domain.memory.domain.MemoryMoment;
 import com.petlifelog.backend.domain.memory.domain.Photo;
@@ -40,6 +41,7 @@ public class MemoryService {
 
     private final MemoryRepository memoryRepository;
     private final AttachedFileService attachedFileService;
+    private final FileStorageService fileStorageService;
 
     /**
      * 사용자의 일기 목록을 반환합니다.
@@ -81,7 +83,7 @@ public class MemoryService {
     private MemoryListResponse toResponse(Memory memory) {
         // 대표 사진 경로 (없으면 null)
         String repPath = memory.getRepresentativePhoto() != null
-                ? memory.getRepresentativePhoto().getPathOrigin()
+                ? fileStorageService.getFileUrl(memory.getRepresentativePhoto().getPathOrigin())
                 : null;
 
         // 사진 목록 (sortOrder 기준 정렬)
@@ -106,7 +108,9 @@ public class MemoryService {
                         .locationName(m.getLocationName())
                         .energyLevel(m.getEnergyLevel())
                         .tags(m.getTags())
-                        .representativePhotoPath(m.getRepresentativePhotoPath())
+                        .representativePhotoPath(m.getRepresentativePhotoPath() != null
+                                ? fileStorageService.getFileUrl(m.getRepresentativePhotoPath())
+                                : null)
                         .photos(m.getPhotos().stream()
                                 .sorted(Comparator.comparingInt(Photo::getSortOrder))
                                 .map(this::toPhotoInfo)
@@ -133,7 +137,7 @@ public class MemoryService {
     private MemoryListResponse.PhotoInfo toPhotoInfo(Photo p) {
         return MemoryListResponse.PhotoInfo.builder()
                 .id(p.getId().toString())
-                .path(p.getPathOrigin())
+                .path(fileStorageService.getFileUrl(p.getPathOrigin()))
                 .takenAt(p.getTakenAt() != null ? p.getTakenAt().toString() : null)
                 .latitude(p.getGpsLat())
                 .longitude(p.getGpsLng())
