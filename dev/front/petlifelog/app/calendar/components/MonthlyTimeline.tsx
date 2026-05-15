@@ -101,13 +101,21 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
 
     try {
       // 모든 이미지를 data URL로 변환 (CORS 및 캡처 누락 방지)
+      // S3 등 외부 URL은 /_next/image 프록시를 통해 same-origin으로 우회
+      const toProxiedUrl = (src: string) => {
+        if (src.startsWith('http')) {
+          return `/_next/image?url=${encodeURIComponent(src)}&w=1200&q=90`;
+        }
+        return src;
+      };
+
       await Promise.all(
         images.map(async (img) => {
           const src = img.getAttribute('src');
           if (src && !src.startsWith('data:')) {
             try {
               originalSources.set(img, { src, srcset: img.srcset });
-              const response = await fetch(src);
+              const response = await fetch(toProxiedUrl(src));
               const blob = await response.blob();
               const reader = new FileReader();
               const dataUrl = await new Promise<string>((resolve, reject) => {
