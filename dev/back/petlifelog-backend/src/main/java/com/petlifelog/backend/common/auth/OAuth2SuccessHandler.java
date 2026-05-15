@@ -41,6 +41,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${app.cookie.secure:false}")
     private boolean cookieSecure;
 
+    @Value("${app.cookie.domain:}")
+    private String cookieDomain;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
@@ -82,16 +85,33 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
      * [쿠키를 생성해서 응답에 추가하는 메서드]
      */
     private void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
-        ResponseCookie cookie = ResponseCookie.from(name, value)
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .path("/")
-                .maxAge(maxAge)
-                .sameSite("Lax")
-                .build();
-        
-        // HTTP 응답 헤더에 'Set-Cookie'라는 이름으로 쿠키 정보를 싣습니다.
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        String cookieString;
+
+        if (cookieDomain != null && !cookieDomain.isBlank()) {
+            cookieString = ResponseCookie.from(name, value)
+                    .httpOnly(true)
+                    .secure(cookieSecure)
+                    .domain(cookieDomain)
+                    .path("/")
+                    .maxAge(maxAge)
+                    .sameSite("Lax")
+                    .build()
+                    .toString();
+        } else {
+            cookieString = ResponseCookie.from(name, value)
+                    .httpOnly(true)
+                    .secure(cookieSecure)
+                    .path("/")
+                    .maxAge(maxAge)
+                    .sameSite("Lax")
+                    .build()
+                    .toString();
+        }
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookieString);
+
+        log.info("Set-Cookie 생성 - name: {}, secure: {}, domain: {}, sameSite: Lax",
+                name, cookieSecure, cookieDomain);
     }
 
     /**

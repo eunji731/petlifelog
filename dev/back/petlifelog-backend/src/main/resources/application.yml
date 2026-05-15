@@ -61,6 +61,7 @@ app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   cookie:
     secure: ${COOKIE_SECURE:false}   # 배포 환경(HTTPS)에서는 반드시 true로 설정
+    domain: ${COOKIE_DOMAIN:}
   upload:
     base-path: ${UPLOAD_BASE_PATH:D:/uploads}
     daily-path: ${app.upload.base-path}/daily
