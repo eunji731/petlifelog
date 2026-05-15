@@ -99,12 +99,25 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
     const captureFixStyle = document.createElement('style');
 
     try {
+      // lazy load된 이미지가 아직 로드되지 않은 경우 대기
+      await Promise.all(
+        images.map(img => {
+          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+          return new Promise<void>(resolve => {
+            const timer = setTimeout(resolve, 3000);
+            img.addEventListener('load', () => { clearTimeout(timer); resolve(); }, { once: true });
+            img.addEventListener('error', () => { clearTimeout(timer); resolve(); }, { once: true });
+          });
+        })
+      );
+
       await Promise.all(
         images.map(async (img) => {
-          const src = img.getAttribute('src');
+          // currentSrc: 실제 로드된 URL(srcset에서 선택된 URL), src 속성 fallback
+          const src = img.currentSrc || img.getAttribute('src');
           if (src && !src.startsWith('data:')) {
             try {
-              originalSources.set(img, src);
+              originalSources.set(img, img.getAttribute('src') || src);
               const response = await fetch(src);
               const blob = await response.blob();
               const reader = new FileReader();
@@ -126,8 +139,14 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
       // 다크모드에서도 흰 배경 캡처: .light 클래스로 CSS 변수를 라이트모드 값으로 강제
       element.classList.add('light');
       // backdrop-blur는 html-to-image에서 회색 아티팩트 발생 → 제거
+      // bg-background/60의 반투명 배경도 흰색으로 강제해 회색 배경 방지
       captureFixStyle.textContent = `
-        #group-container-${dateKey}, #group-container-${dateKey} * {
+        #group-container-${dateKey} {
+          background-color: #ffffff !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+        #group-container-${dateKey} * {
           backdrop-filter: none !important;
           -webkit-backdrop-filter: none !important;
         }

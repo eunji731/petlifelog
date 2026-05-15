@@ -22,7 +22,7 @@ export default function MainLayout({
       <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <MobileHeader onMenuClick={() => setIsMobileMenuOpen(true)} />
-        <main className="flex-1 flex flex-col min-h-0">
+        <main className="flex-1 flex flex-col min-h-0 overflow-y-auto">
           {children}
         </main>
       </div>
