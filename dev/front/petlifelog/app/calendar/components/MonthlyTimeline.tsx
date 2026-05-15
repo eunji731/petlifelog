@@ -93,10 +93,12 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
     const element = document.getElementById(`group-container-${dateKey}`);
     if (!element) return null;
 
-    try {
-      const images = Array.from(element.getElementsByTagName('img'));
-      const originalSources = new Map<HTMLImageElement, string>();
+    const images = Array.from(element.getElementsByTagName('img'));
+    const originalSources = new Map<HTMLImageElement, string>();
+    const noExportElements = element.querySelectorAll('.no-export');
+    const captureFixStyle = document.createElement('style');
 
+    try {
       await Promise.all(
         images.map(async (img) => {
           const src = img.getAttribute('src');
@@ -119,8 +121,18 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
         })
       );
 
-      const noExportElements = element.querySelectorAll('.no-export');
       noExportElements.forEach(el => (el as HTMLElement).style.opacity = '0');
+
+      // 다크모드에서도 흰 배경 캡처: .light 클래스로 CSS 변수를 라이트모드 값으로 강제
+      element.classList.add('light');
+      // backdrop-blur는 html-to-image에서 회색 아티팩트 발생 → 제거
+      captureFixStyle.textContent = `
+        #group-container-${dateKey}, #group-container-${dateKey} * {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+      `;
+      document.head.appendChild(captureFixStyle);
 
       await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -132,13 +144,15 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
         style: { padding: '40px' }
       });
 
-      originalSources.forEach((src, img) => { img.src = src; });
-      noExportElements.forEach(el => (el as HTMLElement).style.opacity = '1');
-
       return dataUrl;
     } catch (err) {
       console.error('Capture process failed:', err);
       throw err;
+    } finally {
+      element.classList.remove('light');
+      if (captureFixStyle.parentNode) document.head.removeChild(captureFixStyle);
+      originalSources.forEach((src, img) => { img.src = src; });
+      noExportElements.forEach(el => (el as HTMLElement).style.opacity = '1');
     }
   };
 
@@ -269,7 +283,7 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
                               </div>
                               <h3 className="text-xl font-black text-text-main group-hover:text-main-green transition-colors">{moment.aiTitle}</h3>
                               <p className="text-sm font-medium text-text-main/80 leading-relaxed italic line-clamp-3">&quot;{moment.aiContent}&quot;</p>
-                              <div className="flex flex-wrap justify-center md:justify-start gap-1.5 pt-2">{moment.tags.map(tag => (<span key={tag} className="text-[10px] font-bold text-text-sub">#{tag}</span>))}</div>
+                              <div className="flex flex-wrap justify-center md:justify-start gap-1.5 pt-2">{moment.tags.map(tag => (<span key={tag} className="text-[10px] font-bold text-text-sub whitespace-nowrap">#{tag}</span>))}</div>
                             </div>
                           </div>
                         ))}
