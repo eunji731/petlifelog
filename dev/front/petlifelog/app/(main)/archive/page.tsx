@@ -102,7 +102,7 @@ export default function ArchivePage() {
         
         {/* Full-Width Compact Sticky Header */}
         <div className="sticky top-0 z-[100] bg-background/95 backdrop-blur-xl border-b border-border">
-          <div className="w-full px-6 md:px-10 h-16 flex items-center justify-between gap-12">
+          <div className="w-full px-4 md:px-10 h-16 flex items-center justify-between gap-3 md:gap-12">
             {/* Minimal Title */}
             <div className="flex items-center gap-3 shrink-0">
               <div className="w-8 h-8 bg-main-green/10 rounded-lg flex items-center justify-center">
@@ -128,12 +128,12 @@ export default function ArchivePage() {
 
             {/* Compact Integrated Search */}
             <div className="relative group shrink-0" ref={searchRef}>
-              <div className="flex items-center bg-surface-green/50 rounded-full px-5 py-2 border border-transparent focus-within:border-main-green/30 focus-within:bg-background transition-all shadow-sm">
-                <Search className="w-4 h-4 text-text-sub mr-2 group-focus-within:text-main-green" />
-                <input 
-                  type="text" 
-                  placeholder="태그 검색..." 
-                  className="bg-transparent border-none focus:outline-none text-[11px] font-bold text-text-main placeholder:text-text-sub/40 w-40 md:w-56"
+              <div className="flex items-center bg-surface-green/50 rounded-full px-3 md:px-5 py-2 border border-transparent focus-within:border-main-green/30 focus-within:bg-background transition-all shadow-sm">
+                <Search className="w-4 h-4 text-text-sub mr-2 group-focus-within:text-main-green shrink-0" />
+                <input
+                  type="text"
+                  placeholder="태그 검색..."
+                  className="bg-transparent border-none focus:outline-none text-[11px] font-bold text-text-main placeholder:text-text-sub/40 w-24 sm:w-36 md:w-56"
                   value={searchQuery}
                   onChange={handleSearchChange}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}

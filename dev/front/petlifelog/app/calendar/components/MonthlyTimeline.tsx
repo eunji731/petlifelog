@@ -95,14 +95,14 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
 
     try {
       const images = Array.from(element.getElementsByTagName('img'));
-      const originalSources = new Map<HTMLImageElement, string>();
+      const originalSources = new Map<HTMLImageElement, { src: string; srcset: string }>();
 
       await Promise.all(
         images.map(async (img) => {
           const src = img.getAttribute('src');
           if (src && !src.startsWith('data:')) {
             try {
-              originalSources.set(img, src);
+              originalSources.set(img, { src, srcset: img.srcset });
               const response = await fetch(src);
               const blob = await response.blob();
               const reader = new FileReader();
@@ -111,6 +111,7 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
                 reader.onerror = reject;
                 reader.readAsDataURL(blob);
               });
+              img.srcset = '';
               img.src = dataUrl;
             } catch (e) {
               console.warn(`Failed to pre-fetch image ${src}:`, e);
@@ -124,15 +125,16 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
 
       await new Promise(resolve => setTimeout(resolve, 300));
 
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
         cacheBust: true,
         skipFonts: true,
-        pixelRatio: 2,
+        pixelRatio: isMobile ? 1.5 : 2,
         style: { padding: '40px' }
       });
 
-      originalSources.forEach((src, img) => { img.src = src; });
+      originalSources.forEach(({ src, srcset }, img) => { img.srcset = srcset; img.src = src; });
       noExportElements.forEach(el => (el as HTMLElement).style.opacity = '1');
 
       return dataUrl;
@@ -148,9 +150,24 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
       const dataUrl = await captureGroup(dateKey);
       if (!dataUrl) return;
 
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const filename = `petlifelog-${dateKey}`;
+
       if (format === 'png') {
+        if (isMobile && typeof navigator.share === 'function') {
+          const blob = await fetch(dataUrl).then(r => r.blob());
+          const file = new File([blob], `${filename}.png`, { type: 'image/png' });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], title: filename });
+            return;
+          }
+        }
+        if (isMobile) {
+          window.open(dataUrl, '_blank');
+          return;
+        }
         const link = document.createElement('a');
-        link.download = `petlifelog-${dateKey}.png`;
+        link.download = `${filename}.png`;
         link.href = dataUrl;
         link.click();
       } else {
@@ -159,7 +176,21 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
         await new Promise((resolve) => (img.onload = resolve));
         const pdf = new jsPDF({ unit: 'px', format: [img.width, img.height], orientation: img.width > img.height ? 'l' : 'p' });
         pdf.addImage(dataUrl, 'PNG', 0, 0, img.width, img.height);
-        pdf.save(`petlifelog-${dateKey}.pdf`);
+
+        if (isMobile && typeof navigator.share === 'function') {
+          const pdfBlob = pdf.output('blob');
+          const file = new File([pdfBlob], `${filename}.pdf`, { type: 'application/pdf' });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], title: filename });
+            return;
+          }
+        }
+        if (isMobile) {
+          const pdfUrl = pdf.output('bloburl');
+          window.open(pdfUrl as unknown as string, '_blank');
+          return;
+        }
+        pdf.save(`${filename}.pdf`);
       }
     } catch (err: any) {
       console.error('Export failed', err);
