@@ -13,6 +13,7 @@ import MomentImageSlider from './MomentImageSlider';
 interface StoredFileInfo {
   originalName: string;
   storedPath: string;
+  fileUrl?: string;
   contentType: string;
   fileSize: number;
   takenAt?: string;
@@ -231,7 +232,7 @@ export default function DiaryEditor({ date, initialData, onSave, onCancel }: Dia
 
       // originalName → fileUrl 매핑 (AI 분석 중 저장된 파일 URL)
       const nameToUrl = new Map<string, string>(
-        files.map(f => [f.originalName, toFileUrl(f.storedPath)])
+        files.map(f => [f.originalName, f.fileUrl ?? toFileUrl(f.storedPath)])
       );
 
       const getPhotoUrl = (filename?: string): string => {

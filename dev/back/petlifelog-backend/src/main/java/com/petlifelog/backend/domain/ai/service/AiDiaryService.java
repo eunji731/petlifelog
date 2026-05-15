@@ -88,6 +88,7 @@ public class AiDiaryService {
                 storedFiles.add(StoredFileInfo.builder()
                         .originalName(file.getOriginalFilename())
                         .storedPath(storedPath)
+                        .fileUrl(fileStorageService.getFileUrl(storedPath))
                         .contentType(file.getContentType())
                         .fileSize(file.getSize())
                         .takenAt(exif.takenAt)

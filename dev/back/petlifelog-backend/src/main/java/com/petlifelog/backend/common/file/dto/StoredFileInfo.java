@@ -19,6 +19,7 @@ public class StoredFileInfo {
 
     private String originalName;
     private String storedPath;    // FileStorageService 가 반환한 상대 경로
+    private String fileUrl;       // 미리보기용 접근 가능한 URL (로컬: /files/..., S3: https://...)
     private String contentType;
     private Long fileSize;
 
