@@ -1,5 +1,6 @@
 package com.petlifelog.backend.domain.dashboard.service;
 
+import com.petlifelog.backend.common.file.service.FileStorageService;
 import com.petlifelog.backend.domain.dashboard.dto.DashboardSummaryResponse;
 import com.petlifelog.backend.domain.dashboard.dto.DashboardSummaryResponse.*;
 import com.petlifelog.backend.domain.memory.repository.MemoryMomentRepository;
@@ -29,6 +30,7 @@ public class DashboardService {
     private final MemoryRepository memoryRepository;
     private final MemoryMomentRepository memoryMomentRepository;
     private final PhotoRepository photoRepository;
+    private final FileStorageService fileStorageService;
 
     public DashboardSummaryResponse getSummary(UUID userId, UUID petId, YearMonth yearMonth) {
         LocalDate today = LocalDate.now();
@@ -82,7 +84,7 @@ public class DashboardService {
         return photoRepository.findBestPhotos(userId, petId).stream()
                 .limit(6)
                 .map(photo -> BestPhotoItem.builder()
-                        .photoPath(photo.getPathOrigin())
+                        .photoPath(fileStorageService.getFileUrl(photo.getPathOrigin()))
                         .memoryId(photo.getMemory().getId().toString())
                         .memoryDate(photo.getMemory().getMemoryDate().toString())
                         .vibeScore(photo.getVibeScore())

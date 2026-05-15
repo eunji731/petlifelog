@@ -1,5 +1,6 @@
 package com.petlifelog.backend.domain.archive.service;
 
+import com.petlifelog.backend.common.file.service.FileStorageService;
 import com.petlifelog.backend.domain.archive.dto.ArchivePhotoResponse;
 import com.petlifelog.backend.domain.archive.dto.ThemeTabResponse;
 import com.petlifelog.backend.domain.memory.domain.Photo;
@@ -18,6 +19,7 @@ import java.util.UUID;
 public class ArchiveService {
 
     private final PhotoThemeTagRepository photoThemeTagRepository;
+    private final FileStorageService fileStorageService;
 
     public List<ThemeTabResponse> getTopThemes(UUID userId, UUID petId, int page, int size) {
         List<Object[]> rows = photoThemeTagRepository.findTopTags(
@@ -26,7 +28,7 @@ public class ArchiveService {
         return rows.stream().map(row -> ThemeTabResponse.builder()
                 .tag((String) row[0])
                 .count((Long) row[1])
-                .representativePhotoUrl((String) row[2])
+                .representativePhotoUrl(toPhotoUrl((String) row[2]))
                 .build()
         ).toList();
     }
@@ -58,7 +60,7 @@ public class ArchiveService {
         return ThemeTabResponse.builder()
                 .tag(tag)
                 .count((Long) row[1])
-                .representativePhotoUrl((String) row[2])
+                .representativePhotoUrl(toPhotoUrl((String) row[2]))
                 .build();
     }
 
@@ -67,14 +69,22 @@ public class ArchiveService {
         return rows.stream().map(row -> ThemeTabResponse.builder()
                 .tag((String) row[0])
                 .count((Long) row[1])
-                .representativePhotoUrl((String) row[2])
+                .representativePhotoUrl(toPhotoUrl((String) row[2]))
                 .build()
         ).toList();
     }
 
     private List<ArchivePhotoResponse> toResponseList(List<Photo> photos) {
         return photos.stream()
-                .map(photo -> ArchivePhotoResponse.from(photo, List.of()))
+                .map(photo -> ArchivePhotoResponse.from(
+                        photo,
+                        fileStorageService.getFileUrl(photo.getPathOrigin()),
+                        List.of()))
                 .toList();
+    }
+
+    private String toPhotoUrl(String storedPath) {
+        if (storedPath == null) return null;
+        return fileStorageService.getFileUrl(storedPath);
     }
 }

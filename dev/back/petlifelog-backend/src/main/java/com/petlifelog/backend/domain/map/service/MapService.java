@@ -1,5 +1,6 @@
 package com.petlifelog.backend.domain.map.service;
 
+import com.petlifelog.backend.common.file.service.FileStorageService;
 import com.petlifelog.backend.domain.map.dto.MapMarkerResponse;
 import com.petlifelog.backend.domain.map.dto.MapMemoryResponse;
 import com.petlifelog.backend.domain.memory.domain.Memory;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class MapService {
 
     private final PhotoRepository photoRepository;
+    private final FileStorageService fileStorageService;
 
     public List<MapMemoryResponse> getMapMemories(
             UUID userId,
@@ -84,9 +86,9 @@ public class MapService {
 
     private MapMarkerResponse toMarkerResponse(Photo photo) {
         Memory memory = photo.getMemory();
-        String thumb = photo.getPathThumb100() != null ? photo.getPathThumb100()
-                : photo.getPathThumb300() != null ? photo.getPathThumb300()
-                : photo.getPathOrigin();
+        String thumb = photo.getPathThumb100() != null ? fileStorageService.getFileUrl(photo.getPathThumb100())
+                : photo.getPathThumb300() != null ? fileStorageService.getFileUrl(photo.getPathThumb300())
+                : fileStorageService.getFileUrl(photo.getPathOrigin());
 
         return MapMarkerResponse.builder()
                 .id(photo.getId())
@@ -103,7 +105,7 @@ public class MapService {
 
         return MapMemoryResponse.builder()
                 .photoId(photo.getId())
-                .path(photo.getPathOrigin())
+                .path(fileStorageService.getFileUrl(photo.getPathOrigin()))
                 .takenAt(photo.getTakenAt())
                 .latitude(photo.getGpsLat())
                 .longitude(photo.getGpsLng())

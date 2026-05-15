@@ -21,10 +21,10 @@ public class ArchivePhotoResponse {
     private String aiComment;
     private List<String> themeTags;
 
-    public static ArchivePhotoResponse from(Photo photo, List<String> themeTags) {
+    public static ArchivePhotoResponse from(Photo photo, String fileUrl, List<String> themeTags) {
         return ArchivePhotoResponse.builder()
                 .photoId(photo.getId())
-                .photoUrl(photo.getPathOrigin())
+                .photoUrl(fileUrl)
                 .memoryDate(photo.getMemory().getMemoryDate())
                 .memoryTitle(photo.getMemory().getAiTitle())
                 .memoryId(photo.getMemory().getId())

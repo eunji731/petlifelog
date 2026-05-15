@@ -17,7 +17,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { useDiary } from '@/app/common/hooks/useDiary';
-import { getImagePath, default as clientApi } from '@/app/common/lib/clientApi';
+import { getImagePath } from '@/app/common/lib/clientApi';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import TimelineDatePicker from './TimelineDatePicker';
@@ -103,12 +103,13 @@ export default function MonthlyTimeline({ currentDate, onDateSelect, initialDate
           if (src && !src.startsWith('data:')) {
             try {
               originalSources.set(img, src);
-              const response = await clientApi.get(src, { responseType: 'blob' });
+              const response = await fetch(src);
+              const blob = await response.blob();
               const reader = new FileReader();
               const dataUrl = await new Promise<string>((resolve, reject) => {
                 reader.onloadend = () => resolve(reader.result as string);
                 reader.onerror = reject;
-                reader.readAsDataURL(response.data);
+                reader.readAsDataURL(blob);
               });
               img.src = dataUrl;
             } catch (e) {
